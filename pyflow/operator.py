@@ -1,0 +1,514 @@
+import asyncio
+
+from collections import defaultdict
+from typing import Callable, Sequence, Any, Union, Tuple
+
+from .channel import Channel, ValueChannel, QueueChannel, ChannelDict, ChannelDictData, END
+from .task import Task, ArgsTask, MapTask
+from .executor import get_executor
+from .utils import extend_method
+
+"""
+Only Map and Reduce uses executor, other operators runs locally
+"""
+
+Predicate = Callable[[Any], bool]
+
+
+################################################## Compose Task #######################################################
+# overrite handle_channel_inputs
+class Merge(ArgsTask):
+    async def handle_channel_inputs(self, inputs: ChannelDict):
+        while True:
+            items = []
+            for ch in inputs:
+                item = await ch.get()
+                if item is END:
+                    await self.output.put(END)
+                    return END
+                items.append(item)
+            await self.output.put(tuple(items))
+
+
+class Mix(ArgsTask):
+    async def handle_channel_inputs(self, inputs: ChannelDict):
+        num_constant_ch = sum(isinstance(ch, ValueChannel) for ch in inputs)
+        if num_constant_ch > 0:
+            raise ValueError("Can not mix with constant channel.")
+
+        async def pump_queue(ch: Channel):
+            while True:
+                item = await ch.get()
+                if item is END:
+                    return END
+                await self.output.put(item)
+
+        results = await asyncio.wait(
+            [asyncio.ensure_future(pump_queue(ch)) for ch in inputs]
+        )
+        await self.output.put(END)
+        return END
+
+
+class Concat(ArgsTask):
+    async def handle_channel_inputs(self, inputs: ChannelDict):
+        for ch in tuple(inputs)[::-1]:
+            while True:
+                item = await ch.get()
+                if item is END:
+                    break
+                await self.output.put(item)
+
+        await self.output.put(END)
+        return END
+
+
+class Branch(ArgsTask):
+    def __init__(self, by: Sequence[Callable], **kwargs):
+        super().__init__(**kwargs)
+        self.fns = by
+
+    def initialize_output(self) -> Tuple[QueueChannel]:
+        self.output = tuple(QueueChannel() for i in range(len(self.fns) + 1))
+        for ch in self.output:
+            ch.task = self
+        return self.output
+
+    async def handle_channel_inputs(self, inputs: ChannelDict):
+        while True:
+            value = (await inputs.get()).to_value()
+            if value is END:
+                for out_ch in self.output:
+                    await out_ch.put(END)
+                return END
+            for i, fn in enumerate(self.fns):
+                match = fn(value)
+                if match:
+                    await self.output[i].put(value)
+                    break
+            else:
+                await self.output[-1].put(value)
+
+
+class Sample(ArgsTask):
+    def __init__(self, num: int, **kwargs):
+        super().__init__(**kwargs)
+        self.num = num
+        self.reservoir = []
+
+    async def handle_end(self):
+        for item in self.reservoir:
+            await self.output.put(item)
+        await self.output.put(END)
+        return END
+
+    async def handle_channel_inputs(self, inputs: ChannelDict):
+        import random
+        for i in range(self.num):
+            value = (await inputs.get()).to_value()
+            if value is END:
+                return await self.handle_end()
+            else:
+                self.reservoir.append(value)
+
+        cur = self.num
+        while True:
+            value = (await inputs.get()).to_value()
+            if value is END:
+                return await self.handle_end()
+            else:
+                i = random.randint(0, cur)
+                if i < self.num:
+                    self.reservoir[i] = value
+            cur += 1
+
+
+########################################################## Map Task ###########################################3
+# overrite handle_data_inputs
+
+class Subscribe(MapTask):
+    def __init__(self, on_next: Callable = None, on_complete: Callable = None, **kwargs):
+        super().__init__(**kwargs)
+        self.on_next = on_next
+        self.on_complete = on_complete
+
+    async def handle_data_inputs(self, inputs: ChannelDictData):
+        if inputs is END:
+            if self.on_complete:
+                self.on_complete()
+            return
+        value = inputs.to_value()
+        if self.on_next:
+            self.on_next(value)
+        await self.output.put(value)
+
+
+class View(Subscribe):
+    def __init__(self, **kwargs):
+        super().__init__(on_next=lambda x: print(x), **kwargs)
+
+
+class Map(MapTask):
+    # the only task uses executor
+    def __init__(self, by: Callable = lambda x: x, **kwargs):
+        super().__init__(**kwargs)
+        self.fn = by
+
+    async def handle_data_inputs(self, inputs: ChannelDictData):
+        if inputs is END:
+            return
+        res = await get_executor().run(self.fn, inputs.to_value())
+        await self.output.put(res)
+
+
+class Reduce(MapTask):
+    NOTSET = object()
+
+    def __init__(self, fn: Callable[[Any, Any], Any], result=NOTSET, **kwargs):
+        super().__init__(**kwargs)
+        self.fn = fn
+        self.result = result
+        self.prev_result = Reduce.NOTSET
+
+    async def handle_data_inputs(self, inputs: ChannelDictData):
+        # what if inputs is None
+        if inputs is END:
+            if self.prev_result is not Reduce.NOTSET:
+                await self.output.put(self.result)
+            return
+
+        result = await get_executor().run(self.fn, self.result, inputs.to_value())
+        self.prev_result, self.result = self.result, result
+
+
+class Flatten(MapTask):
+    def __init__(self, max_level: int = None, **kwargs):
+        super().__init__(**kwargs)
+        self.max_level = max_level or 999999999999
+
+    async def handle_data_inputs(self, inputs: ChannelDictData):
+        if inputs is END:
+            return
+        # {}, or {1: 2, 2: 3} will flatten to be None
+        if len(inputs) != 1:
+            await self.output.put(None)
+            return
+
+        flattened_items = []
+
+        def traverse(items, level):
+            try:
+                if level > self.max_level + 1:
+                    raise TypeError
+                for _item in items:
+                    traverse(_item, level + 1)
+            except TypeError:
+                flattened_items.append(items)
+
+        traverse(inputs.to_value(), 1)
+
+        for item in flattened_items:
+            await self.output.put(item)
+
+
+#################################################### Group Task #######################################################
+
+
+class Group(MapTask):
+    """
+    return stream of Tuple(group_key, group_members)
+    """
+
+    def __init__(self, by=lambda x: x[0], **kwargs):
+        super().__init__(**kwargs)
+        self.key_fn = by
+        self.groups = defaultdict(list)
+
+    async def handle_data_inputs(self, inputs: ChannelDictData):
+        if inputs is END:
+            for k, values in self.groups.items():
+                await self.output.put((k, values))
+            return
+        value = inputs.to_value()
+        key = self.key_fn(value)
+        self.groups[key].append(value)
+
+
+class Join(MapTask):
+    def __init__(self, key=lambda x: x[0], **kwargs):
+        super().__init__(**kwargs)
+        self.key_fn = key
+
+    async def handle_data_inputs(self, inputs: ChannelDictData):
+        pass
+
+
+##################################################### Filter Task #####################################################
+
+# TODO if the filter function should be run in executor ?
+class Filter(MapTask):
+    def __init__(self, by: Union[Predicate, object] = lambda x: True, **kwargs):
+        super().__init__(**kwargs)
+        self.fn = by
+
+    async def handle_data_inputs(self, inputs: ChannelDictData):
+        if inputs is END:
+            return
+        # two cases, filter by predicate or by value
+        value = inputs.to_value()
+        if callable(self.fn):
+            keep = self.fn(value)
+        else:
+            keep = value == self.fn
+        if keep:
+            await self.output.put(value)
+        else:
+            pass
+
+
+class Unique(Filter):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.cache = set()
+        self.fn = self.filter
+
+    def filter(self, inputs_data):
+        if inputs_data in self.cache:
+            return False
+        self.cache.add(inputs_data)
+        return True
+
+
+class Distinct(Filter):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.fn = self.filter
+        self.prev_item = object()
+
+    def filter(self, input_data):
+        if input_data == self.prev_item:
+            return False
+        self.prev_item = input_data
+        return True
+
+
+##################################################### Collect Task ##################################################
+
+class Take(ArgsTask):
+    def __init__(self, num: int, **kwargs):
+        super().__init__(**kwargs)
+        self.num = num
+
+    async def handle_channel_inputs(self, inputs: ChannelDict):
+        while True:
+            value = (await inputs.get()).to_value()
+            if value is END:
+                await self.output.put(END)
+                return END
+            if self.num > 0:
+                await self.output.put(value)
+                self.num -= 1
+            else:
+                await self.output.put(END)
+                return END
+
+
+class First(Take):
+    def __init__(self, **kwargs):
+        super().__init__(num=1, **kwargs)
+
+
+class Last(MapTask):
+    NOTSET = object()
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.prev = self.NOTSET
+
+    async def handle_data_inputs(self, inputs: ChannelDictData):
+        if inputs is END:
+            if self.prev is not self.NOTSET:
+                await self.output.put(self.prev)
+        else:
+            self.prev = inputs.to_value()
+
+
+class Until(ArgsTask):
+    def __init__(self, fn: Union[Predicate, object], **kwargs):
+        super().__init__(**kwargs)
+        self.fn = fn
+
+    async def handle_channel_inputs(self, inputs: ChannelDict):
+        while True:
+            value = (await inputs.get()).to_value()
+            if value is END:
+                await self.output.put(END)
+                return END
+            if callable(self.fn):
+                stop = self.fn(value)
+            else:
+                stop = value == self.fn
+            if stop:
+                await self.output.put(END)
+                return END
+            else:
+                await self.output.put(value)
+
+
+class CollectFile(Task):
+    pass
+
+
+class Count(Task):
+    pass
+
+
+class Sum(Task):
+    pass
+
+
+class Compute(Task):
+    pass
+
+
+class Close(Task):
+    pass
+
+
+class SplitFasta(Task):
+    pass
+
+
+class SplitFastq(Task):
+    pass
+
+
+class SplitText(Task):
+    pass
+
+
+# TODO find a way to automatically generate these operators and Channel methods
+# link: https://smarie.github.io/python-makefun/
+def merge(*args, **kwargs):
+    return Merge(**kwargs)(*args)
+
+
+def mix(*args, **kwargs):
+    return Mix(**kwargs)(*args)
+
+
+def concat(*args, **kwargs):
+    return Concat(**kwargs)(*args)
+
+
+def branch(*args, by: Sequence[Callable], **kwargs):
+    return Branch(by, **kwargs)(*args)
+
+
+def map_by(*args, by: Callable, **kwargs):
+    return Map(by, **kwargs)(*args)
+
+
+def subscribe(*args, on_next: callable = None, on_complete: Callable = None, **kwargs):
+    return Subscribe(on_next=on_next, on_complete=on_complete, **kwargs)(*args)
+
+
+def view(*args, **kwargs):
+    return View(**kwargs)(*args)
+
+
+def filter_by(*args, by: Union[Predicate, object], **kwargs):
+    return Filter(by, **kwargs)(*args)
+
+
+def unique(*args, **kwargs):
+    return Unique(**kwargs)(*args)
+
+
+def distinct(*args, **kwargs):
+    return Distinct(**kwargs)(*args)
+
+
+def group(*args, by: Callable = lambda x: x[0], **kwargs):
+    return Group(by, **kwargs)(*args)
+
+
+def reduce(*args, fn: Callable[[Any, Any], Any], result=Reduce.NOTSET, **kwargs):
+    return Reduce(fn, result, **kwargs)(*args)
+
+
+def flatten(*args, max_level: int = None, **kwargs):
+    return Flatten(max_level, **kwargs)(*args)
+
+
+def take(*args, num: int, **kwargs):
+    return Take(num, **kwargs)(*args)
+
+
+def first(*args, **kwargs):
+    return First(**kwargs)(*args)
+
+
+def last(*args, **kwargs):
+    return Last(**kwargs)(*args)
+
+
+def until(*args, fn: Predicate, **kwargs):
+    return Until(fn, **kwargs)(*args)
+
+
+# avoid overwrite variable
+@extend_method(Channel)
+class ExtendChannelMethod:
+    # accept multiple channel
+    def merge(self, *args, **kwargs):
+        return Merge(**kwargs)(self, *args)
+
+    def mix(self, *args, **kwargs):
+        return Mix(**kwargs)(self, *args)
+
+    def concat(self, *args, **kwargs):
+        return Concat(**kwargs)(self, *args)
+
+    # accept only self channel
+    def branch(self, fns: Sequence[Callable], **kwargs):
+        return Branch(fns, **kwargs)(self)
+
+    def map(self, by: Callable, **kwargs):
+        return Map(by, **kwargs)(self)
+
+    def subscribe(self, on_next: Callable = None, on_complete: Callable = None, **kwargs):
+        return Subscribe(on_next=on_next, on_complete=on_complete, **kwargs)(self)
+
+    def view(self, *args, **kwargs):
+        return View(**kwargs)(self, *args)
+
+    def filter(self, by: Callable, **kwargs):
+        return Filter(by, **kwargs)(self)
+
+    def unique(self, **kwargs):
+        return Unique(**kwargs)(self)
+
+    def distinct(self, **kwargs):
+        return Distinct(**kwargs)(self)
+
+    def group(self, by: Callable, **kwargs):
+        return Group(by, **kwargs)(self)
+
+    def reduce(self, fn: Callable, **kwargs):
+        return Reduce(fn, **kwargs)(self)
+
+    def flatten(self, max_level: int = None, **kwargs):
+        return Flatten(max_level, **kwargs)(self)
+
+    def take(self, num: int, **kwargs):
+        return Take(num=num, **kwargs)(self)
+
+    def first(self, *args, **kwargs):
+        return First(**kwargs)(self, *args)
+
+    def last(self, **kwargs):
+        return Last(**kwargs)(self)
+
+    def until(self, fn: Predicate, **kwargs):
+        return Until(fn=fn, **kwargs)(self)
