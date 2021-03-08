@@ -3,7 +3,7 @@ from typing import Callable
 from collections import OrderedDict
 
 from .store import get_flow_stack, get_up_flow, get_top_flow
-from .channel import Channel, ChannelDict, END
+from .channel import Channel, ChannelDict, END, check_list_of_channels
 from .task import BaseTask, default_execute, OUTPUT, initialize_inputs
 
 
@@ -27,6 +27,7 @@ class Flow(object):
         get_flow_stack().pop(-1)
 
     def __call__(self, *args, **kwargs) -> Channel:
+        check_list_of_channels(*args, **kwargs)
         flow = self.copy()
         # set up flows environments
         with flow:

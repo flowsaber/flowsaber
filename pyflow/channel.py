@@ -134,13 +134,7 @@ class Channel(object):
 class ValueChannel(Channel):
     def __init__(self, value=None, key=None, **kwargs):
         super().__init__(**kwargs)
-        try:
-            for item in value:
-                if isinstance(item, Channel):
-                    raise ValueError(f"The constant value {value} is a List/Tuple of Channel."
-                                     f"You may accidentally wrapped Channel into a List/Tuple.")
-        except TypeError:
-            pass
+        check_list_of_channels(value)
         self.value = value
         self.key = key
 
@@ -242,6 +236,18 @@ class ChannelDict(Channel):
 
     def __len__(self):
         return len(self.channels)
+
+
+def check_list_of_channels(*args, **kwargs):
+    for value in list(args) + list(kwargs.values()):
+        try:
+            for item in value:
+                if isinstance(item, Channel):
+                    raise ValueError(f"The value {value} is a List/Tuple of Channel."
+                                     f"You should not pass a list of Channels as input."
+                                     f"A Possible fix is to use `*input` before pass to flow/task.")
+        except TypeError:
+            pass
 
 
 END = End()

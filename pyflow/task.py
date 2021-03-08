@@ -2,7 +2,7 @@ import inspect
 from abc import ABC
 from typing import Callable, Union, Tuple
 
-from .channel import Channel, QueueChannel, ChannelDict, ChannelDictData, END
+from .channel import Channel, QueueChannel, ChannelDict, ChannelDictData, END, check_list_of_channels
 from .executor import get_executor
 from .store import get_up_flow, get_flow_stack
 
@@ -59,6 +59,7 @@ class BaseTask(object):
         return self.output
 
     def __call__(self, *args, **kwargs) -> OUTPUT:
+        check_list_of_channels(*args, **kwargs)
         task = self.copy()
         inputs = task.initialize_inputs(*args, **kwargs)
         output = task.initialize_output()

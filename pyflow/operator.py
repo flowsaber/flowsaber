@@ -554,9 +554,6 @@ def __rshift__(self, others):
 
         if len(others) == 0:
             raise ValueError("Must contain at least one Task/Flow object")
-        elif len(others) == 1:
-            task = others[0]
-            return (task(self),)
         else:
             cloned_chs = self.clone(len(others))
             print(cloned_chs)
