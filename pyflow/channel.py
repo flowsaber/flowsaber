@@ -31,9 +31,9 @@ class End(ChannelDictData):
 
 class Channel(object):
 
-    def __init__(self, name=""):
+    def __init__(self, name="", task=None):
         self.flows = []
-        self.task = None
+        self.task = task
         self.name = '-'.join([str(flow) for flow in flow_stack] + [name, str(hash(self))])
         self.top_flow = get_top_flow()
 

@@ -4,7 +4,7 @@ from pyflow import *
 def test_flow():
     class Bwa(Task):
         def run(self, fasta):
-            return fasta + ".bam"
+            return str(fasta) + ".bam"
 
     class Stat(Task):
         def run(self, bam):
@@ -40,7 +40,12 @@ def test_flow():
                 .subscribe(lambda x: print(f"The value is {x}"), lambda: print("Now reach the END")) \
                 .map(lambda x: x + x) \
                 .concat(Channel.values('5', '6', '7', 8, 9, 10))
-            return Channel.from_list([1, 2, 3, 4]).mix(txt)
+            a = Channel.from_list([1, 2, 3, 4]).mix(txt)
+            b = a.clone()
+            c, d, e = b.clone(3)
+            m = merge(c, d, e)
+            outputs = m >> [mod, myflow1, myflow2, myflow1]
+            return merge(*outputs)
 
     myflow = MyFlow()
 
@@ -48,4 +53,10 @@ def test_flow():
     fasta2 = Channel.values("A", "B", "x", "a")
 
     results = FlowRunner(myflow).run(fasta1, fasta2)
-    print(results)
+    print("Results are: ")
+    for res in results:
+        print(res)
+
+
+if __name__ == "__main__":
+    test_flow()

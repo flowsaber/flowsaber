@@ -10,7 +10,7 @@ from .task import BaseTask, default_execute, OUTPUT, initialize_inputs
 class Flow(object):
     def __init__(self, name=""):
         self.name = name
-        self.inputs = ChannelDict()
+        self.inputs: ChannelDict = None
         self.output: OUTPUT = None
         self.tasks = OrderedDict()
         self.task_futures = []
@@ -31,8 +31,10 @@ class Flow(object):
         # set up flows environments
         with flow:
             # set inputs within Task.__call
-            self.inputs.link_channels(initialize_inputs(self, *args, **kwargs))
+            self.inputs = ChannelDict(initialize_inputs(self, *args, **kwargs))
             flow.output = flow.run(*args, **kwargs)
+            if not isinstance(flow.output, Channel):
+                raise ValueError("Flow's run must return a Channel")
             top_flow = get_top_flow()
 
         async def execute():
@@ -80,7 +82,10 @@ class FlowRunner(object):
                              " a single Channel, instead of a list of Channel.")
         flow: Flow = output.flows[-1]
         await flow.execute()
-        await asyncio.wait(flow.task_futures)
+        done, pending = await asyncio.wait(flow.task_futures, return_when=asyncio.FIRST_EXCEPTION)
+        for task in done:
+            if task.exception() is not None:
+                raise task.exception()
         return flow
 
     def run(self, *args):

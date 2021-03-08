@@ -39,7 +39,7 @@ def default_execute():
 
 class BaseTask(object):
     def __init__(self, **kwargs):
-        self.inputs = ChannelDict()
+        self.inputs: ChannelDict = None
         self.output: OUTPUT = None
         self.execute: Callable = default_execute
         self.future = None
@@ -55,8 +55,7 @@ class BaseTask(object):
         raise NotImplementedError
 
     def initialize_output(self) -> OUTPUT:
-        self.output = QueueChannel(name=type(self).__name__)
-        self.output.task = self
+        self.output = QueueChannel(name=type(self).__name__, task=self)
         return self.output
 
     def __call__(self, *args, **kwargs) -> OUTPUT:
@@ -90,7 +89,7 @@ class Task(BaseTask):
 
     def initialize_inputs(self, *args, **kwargs) -> ChannelDict:
         args_dict = initialize_inputs(self, *args, **kwargs)
-        self.inputs.link_channels(args_dict)
+        self.inputs = ChannelDict(args_dict)
         return self.inputs
 
     async def handle_channel_inputs(self, inputs: ChannelDict):
@@ -115,7 +114,7 @@ class ArgsTask(BaseTask, ABC):
     def initialize_inputs(self, *args, **kwargs) -> ChannelDict:
         unknown_names = list("unknown_" + str(i) for i in range(len(args)))
         kwargs.update(dict(zip(unknown_names, args)))
-        self.inputs.link_channels(kwargs)
+        self.inputs = ChannelDict(kwargs)
         return self.inputs
 
 

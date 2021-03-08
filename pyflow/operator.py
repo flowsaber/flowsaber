@@ -4,9 +4,10 @@ from collections import defaultdict
 from typing import Callable, Sequence, Any, Union, Tuple
 
 from .channel import Channel, ValueChannel, QueueChannel, ChannelDict, ChannelDictData, END
-from .task import Task, ArgsTask, MapTask
+from .task import BaseTask, Task, ArgsTask, MapTask, OUTPUT
 from .executor import get_executor
 from .utils import extend_method
+from .flow import Flow
 
 """
 Only Map and Reduce uses executor, other operators runs locally
@@ -43,10 +44,14 @@ class Mix(ArgsTask):
                     return END
                 await self.output.put(item)
 
-        results = await asyncio.wait(
-            [asyncio.ensure_future(pump_queue(ch)) for ch in inputs]
+        done, pending = await asyncio.wait(
+            [asyncio.ensure_future(pump_queue(ch)) for ch in inputs],
+            return_when=asyncio.FIRST_EXCEPTION
         )
         await self.output.put(END)
+        for task in done:
+            if task.exception() is not None:
+                raise task.exception()
         return END
 
 
@@ -63,15 +68,34 @@ class Concat(ArgsTask):
         return END
 
 
+class Clone(ArgsTask):
+    def __init__(self, num: int = 1, **kwargs):
+        super().__init__(**kwargs)
+        self.num = num
+        self.outputs: Tuple[QueueChannel] = tuple()
+
+    def initialize_output(self) -> OUTPUT:
+        self.output = self.outputs = tuple(QueueChannel(task=self) for i in range(self.num))
+        if self.num == 1:
+            self.output = self.outputs[0]
+        return self.output
+
+    async def handle_channel_inputs(self, inputs: ChannelDict):
+        while True:
+            value = (await inputs.get()).to_value()
+            for out_ch in self.outputs:
+                await out_ch.put(value)
+            if value is END:
+                return END
+
+
 class Branch(ArgsTask):
     def __init__(self, by: Sequence[Callable], **kwargs):
         super().__init__(**kwargs)
         self.fns = by
 
     def initialize_output(self) -> Tuple[QueueChannel]:
-        self.output = tuple(QueueChannel() for i in range(len(self.fns) + 1))
-        for ch in self.output:
-            ch.task = self
+        self.output = tuple(QueueChannel(task=self) for i in range(len(self.fns) + 1))
         return self.output
 
     async def handle_channel_inputs(self, inputs: ChannelDict):
@@ -401,6 +425,10 @@ def concat(*args, **kwargs):
     return Concat(**kwargs)(*args)
 
 
+def clone(*args, num: int = 1, **kwargs):
+    return Clone(num, **kwargs)(*args)
+
+
 def branch(*args, by: Sequence[Callable], **kwargs):
     return Branch(by, **kwargs)(*args)
 
@@ -471,6 +499,9 @@ class ExtendChannelMethod:
         return Concat(**kwargs)(self, *args)
 
     # accept only self channel
+    def clone(self, num: int = 1, **kwargs):
+        return Clone(num, **kwargs)(self)
+
     def branch(self, fns: Sequence[Callable], **kwargs):
         return Branch(fns, **kwargs)(self)
 
@@ -512,3 +543,29 @@ class ExtendChannelMethod:
 
     def until(self, fn: Predicate, **kwargs):
         return Until(fn=fn, **kwargs)(self)
+
+
+@extend_method(Channel)
+def __rshift__(self, others):
+    if isinstance(others, Sequence):
+
+        if not all(isinstance(task, (BaseTask, Flow)) for task in others):
+            raise ValueError("Only Task/Flow object are supported")
+
+        if len(others) == 0:
+            raise ValueError("Must contain at least one Task/Flow object")
+        elif len(others) == 1:
+            task = others[0]
+            return (task(self),)
+        else:
+            cloned_chs = self.clone(len(others))
+            print(cloned_chs)
+            outputs = []
+            for task, ch in zip(others, cloned_chs):
+                outputs.append(task(ch))
+            return tuple(outputs)
+
+    else:
+        if not isinstance(others, (BaseTask, Flow)):
+            raise ValueError("Only Task/Flow object are supported")
+        return others(self)
