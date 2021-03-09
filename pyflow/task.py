@@ -5,14 +5,9 @@ from typing import Callable, Union, Tuple
 from .channel import Channel, QueueChannel, ChannelDict, ChannelDictData, END, check_list_of_channels
 from .executor import get_executor
 from .store import get_up_flow, get_flow_stack
-
-INPUTS = ChannelDict
-OUTPUT = Union[Tuple[Channel], Channel, None]
+from .utils import INPUTS, OUTPUT, get_sig_param
 
 
-def get_sig_param(sig, param_type) -> tuple:
-    return tuple(p for p in sig.parameters.values()
-                 if p.kind == param_type)
 
 
 def initialize_inputs(self, *args, **kwargs) -> dict:

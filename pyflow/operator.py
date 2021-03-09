@@ -6,7 +6,7 @@ from typing import Callable, Sequence, Any, Union, Tuple
 from .channel import Channel, ValueChannel, QueueChannel, ChannelDict, ChannelDictData, END
 from .task import BaseTask, Task, ArgsTask, MapTask, OUTPUT
 from .executor import get_executor
-from .utils import extend_method
+from .utils import extend_method, generate_operator, generate_method
 from .flow import Flow
 
 """
@@ -14,6 +14,8 @@ Only Map and Reduce uses executor, other operators runs locally
 """
 
 Predicate = Callable[[Any], bool]
+POS_INF = 9999999999999999999999999999999999999999999999999999999999
+NEG_INF = -999999999999999999999999999999999999999999999999999999999
 
 
 ################################################## Compose Task #######################################################
@@ -243,7 +245,7 @@ class Group(MapTask):
     return stream of Tuple(group_key, group_members)
     """
 
-    def __init__(self, by=lambda x: x[0], **kwargs):
+    def __init__(self, by: Callable = lambda x: x[0], **kwargs):
         super().__init__(**kwargs)
         self.key_fn = by
         self.groups = defaultdict(list)
@@ -379,23 +381,30 @@ class Until(ArgsTask):
                 await self.output.put(value)
 
 
+######################################################## Math Task ####################################################
+class Min(Reduce):
+    def __init__(self, result: float = POS_INF, **kwargs):
+        super().__init__(fn=min, result=result, **kwargs)
+
+
+class Max(Reduce):
+    def __init__(self, result: float = NEG_INF, **kwargs):
+        super().__init__(fn=max, result=result, **kwargs)
+
+
+class Sum(Reduce):
+    def __init__(self, **kwargs):
+        super().__init__(fn=lambda a, b: a + b, result=0, **kwargs)
+
+
+class Count(Reduce):
+    def __init__(self, **kwargs):
+        super().__init__(fn=lambda a, b: a + 1, result=0, **kwargs)
+
+
+######################################################## Utility Task #################################################
+
 class CollectFile(Task):
-    pass
-
-
-class Count(Task):
-    pass
-
-
-class Sum(Task):
-    pass
-
-
-class Compute(Task):
-    pass
-
-
-class Close(Task):
     pass
 
 
@@ -411,138 +420,13 @@ class SplitText(Task):
     pass
 
 
-# TODO find a way to automatically generate these operators and Channel methods
-# link: https://smarie.github.io/python-makefun/
-def merge(*args, **kwargs):
-    return Merge(**kwargs)(*args)
-
-
-def mix(*args, **kwargs):
-    return Mix(**kwargs)(*args)
-
-
-def concat(*args, **kwargs):
-    return Concat(**kwargs)(*args)
-
-
-def clone(*args, num: int = 1, **kwargs):
-    return Clone(num, **kwargs)(*args)
-
-
-def branch(*args, by: Sequence[Callable], **kwargs):
-    return Branch(by, **kwargs)(*args)
-
-
-def map_by(*args, by: Callable, **kwargs):
-    return Map(by, **kwargs)(*args)
-
-
-def subscribe(*args, on_next: callable = None, on_complete: Callable = None, **kwargs):
-    return Subscribe(on_next=on_next, on_complete=on_complete, **kwargs)(*args)
-
-
-def view(*args, **kwargs):
-    return View(**kwargs)(*args)
-
-
-def filter_by(*args, by: Union[Predicate, object], **kwargs):
-    return Filter(by, **kwargs)(*args)
-
-
-def unique(*args, **kwargs):
-    return Unique(**kwargs)(*args)
-
-
-def distinct(*args, **kwargs):
-    return Distinct(**kwargs)(*args)
-
-
-def group(*args, by: Callable = lambda x: x[0], **kwargs):
-    return Group(by, **kwargs)(*args)
-
-
-def reduce(*args, fn: Callable[[Any, Any], Any], result=Reduce.NOTSET, **kwargs):
-    return Reduce(fn, result, **kwargs)(*args)
-
-
-def flatten(*args, max_level: int = None, **kwargs):
-    return Flatten(max_level, **kwargs)(*args)
-
-
-def take(*args, num: int, **kwargs):
-    return Take(num, **kwargs)(*args)
-
-
-def first(*args, **kwargs):
-    return First(**kwargs)(*args)
-
-
-def last(*args, **kwargs):
-    return Last(**kwargs)(*args)
-
-
-def until(*args, fn: Predicate, **kwargs):
-    return Until(fn, **kwargs)(*args)
-
-
-# avoid overwrite variable
-@extend_method(Channel)
-class ExtendChannelMethod:
-    # accept multiple channel
-    def merge(self, *args, **kwargs):
-        return Merge(**kwargs)(self, *args)
-
-    def mix(self, *args, **kwargs):
-        return Mix(**kwargs)(self, *args)
-
-    def concat(self, *args, **kwargs):
-        return Concat(**kwargs)(self, *args)
-
-    # accept only self channel
-    def clone(self, num: int = 1, **kwargs):
-        return Clone(num, **kwargs)(self)
-
-    def branch(self, fns: Sequence[Callable], **kwargs):
-        return Branch(fns, **kwargs)(self)
-
-    def map(self, by: Callable, **kwargs):
-        return Map(by, **kwargs)(self)
-
-    def subscribe(self, on_next: Callable = None, on_complete: Callable = None, **kwargs):
-        return Subscribe(on_next=on_next, on_complete=on_complete, **kwargs)(self)
-
-    def view(self, *args, **kwargs):
-        return View(**kwargs)(self, *args)
-
-    def filter(self, by: Callable, **kwargs):
-        return Filter(by, **kwargs)(self)
-
-    def unique(self, **kwargs):
-        return Unique(**kwargs)(self)
-
-    def distinct(self, **kwargs):
-        return Distinct(**kwargs)(self)
-
-    def group(self, by: Callable, **kwargs):
-        return Group(by, **kwargs)(self)
-
-    def reduce(self, fn: Callable, **kwargs):
-        return Reduce(fn, **kwargs)(self)
-
-    def flatten(self, max_level: int = None, **kwargs):
-        return Flatten(max_level, **kwargs)(self)
-
-    def take(self, num: int, **kwargs):
-        return Take(num=num, **kwargs)(self)
-
-    def first(self, *args, **kwargs):
-        return First(**kwargs)(self, *args)
-
-    def last(self, **kwargs):
-        return Last(**kwargs)(self)
-
-    def until(self, fn: Predicate, **kwargs):
-        return Until(fn=fn, **kwargs)(self)
+operators = {}
+for var in tuple(locals().values()):
+    if isinstance(var, type) and issubclass(var, ArgsTask) and var not in (ArgsTask, MapTask):
+        operator = generate_operator(var)
+        operators[operator.__name__] = operator
+        extend_method(Channel)(generate_method(var))
+locals().update(operators)
 
 
 @extend_method(Channel)

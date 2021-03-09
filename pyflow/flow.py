@@ -5,6 +5,7 @@ from collections import OrderedDict
 from .store import get_flow_stack, get_up_flow, get_top_flow
 from .channel import Channel, ChannelDict, END, check_list_of_channels
 from .task import BaseTask, default_execute, OUTPUT, initialize_inputs
+from .utils import INPUTS, OUTPUT
 
 
 class Flow(object):
