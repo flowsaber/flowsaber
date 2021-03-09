@@ -8,8 +8,6 @@ from .store import get_up_flow, get_flow_stack
 from .utils import INPUTS, OUTPUT, get_sig_param
 
 
-
-
 def initialize_inputs(self, *args, **kwargs) -> dict:
     signature = inspect.signature(self.run)
     args_dict = dict(signature.bind(*args, **kwargs).arguments)

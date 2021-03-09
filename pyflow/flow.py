@@ -100,5 +100,3 @@ class FlowRunner(object):
                 break
             results.append(item)
         return results
-
-
