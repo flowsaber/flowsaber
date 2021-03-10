@@ -1,6 +1,6 @@
 import asyncio
 
-from collections import defaultdict
+from collections import defaultdict, abc
 from typing import Callable, Sequence, Any, Union, Tuple
 
 from .channel import Channel, ValueChannel, QueueChannel, ChannelDict, ChannelDictData, END
@@ -226,8 +226,11 @@ class Flatten(MapTask):
             try:
                 if level > self.max_level + 1:
                     raise TypeError
-                for _item in items:
-                    traverse(_item, level + 1)
+                if isinstance(items, abc.Sequence) and not isinstance(items, str):
+                    for _item in items:
+                        traverse(_item, level + 1)
+                else:
+                    raise TypeError
             except TypeError:
                 flattened_items.append(items)
 

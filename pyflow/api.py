@@ -10,6 +10,35 @@ from makefun import with_signature
 
 def make_method_deco(base_cls: type, method_name: str):
     def deco(fn: Callable):
+        """
+        For base_cls is Task, method_name is run
+
+        wrap  no-self argument function
+            def test(a, b, c) -> d:
+                "doc"
+                pass
+
+        into a Class:
+            class Test(Task):
+                def run(self, a, b, c) -> d:
+                    "doc"
+                    return test(a, b, c)
+        and return:
+            Test()
+
+        wrap with-self argument function
+            def test(self, a, b, c) -> d:
+                "doc"
+                pass
+
+        into a Class:
+            class Test(Task):
+                def run(self, a, b, c) -> d:
+                    "doc"
+                    return test(self, a, b, c)
+        and return:
+            Test()
+        """
         assert inspect.isfunction(fn), "Only functions are supported"
         cls_name: str = fn.__name__
         cls_name = cls_name[0].upper() + cls_name[1:]
