@@ -25,11 +25,11 @@
 #         flow1.output = bigwig
 #
 #     with Flow() as flow2:
-#         bw1 = flow2.inputs
+#         bw1 = flow2.input_ch
 #         flow2.output = mod(mod(bw1))
 #
 #     with Flow() as flow:
-#         fasta1, fasta2 = flow.inputs
+#         fasta1, fasta2 = flow.input_ch
 #         bw1 = flow1(fasta1)
 #         bw2 = flow2(fasta2)
 #         flow.output = bw2

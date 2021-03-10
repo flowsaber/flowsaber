@@ -1,14 +1,15 @@
 import types
 import inspect
 import builtins
-from typing import Union, Tuple
+from typing import Union
 
 from makefun import with_signature
 
-from .channel import Channel, ChannelDict
+from .channel import Channel, ChannelList, End
 
-INPUTS = ChannelDict
-OUTPUT = Union[Tuple[Channel], Channel]
+INPUT = ChannelList
+OUTPUT = Union[ChannelList, Channel]
+DATA = Union[object, End]
 
 
 def extend_method(cls):
@@ -64,7 +65,7 @@ def generate_operator(cls: type):
         def a(*args, a: int, b: str = "x", **kwargs):
             return A(a=a, b=b, **kwargs)(*args)
     """
-    assert isinstance(cls, type), "The input argument must be a class"
+    assert isinstance(cls, type), "The input_ch argument must be a class"
     # Get signature of cls.__init__ except for self
     fn = types.MethodType(cls.__init__, object)
     fn_name = cls.__name__.lower()
@@ -76,7 +77,7 @@ def generate_operator(cls: type):
     sigs = list(inspect.signature(fn).parameters.values())
     for i, sig in enumerate(sigs):
         if sig.kind == inspect.Parameter.VAR_POSITIONAL:
-            raise ValueError("The input cls.__init__ should not have *args: VAR_POSITIONAL parameter.")
+            raise ValueError("The input_ch cls.__init__ should not have *args: VAR_POSITIONAL parameter.")
         elif sig.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD:
             sigs[i] = sig.replace(kind=inspect.Parameter.KEYWORD_ONLY)
     sigs.insert(0, ARGS_SIG)
@@ -107,7 +108,7 @@ def generate_method(cls: type):
         def a(self, *args, **kwargs):
             return A(**kwargs)(self, *args)
     """
-    assert isinstance(cls, type), "The input argument must be a class"
+    assert isinstance(cls, type), "The input_ch argument must be a class"
     fn = types.MethodType(cls.__init__, object)
     fn_name = cls.__name__.lower()
     sigs = inspect.signature(fn)

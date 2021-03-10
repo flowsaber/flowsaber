@@ -3,8 +3,8 @@ import asyncio
 from collections import defaultdict, abc
 from typing import Callable, Sequence, Any, Union, Tuple
 
-from .channel import Channel, ValueChannel, QueueChannel, ChannelDict, ChannelDictData, END
-from .task import BaseTask, Task, ArgsTask, MapTask, OUTPUT
+from .channel import Channel, ValueChannel, QueueChannel, END, ChannelList
+from .task import BaseTask, OUTPUT, DATA
 from .executor import get_executor
 from .utils import extend_method, generate_operator, generate_method
 from .flow import Flow
@@ -19,154 +19,120 @@ NEG_INF = -999999999999999999999999999999999999999999999999999999999
 
 
 ################################################## Compose Task #######################################################
-# overrite handle_channel_inputs
-class Merge(ArgsTask):
-    async def handle_channel_inputs(self, inputs: ChannelDict):
-        while True:
-            items = []
-            for ch in inputs:
-                item = await ch.get()
-                if item is END:
-                    await self.output.put(END)
-                    return END
-                items.append(item)
-            await self.output.put(tuple(items))
+# overrite handle_channel_input
+class Merge(BaseTask):
+    """
+    The input of merge operator may originally be a ChannelList, In this case merge channels within it.
+    """
+
+    async def handle_channel_input(self, input_ch: ChannelList):
+        async for data in input_ch:
+            await self.output.put(data)
 
 
-class Mix(ArgsTask):
-    async def handle_channel_inputs(self, inputs: ChannelDict):
-        num_constant_ch = sum(isinstance(ch, ValueChannel) for ch in inputs)
+class Mix(BaseTask):
+    async def handle_channel_input(self, input_ch: ChannelList):
+        num_constant_ch = sum(isinstance(ch, ValueChannel) for ch in input_ch)
         if num_constant_ch > 0:
-            raise ValueError("Can not mix with constant channel.")
+            raise ValueError("Can not mix with value channel.")
 
         async def pump_queue(ch: Channel):
-            while True:
-                item = await ch.get()
-                if item is END:
-                    return END
-                await self.output.put(item)
+            async for data in ch:
+                await self.output.put(data)
+            return END
 
         done, pending = await asyncio.wait(
-            [asyncio.ensure_future(pump_queue(ch)) for ch in inputs],
+            [asyncio.ensure_future(pump_queue(ch)) for ch in input_ch],
             return_when=asyncio.FIRST_EXCEPTION
         )
-        await self.output.put(END)
         for task in done:
             if task.exception() is not None:
                 raise task.exception()
-        return END
 
 
-class Concat(ArgsTask):
-    async def handle_channel_inputs(self, inputs: ChannelDict):
-        for ch in tuple(inputs)[::-1]:
-            while True:
-                item = await ch.get()
-                if item is END:
-                    break
-                await self.output.put(item)
-
-        await self.output.put(END)
-        return END
+class Concat(BaseTask):
+    async def handle_channel_input(self, input_ch: ChannelList):
+        for ch in tuple(input_ch)[::-1]:
+            async for data in ch:
+                await self.output.put(data)
 
 
-class Clone(ArgsTask):
-    def __init__(self, num: int = 1, **kwargs):
+class Clone(BaseTask):
+    def __init__(self, num: int = 2, **kwargs):
+        assert num > 1, "The number of clones should be at least 2"
         super().__init__(**kwargs)
         self.num = num
-        self.outputs: Tuple[QueueChannel] = tuple()
 
     def initialize_output(self) -> OUTPUT:
-        self.output = self.outputs = tuple(QueueChannel(task=self) for i in range(self.num))
-        if self.num == 1:
-            self.output = self.outputs[0]
+        channels = tuple(QueueChannel(task=self) for i in range(self.num))
+        self.output = ChannelList(channels, task=self)
         return self.output
 
-    async def handle_channel_inputs(self, inputs: ChannelDict):
-        while True:
-            value = (await inputs.get()).to_value()
-            for out_ch in self.outputs:
-                await out_ch.put(value)
-            if value is END:
-                return END
+    async def handle_channel_input(self, input_ch: ChannelList):
+        async for data in input_ch:
+            await self.output.put(data)
 
 
-class Branch(ArgsTask):
+class Branch(BaseTask):
     def __init__(self, by: Sequence[Callable], **kwargs):
+        assert isinstance(by, (list, tuple)) and len(by) > 0, "Must specify at least 1 branch function."
         super().__init__(**kwargs)
         self.fns = by
 
-    def initialize_output(self) -> Tuple[QueueChannel]:
-        self.output = tuple(QueueChannel(task=self) for i in range(len(self.fns) + 1))
+    def initialize_output(self) -> OUTPUT:
+        channels = tuple(QueueChannel(task=self) for i in range(len(self.fns) + 1))
+        self.output = ChannelList(channels, task=self)
         return self.output
 
-    async def handle_channel_inputs(self, inputs: ChannelDict):
-        while True:
-            value = (await inputs.get()).to_value()
-            if value is END:
-                for out_ch in self.output:
-                    await out_ch.put(END)
-                return END
+    async def handle_channel_input(self, input_ch: ChannelList):
+        async for data in input_ch:
             for i, fn in enumerate(self.fns):
-                match = fn(value)
+                match = fn(data)
                 if match:
-                    await self.output[i].put(value)
+                    await self.output[i].put(data)
                     break
-            else:
-                await self.output[-1].put(value)
+                else:
+                    await self.output[-1].put(data)
 
 
-class Sample(ArgsTask):
-    def __init__(self, num: int, **kwargs):
+class Sample(BaseTask):
+    def __init__(self, num: int = 1, **kwargs):
+        assert num >= 1, "Sample size must be at lest 1"
         super().__init__(**kwargs)
         self.num = num
         self.reservoir = []
 
-    async def handle_end(self):
-        for item in self.reservoir:
-            await self.output.put(item)
-        await self.output.put(END)
-        return END
-
-    async def handle_channel_inputs(self, inputs: ChannelDict):
+    async def handle_channel_input(self, input_ch: ChannelList):
         import random
-        for i in range(self.num):
-            value = (await inputs.get()).to_value()
-            if value is END:
-                return await self.handle_end()
-            else:
-                self.reservoir.append(value)
-
-        cur = self.num
-        while True:
-            value = (await inputs.get()).to_value()
-            if value is END:
-                return await self.handle_end()
+        cur = 0
+        async for data in input_ch:
+            if cur < self.num:
+                self.reservoir.append(data)
             else:
                 i = random.randint(0, cur)
                 if i < self.num:
-                    self.reservoir[i] = value
+                    self.reservoir[i] = data
             cur += 1
+        for data in self.reservoir[0:cur]:
+            await self.output.put(data)
 
 
 ########################################################## Map Task ###########################################3
-# overrite handle_data_inputs
+# overrite handle_data_input
 
-class Subscribe(MapTask):
+class Subscribe(BaseTask):
     def __init__(self, on_next: Callable = None, on_complete: Callable = None, **kwargs):
         super().__init__(**kwargs)
         self.on_next = on_next
         self.on_complete = on_complete
 
-    async def handle_data_inputs(self, inputs: ChannelDictData):
-        if inputs is END:
-            if self.on_complete:
-                self.on_complete()
-            return
-        value = inputs.to_value()
-        if self.on_next:
-            self.on_next(value)
-        await self.output.put(value)
+    async def handle_channel_input(self, input_ch: ChannelList):
+        async for data in input_ch:
+            if self.on_next:
+                self.on_next(data)
+            await self.output.put(data)
+        if self.on_complete:
+            self.on_complete()
 
 
 class View(Subscribe):
@@ -174,20 +140,20 @@ class View(Subscribe):
         super().__init__(on_next=lambda x: print(x), **kwargs)
 
 
-class Map(MapTask):
+class Map(BaseTask):
     # the only task uses executor
     def __init__(self, by: Callable = lambda x: x, **kwargs):
         super().__init__(**kwargs)
         self.fn = by
 
-    async def handle_data_inputs(self, inputs: ChannelDictData):
-        if inputs is END:
+    async def handle_data_input(self, input_data: DATA):
+        if input_data is END:
             return
-        res = await get_executor().run(self.fn, inputs.to_value())
+        res = await get_executor().run(self.fn, input_data)
         await self.output.put(res)
 
 
-class Reduce(MapTask):
+class Reduce(BaseTask):
     NOTSET = object()
 
     def __init__(self, fn: Callable[[Any, Any], Any], result=NOTSET, **kwargs):
@@ -196,29 +162,25 @@ class Reduce(MapTask):
         self.result = result
         self.prev_result = Reduce.NOTSET
 
-    async def handle_data_inputs(self, inputs: ChannelDictData):
-        # what if inputs is None
-        if inputs is END:
+    async def handle_data_input(self, input_data: DATA):
+        # what if input_ch is None
+        if input_data is END:
             if self.prev_result is not Reduce.NOTSET:
                 await self.output.put(self.result)
-            return
+        else:
+            result = await get_executor().run(self.fn, self.result, input_data)
+            self.prev_result, self.result = self.result, result
 
-        result = await get_executor().run(self.fn, self.result, inputs.to_value())
-        self.prev_result, self.result = self.result, result
 
-
-class Flatten(MapTask):
+class Flatten(BaseTask):
     def __init__(self, max_level: int = None, **kwargs):
         super().__init__(**kwargs)
         self.max_level = max_level or 999999999999
 
-    async def handle_data_inputs(self, inputs: ChannelDictData):
-        if inputs is END:
+    async def handle_data_input(self, input_data: DATA):
+        if input_data is END:
             return
         # {}, or {1: 2, 2: 3} will flatten to be None
-        if len(inputs) != 1:
-            await self.output.put(None)
-            return
 
         flattened_items = []
 
@@ -234,7 +196,7 @@ class Flatten(MapTask):
             except TypeError:
                 flattened_items.append(items)
 
-        traverse(inputs.to_value(), 1)
+        traverse(input_data, 1)
 
         for item in flattened_items:
             await self.output.put(item)
@@ -243,7 +205,7 @@ class Flatten(MapTask):
 #################################################### Group Task #######################################################
 
 
-class Group(MapTask):
+class Group(BaseTask):
     """
     return stream of Tuple(group_key, group_members)
     """
@@ -253,46 +215,43 @@ class Group(MapTask):
         self.key_fn = by
         self.groups = defaultdict(list)
 
-    async def handle_data_inputs(self, inputs: ChannelDictData):
-        if inputs is END:
+    async def handle_data_input(self, input_data: DATA):
+        if input_data is END:
             for k, values in self.groups.items():
                 await self.output.put((k, values))
-            return
-        value = inputs.to_value()
-        key = self.key_fn(value)
-        self.groups[key].append(value)
+        else:
+            key = self.key_fn(input_data)
+            self.groups[key].append(input_data)
 
 
-class Join(MapTask):
+class Join(BaseTask):
     def __init__(self, key=lambda x: x[0], **kwargs):
         super().__init__(**kwargs)
         self.key_fn = key
 
-    async def handle_data_inputs(self, inputs: ChannelDictData):
-        pass
+    async def handle_data_input(self, input_data: DATA):
+        raise NotImplementedError
 
 
 ##################################################### Filter Task #####################################################
 
 # TODO if the filter function should be run in executor ?
-class Filter(MapTask):
+class Filter(BaseTask):
     def __init__(self, by: Union[Predicate, object] = lambda x: True, **kwargs):
         super().__init__(**kwargs)
         self.fn = by
 
-    async def handle_data_inputs(self, inputs: ChannelDictData):
-        if inputs is END:
+    async def handle_data_input(self, input_data: DATA):
+        if input_data is END:
             return
         # two cases, filter by predicate or by value
-        value = inputs.to_value()
+        value = input_data.to_value()
         if callable(self.fn):
             keep = self.fn(value)
         else:
             keep = value == self.fn
         if keep:
             await self.output.put(value)
-        else:
-            pass
 
 
 class Unique(Filter):
@@ -323,23 +282,18 @@ class Distinct(Filter):
 
 ##################################################### Collect Task ##################################################
 
-class Take(ArgsTask):
+class Take(BaseTask):
     def __init__(self, num: int, **kwargs):
         super().__init__(**kwargs)
         self.num = num
 
-    async def handle_channel_inputs(self, inputs: ChannelDict):
-        while True:
-            value = (await inputs.get()).to_value()
-            if value is END:
-                await self.output.put(END)
-                return END
-            if self.num > 0:
-                await self.output.put(value)
+    async def handle_channel_input(self, input_ch: ChannelList):
+        if self.num > 0:
+            async for data in input_ch:
+                await self.output.put(data)
                 self.num -= 1
-            else:
-                await self.output.put(END)
-                return END
+                if self.num <= 0:
+                    break
 
 
 class First(Take):
@@ -347,41 +301,35 @@ class First(Take):
         super().__init__(num=1, **kwargs)
 
 
-class Last(MapTask):
+class Last(BaseTask):
     NOTSET = object()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.prev = self.NOTSET
 
-    async def handle_data_inputs(self, inputs: ChannelDictData):
-        if inputs is END:
+    async def handle_data_input(self, input_data: DATA):
+        if input_data is END:
             if self.prev is not self.NOTSET:
                 await self.output.put(self.prev)
         else:
-            self.prev = inputs.to_value()
+            self.prev = input_data
 
 
-class Until(ArgsTask):
+class Until(BaseTask):
     def __init__(self, fn: Union[Predicate, object], **kwargs):
         super().__init__(**kwargs)
         self.fn = fn
 
-    async def handle_channel_inputs(self, inputs: ChannelDict):
-        while True:
-            value = (await inputs.get()).to_value()
-            if value is END:
-                await self.output.put(END)
-                return END
+    async def handle_channel_input(self, input_ch: ChannelList):
+        async for data in input_ch:
             if callable(self.fn):
-                stop = self.fn(value)
+                stop = self.fn(data)
             else:
-                stop = value == self.fn
+                stop = data == self.fn
             if stop:
-                await self.output.put(END)
-                return END
-            else:
-                await self.output.put(value)
+                break
+            await self.output.put(data)
 
 
 ######################################################## Math Task ####################################################
@@ -407,25 +355,25 @@ class Count(Reduce):
 
 ######################################################## Utility Task #################################################
 
-class CollectFile(Task):
+class CollectFile(BaseTask):
     pass
 
 
-class SplitFasta(Task):
+class SplitFasta(BaseTask):
     pass
 
 
-class SplitFastq(Task):
+class SplitFastq(BaseTask):
     pass
 
 
-class SplitText(Task):
+class SplitText(BaseTask):
     pass
 
 
 operators = {}
 for var in tuple(locals().values()):
-    if isinstance(var, type) and issubclass(var, ArgsTask) and var not in (ArgsTask, MapTask):
+    if isinstance(var, type) and issubclass(var, BaseTask) and var is not BaseTask:
         operator = generate_operator(var)
         operators[operator.__name__] = operator
         extend_method(Channel)(generate_method(var))
@@ -435,20 +383,17 @@ locals().update(operators)
 @extend_method(Channel)
 def __rshift__(self, others):
     if isinstance(others, Sequence):
-
         if not all(isinstance(task, (BaseTask, Flow)) for task in others):
             raise ValueError("Only Task/Flow object are supported")
 
-        if len(others) == 0:
-            raise ValueError("Must contain at least one Task/Flow object")
+        if len(others) <= 1:
+            raise ValueError("Must contain at least two Task/Flow object")
         else:
             cloned_chs = self.clone(len(others))
-            if len(others) == 1:
-                cloned_chs = [cloned_chs]
             outputs = []
             for task, ch in zip(others, cloned_chs):
                 outputs.append(task(ch))
-            return tuple(outputs)
+            return ChannelList(outputs)
 
     else:
         if not isinstance(others, (BaseTask, Flow)):

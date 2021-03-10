@@ -1,56 +1,63 @@
 import asyncio
-from collections import UserDict
 from collections.abc import Iterable
 from typing import Union, Sequence, Iterator
 from .store import get_top_flow, flow_stack
 
 
-class ChannelData(object):
-    def to_value(self):
-        raise NotImplemented
+class Target(object):
+    def __init__(self, data_type=None):
+        pass
 
 
-class ChannelDictData(ChannelData, UserDict):
-    def to_value(self):
-        res = tuple(self.values())
-        if len(res):
-            if len(res) == 1:
-                res = res[0]
-            return res
-        else:
-            return None
-
-
-class End(ChannelDictData):
-    def to_value(self):
-        return END
-
+class End(Target):
     def __repr__(self):
-        return "END"
+        return "[END]"
 
 
 class Channel(object):
 
-    def __init__(self, name="", task=None):
-        self.flows = []
+    def __init__(self, name=None, task=None, **kwargs):
         self.task = task
-        self.name = '-'.join([str(flow) for flow in flow_stack] + [name, str(hash(self))])
-        self.top_flow = get_top_flow()
+        self.flows = []
+        self.name = f"{task}-{name}({hash(self)})"
+        for k, v in kwargs.items():
+            if not hasattr(self, k):
+                setattr(self, k, v)
 
-    def __repr__(self):
-        return f"{self.task}-{self.__class__.__name__}-{hash(self)}"
+    def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        value = await self.get()
+        if value is END:
+            raise StopAsyncIteration
+        else:
+            return value
+
+    def __iter__(self):
+        yield self
+
+    def __len__(self):
+        return 1
+
+    def __getitem__(self, index):
+        assert index == 0, "This is a single Channel, index must be 0"
+        return self
 
     async def get(self):
         return self.get_nowait()
 
     def get_nowait(self):
-        raise NotImplemented
+        raise NotImplementedError
 
     async def put(self, item):
         return self.put_nowait(item)
 
     def put_nowait(self, item):
-        raise NotImplemented
+        raise NotImplementedError
+
+    def __repr__(self):
+        return f"{self.task}-{self.__class__.__name__}-{hash(self)}"
 
     def __lshift__(self, other):
         """
@@ -61,10 +68,6 @@ class Channel(object):
 
     def empty(self):
         raise NotImplemented
-
-    def copy(self):
-        from copy import deepcopy
-        return deepcopy(self)
 
     @staticmethod
     def value(value):
@@ -132,18 +135,15 @@ class Channel(object):
 
 
 class ValueChannel(Channel):
-    def __init__(self, value=None, key=None, **kwargs):
+    def __init__(self, value, **kwargs):
         super().__init__(**kwargs)
-        check_list_of_channels(value)
         self.value = value
-        self.key = key
 
     def get_nowait(self):
         return self.value
 
     def put_nowait(self, item):
         self.value = item
-        return True
 
     def empty(self):
         return False
@@ -177,64 +177,66 @@ class QueueChannel(Channel):
             return super().__getattribute__(item)
 
 
-class WatchPathsChannel(Channel):
-    pass
-
-
 class ChannelList(Channel):
     def __init__(self, channels: Sequence[Channel], **kwargs):
         super().__init__(**kwargs)
+        channels = list(channels)
+        for i, ch in enumerate(channels):
+            if not isinstance(ch, Channel):
+                channels[i] = Channel.value(ch)
         self.channels = channels
 
-
-class ChannelDict(Channel):
-    """
-    Represents a collection of channel. Used as Task's input Channel
-    """
-
-    def __init__(self, args_dict=None, **kwargs):
-        super().__init__(**kwargs)
-        self.channels = {}
-        self.link_channels(args_dict)
-
-    def link_channels(self, args_dict: dict):
-        for k, v in (args_dict or {}).items():
-            if isinstance(v, Channel):
-                self.channels[k] = v
-            else:
-                self.channels[k] = Channel.value(v)
-
-    async def get(self) -> ChannelDictData:
-        items = ChannelDictData()
-        for k, ch in self.channels.items():
-            item = await ch.get()
-            if item is END:
-                return END
-            items[k] = item
-        return items
-
-    def get_nowait(self) -> ChannelDictData:
-        items = ChannelDictData()
-        for k, ch in self.channels.items():
-            item = ch.get_nowait()
-            if item is END:
-                return END
-            items[k] = item
-
-        return items
-
-    def put_nowait(self, items):
-        raise NotImplementedError
-
-    def empty(self):
-        return not self.channels or all(ch.empty() for ch in self.channels)
-
     def __iter__(self) -> Iterator[Channel]:
-        for ch in self.channels.values():
+        for ch in self.channels:
             yield ch
 
     def __len__(self):
         return len(self.channels)
+
+    def __getitem__(self, index) -> Channel:
+        assert isinstance(index, int), "Can only index with intergers."
+        return self.channels[index]
+
+    async def get(self):
+        if len(self.channels) == 0:
+            return END
+        values = []
+        for ch in self.channels:
+            value = await ch.get()
+            if value is END:
+                return END
+            else:
+                values.append(value)
+        if len(values) == 1:
+            return values[0]
+        else:
+            return tuple(values)
+
+    def get_nowait(self):
+        if len(self.channels) == 0:
+            return END
+        values = []
+        for ch in self.channels:
+            value = ch.get_nowait()
+            if value is END:
+                return END
+            else:
+                values.append(value)
+        if len(values) == 1:
+            return values[0]
+        else:
+            return tuple(values)
+
+    async def put(self, data):
+        for ch in self.channels:
+            await ch.put(data)
+
+    def put_nowait(self, data):
+        for ch in self.channels:
+            ch.put(data)
+
+    def empty(self):
+        return not self.channels or all(ch.empty() for ch in self.channels)
 
 
 def check_list_of_channels(*args, **kwargs):
