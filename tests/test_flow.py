@@ -36,7 +36,7 @@ def test_flow():
             bw1 = myflow1(fasta1)
             bw2 = myflow1(fasta2)
             bw12 = merge(bw1, bw2).map(lambda bws: '-'.join(bws))
-            txt = myflow2(bw12) \
+            txt = myflow2(bw12).view()\
                 .subscribe(lambda x: print(f"The value is {x}"), lambda: print("Now reach the END")) \
                 .map(lambda x: x + x) \
                 .concat(Channel.values('5', '6', '7', 8, 9, 10))

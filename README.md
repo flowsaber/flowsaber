@@ -7,6 +7,14 @@
 python -m pytest tests -s
 ```
 
+### TODO
+
+- [ ] Functional API
+- [ ] Bash Task with intuitive syntax
+- [ ] DAG rendering
+- [ ] Executor
+- [ ] CWL support
+
 
 ### Reference
 - [nextflow](https://github.com/nextflow-io/nextflow)

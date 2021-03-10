@@ -45,6 +45,7 @@ class Flow(object):
                     task.future = asyncio.ensure_future(task.execute())
                     top_flow.task_futures.append(task.future)
                     loop = asyncio.get_running_loop()
+                    # used fo debugging
                     if not hasattr(loop, 'task_futures'):
                         loop.task_futures = []
                     loop.task_futures.append((task, task.future))
@@ -57,7 +58,7 @@ class Flow(object):
             assert flow not in up_flow.tasks
             up_flow.tasks.setdefault(flow, {})
         if not isinstance(flow.output, Channel):
-            raise ValueError("The output of flows must be a single Channel instead of list/tuple of Channel")
+            raise ValueError(f"The output of flows {flow.output} must be a single Channel.")
 
         flow.output.flows.append(flow)
         return flow.output
