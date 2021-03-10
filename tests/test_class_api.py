@@ -28,24 +28,25 @@ def test_flow():
         def run(self, bw1: Channel) -> Channel:
             return mod(mod(bw1))
 
-    myflow1 = MyFlow1()
-    myflow2 = MyFLow2()
+    flow1 = MyFlow1()
+    flow2 = MyFLow2()
 
     class MyFlow(Flow):
         def run(self, fasta1: Channel, fasta2: Channel):
-            bw1 = myflow1(fasta1)
-            bw2 = myflow1(fasta2)
-            bw12 = merge(bw1, bw2).map(lambda bws: '-'.join(bws))
-            txt = myflow2(bw12).view() \
-                .subscribe(lambda x: print(f"The value is {x}"), lambda: print("Now reach the END")) \
-                .map(lambda x: x + x) \
+            bw1 = flow1(fasta1)
+            bw2 = flow1(fasta2)
+            bw12 = merge(bw1, bw2).map(by=lambda bws: '-'.join(bws))
+            txt = flow2(bw12).view() \
+                .subscribe(on_next=lambda x: print(f"The value is {x}"), on_complete=lambda: print("Now reach the END")) \
+                .map(by=lambda x: x + x) \
                 .concat(Channel.values('5', '6', '7', 8, 9, 10))
+
             a = Channel.from_list([1, 2, 3, 4]).mix(txt)
-            b = a.clone()
-            c, d, e = b.clone(3)
+            b, b2 = a.clone()
+            c, d, e = b.clone(num=3)
             m = merge(c, d, e)
-            outputs = m >> [mod, myflow1, myflow2, myflow1]
-            return merge(*outputs).flatten() | [mod, myflow1, myflow2]
+            outputs = m >> [mod, flow1, flow2, flow1]
+            return merge(outputs).flatten() | (mod, bwa, stat, flow1, flow2, flow1) | flatten
 
     myflow = MyFlow()
 

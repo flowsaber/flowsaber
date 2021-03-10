@@ -8,6 +8,7 @@ from .task import BaseTask, OUTPUT, DATA
 from .executor import get_executor
 from .utils import extend_method, generate_operator, generate_method
 from .flow import Flow
+from .store import get_up_flow
 
 """
 Only Map and Reduce uses executor, other operators runs locally
@@ -19,6 +20,8 @@ NEG_INF = -999999999999999999999999999999999999999999999999999999999
 
 
 ################################################## Compose Task #######################################################
+
+
 # overrite handle_channel_input
 class Merge(BaseTask):
     """
@@ -52,7 +55,7 @@ class Mix(BaseTask):
 
 class Concat(BaseTask):
     async def handle_channel_input(self, input_ch: ChannelList):
-        for ch in tuple(input_ch)[::-1]:
+        for ch in tuple(input_ch):
             async for data in ch:
                 await self.output.put(data)
 
@@ -75,7 +78,7 @@ class Clone(BaseTask):
 
 class Branch(BaseTask):
     def __init__(self, by: Sequence[Callable], **kwargs):
-        assert isinstance(by, (list, tuple)) and len(by) > 0, "Must specify at least 1 branch function."
+        assert isinstance(by, (list, tuple)) and len(by) > 0, "Must specify a list with at least 1 branch function."
         super().__init__(**kwargs)
         self.fns = by
 
@@ -156,9 +159,9 @@ class Map(BaseTask):
 class Reduce(BaseTask):
     NOTSET = object()
 
-    def __init__(self, fn: Callable[[Any, Any], Any], result=NOTSET, **kwargs):
+    def __init__(self, by: Callable[[Any, Any], Any], result=NOTSET, **kwargs):
         super().__init__(**kwargs)
-        self.fn = fn
+        self.fn = by
         self.result = result
         self.prev_result = Reduce.NOTSET
 
@@ -245,7 +248,7 @@ class Filter(BaseTask):
         if input_data is END:
             return
         # two cases, filter by predicate or by value
-        value = input_data.to_value()
+        value = input_data
         if callable(self.fn):
             keep = self.fn(value)
         else:
@@ -371,13 +374,15 @@ class SplitText(BaseTask):
     pass
 
 
-operators = {}
+operators = set()
+operators_map = {}
 for var in tuple(locals().values()):
     if isinstance(var, type) and issubclass(var, BaseTask) and var is not BaseTask:
         operator = generate_operator(var)
-        operators[operator.__name__] = operator
+        operators_map[operator.__name__] = operator
+        operators.add(operator)
         extend_method(Channel)(generate_method(var))
-locals().update(operators)
+locals().update(operators_map)
 
 
 @extend_method(Channel)
@@ -396,7 +401,7 @@ def __rshift__(self, others):
             return ChannelList(outputs)
 
     else:
-        if not isinstance(others, (BaseTask, Flow)):
+        if not isinstance(others, (BaseTask, Flow)) and others not in operators:
             raise ValueError("Only Task/Flow object are supported")
         return others(self)
 
@@ -411,4 +416,4 @@ def __or__(self, others):
     if isinstance(others, Sequence):
         return Mix()(*outputs)
     else:
-        return self >> others
+        return outputs

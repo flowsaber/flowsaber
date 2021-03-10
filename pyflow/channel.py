@@ -1,4 +1,5 @@
 import asyncio
+import inspect
 from collections.abc import Iterable
 from typing import Union, Sequence, Iterator
 from .store import get_top_flow, flow_stack
@@ -138,6 +139,10 @@ class ValueChannel(Channel):
     def __init__(self, value, **kwargs):
         super().__init__(**kwargs)
         self.value = value
+        if callable(value):
+            raise ValueError("You has passed a callable object as inputs, "
+                             "you should explicitly specify the argument name like:"
+                             "`ch.map(by=lambda x : x)`.")
 
     def get_nowait(self):
         return self.value
