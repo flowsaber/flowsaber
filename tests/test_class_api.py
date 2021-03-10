@@ -45,7 +45,7 @@ def test_flow():
             c, d, e = b.clone(3)
             m = merge(c, d, e)
             outputs = m >> [mod, myflow1, myflow2, myflow1]
-            return merge(*outputs)
+            return merge(*outputs).flatten() | [mod, myflow1, myflow2]
 
     myflow = MyFlow()
 

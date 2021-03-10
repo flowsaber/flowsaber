@@ -38,7 +38,7 @@ def test_flow():
         c, d, e = b.clone(3)
         m = merge(c, d, e)
         outputs = m >> [mod, flow1, flow2, flow1]
-        return merge(*outputs).flatten()
+        return merge(*outputs).flatten() | [mod, flow1, flow2]
 
     fasta1 = Channel.values("1", "2", "4")
     fasta2 = Channel.values("A", "B", "x", "a")

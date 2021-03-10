@@ -154,38 +154,37 @@ class QueueChannel(Channel):
         super().__init__(**kwargs)
         assert items is None or isinstance(items, Iterable)
         self.initial_items = items
-        self._queue: asyncio.Queue = None
+        self.async_queue = None
 
     @property
     def queue(self) -> asyncio.Queue:
-        if self._queue is None:
-            self._queue = asyncio.Queue()
+        if self.async_queue is None:
+            self.async_queue = asyncio.Queue()
             # as long as initial initial_items is not None, there will be a END
             if self.initial_items is not None:
                 for item in self.initial_items:
                     self.queue.put_nowait(item)
                     # as end of stream signal
-                self._queue.put_nowait(END)
-        return self._queue
+                self.async_queue.put_nowait(END)
+        return self.async_queue
 
-    async def get(self):
-        return await self.queue.get()
-
-    async def put(self, item):
-        return await self.queue.put(item)
-
-    def get_nowait(self):
-        return self.queue.get_nowait()
-
-    def put_nowait(self, item):
-        return self.queue.put_nowait(item)
-
-    def empty(self):
-        return self.queue.empty()
+    def __getattribute__(self, item: str):
+        if item in ['queue', 'async_queue']:
+            return super().__getattribute__(item)
+        if not item.startswith('_') and hasattr(asyncio.Queue, item):
+            return getattr(self.queue, item)
+        else:
+            return super().__getattribute__(item)
 
 
 class WatchPathsChannel(Channel):
     pass
+
+
+class ChannelList(Channel):
+    def __init__(self, channels: Sequence[Channel], **kwargs):
+        super().__init__(**kwargs)
+        self.channels = channels
 
 
 class ChannelDict(Channel):
@@ -250,4 +249,5 @@ def check_list_of_channels(*args, **kwargs):
             pass
 
 
+Var = ValueChannel
 END = End()

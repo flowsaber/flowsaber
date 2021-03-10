@@ -443,7 +443,8 @@ def __rshift__(self, others):
             raise ValueError("Must contain at least one Task/Flow object")
         else:
             cloned_chs = self.clone(len(others))
-            print(cloned_chs)
+            if len(others) == 1:
+                cloned_chs = [cloned_chs]
             outputs = []
             for task, ch in zip(others, cloned_chs):
                 outputs.append(task(ch))
@@ -453,3 +454,16 @@ def __rshift__(self, others):
         if not isinstance(others, (BaseTask, Flow)):
             raise ValueError("Only Task/Flow object are supported")
         return others(self)
+
+
+@extend_method(Channel)
+def __or__(self, others):
+    """
+    ch | [a, b, c, d] equals to mix(ch >> [a, b, c, d])
+
+    """
+    outputs = self >> others
+    if isinstance(others, Sequence):
+        return Mix()(*outputs)
+    else:
+        return self >> others

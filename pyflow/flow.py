@@ -35,8 +35,11 @@ class Flow(object):
             # set inputs within Task.__call
             self.inputs = ChannelDict(initialize_inputs(self, *args, **kwargs))
             flow.output = flow.run(*args, **kwargs)
-            if not isinstance(flow.output, Channel):
-                raise ValueError("Flow's run must return a Channel")
+            if flow.output is not None and not isinstance(flow.output, Channel):
+                raise ValueError("Flow's run must return a Channel or Nothing/None(Which means a END Channel)")
+            # in case the output is None/Nothing, create a END Channel
+            if flow.output is None:
+                flow.output = Channel.end()
             top_flow = get_top_flow()
 
         async def execute():

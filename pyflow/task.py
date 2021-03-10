@@ -76,6 +76,9 @@ class BaseTask(object):
     def __repr__(self):
         return str(self.name) + "-" + self.__class__.__name__ + str(hash(self))
 
+    def __ror__(self, lch: Channel) -> Channel:
+        return self(lch)
+
 
 class Task(BaseTask):
     def run(self, *args, **kwargs):
