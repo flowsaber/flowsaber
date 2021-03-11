@@ -14,9 +14,12 @@ class Flow(object):
         self.input_kwargs = None
         self.input: INPUT = None
         self.output: OUTPUT = None
-        self.top_flow = None
+
         self.tasks = OrderedDict()
         self.task_futures = []
+
+        self.up_flow = None
+        self.top_flow = None
 
         self.name = name or f"{get_flow_stack()}-{hash(self)}"
         for k, v in kwargs.items():
@@ -54,6 +57,7 @@ class Flow(object):
             if flow.output is None:
                 flow.output = Channel.end()
             flow.top_flow = get_top_flow()
+            flow.up_flow = get_up_flow()
 
         up_flow = get_up_flow()
         if up_flow:
