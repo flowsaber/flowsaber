@@ -24,7 +24,7 @@ def test_flow():
     def flow2(bw1):
         return mod(mod(bw1))
 
-    @flow
+    @flow(name=3)
     def myflow(fasta1, fasta2):
         bw1 = flow1(fasta1)
         bw2 = flow1(fasta2)

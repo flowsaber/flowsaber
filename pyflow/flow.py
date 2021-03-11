@@ -9,8 +9,7 @@ from .utils import INPUT, OUTPUT
 
 
 class Flow(object):
-    def __init__(self, name="", **kwargs):
-        self.name = name
+    def __init__(self, name=None, **kwargs):
         self.input_args = None
         self.input_kwargs = None
         self.input: INPUT = None
@@ -18,6 +17,8 @@ class Flow(object):
         self.top_flow = None
         self.tasks = OrderedDict()
         self.task_futures = []
+
+        self.name = name or f"{get_flow_stack()}-{hash(self)}"
         for k, v in kwargs.items():
             if not hasattr(self, k):
                 setattr(self, k, v)
@@ -63,17 +64,22 @@ class Flow(object):
         return flow.output
 
     async def execute(self):
+        futures = []
         for task, task_info in self.tasks.items():
-            if isinstance(task, BaseTask):
-                task.future = asyncio.ensure_future(task.execute())
-                self.top_flow.task_futures.append(task.future)
-                loop = asyncio.get_running_loop()
-                # used fo debugging
-                if not hasattr(loop, 'task_futures'):
-                    loop.task_futures = []
-                loop.task_futures.append((task, task.future))
-            elif isinstance(task, Flow):
-                await task.execute()
+            future = task_info['future'] = asyncio.ensure_future(task.execute())
+            self.top_flow.task_futures.append(future)
+            futures.append(future)
+            # used fo debugging
+            loop = asyncio.get_running_loop()
+            if not hasattr(loop, 'task_futures'):
+                loop.task_futures = []
+            loop.task_futures.append((task, future))
+
+        res_list = await asyncio.gather(*futures)
+        for res, task_info in zip(res_list, self.tasks.values()):
+            task_info['result'] = res_list
+
+        return res_list
 
     def run(self, *args, **kwargs) -> Channel:
         raise NotImplementedError
@@ -83,21 +89,11 @@ class FlowRunner(object):
     def __init__(self, flow):
         self.flow = flow
 
-    async def _run(self, *args):
-        output = self.flow(*args)
-        if not isinstance(output, Channel):
-            raise ValueError("The return value of the outermost flows must be"
-                             " a single Channel, instead of a list of Channel.")
-        flow: Flow = output.flows[-1]
-        await flow.execute()
-        done, pending = await asyncio.wait(flow.task_futures, return_when=asyncio.FIRST_EXCEPTION)
-        for task in done:
-            if task.exception() is not None:
-                raise task.exception()
-        return flow
+    def run(self, *args, **kwargs):
+        output = self.flow(*args, **kwargs)
+        flow = output.flows[-1]
 
-    def run(self, *args):
-        flow = asyncio.run(self._run(*args))
+        asyncio.run(flow.execute())
 
         results = []
         while not flow.output.empty():

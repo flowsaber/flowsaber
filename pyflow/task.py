@@ -6,12 +6,12 @@ from .utils import INPUT, OUTPUT, DATA
 
 class BaseTask(object):
     def __init__(self, name=None, **kwargs):
-        self.name = name or str(get_flow_stack())
         self.input_args = None
         self.input_kwargs = None
         self.input: INPUT = None
         self.output: OUTPUT = None
-        self.future = None
+
+        self.name = name or f"{get_flow_stack()}-{hash(self)}"
         for k, v in kwargs.items():
             if not hasattr(self, k):
                 setattr(self, k, v)
