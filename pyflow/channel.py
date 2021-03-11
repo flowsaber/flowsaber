@@ -17,13 +17,21 @@ class End(Target):
 
 class Channel(object):
 
-    def __init__(self, name=None, task=None, **kwargs):
+    def __init__(self, name="", task=None, **kwargs):
         self.task = task
         self.flows = []
-        self.name = f"{task}-{name}({hash(self)})"
+        self.name = name
+        self.name_with_id = True
+        self.name = f"{task or ''}-{self}".lstrip('-')
         for k, v in kwargs.items():
             if not hasattr(self, k):
                 setattr(self, k, v)
+
+    def __repr__(self):
+        name = f"{self.name}|{type(self).__name__}({type(self).__bases__[0].__name__})"
+        if self.name_with_id:
+            name += f"[{hex(hash(self))}]"
+        return name.lstrip('|')
 
     def __aiter__(self):
         return self
@@ -57,9 +65,6 @@ class Channel(object):
     def put_nowait(self, item):
         raise NotImplementedError
 
-    def __repr__(self):
-        return f"{self.task}-{self.__class__.__name__}-{hash(self)}"
-
     def __lshift__(self, other):
         """
         ch << 1 == ch.put_nowait(1)
@@ -71,11 +76,11 @@ class Channel(object):
         raise NotImplemented
 
     @staticmethod
-    def value(value):
+    def value(value, **kwargs):
         """
         Channel.value(1)
         """
-        return ValueChannel(value)
+        return ValueChannel(value, **kwargs)
 
     def subscribe(self, on_next, on_complete):
         """
@@ -183,13 +188,16 @@ class QueueChannel(Channel):
 
 
 class ChannelList(Channel):
-    def __init__(self, channels: Sequence[Channel], **kwargs):
+    def __init__(self, channels: Sequence[Union['ChannelList', Channel]], **kwargs):
         super().__init__(**kwargs)
         channels = list(channels)
         for i, ch in enumerate(channels):
             if not isinstance(ch, Channel):
-                channels[i] = Channel.value(ch)
+                channels[i] = Channel.value(ch, **kwargs)
         self.channels = channels
+        # Note: when a channelist passed as a single channel, we use it's channels
+        if len(channels) == 1 and isinstance(channels[0], ChannelList):
+            self.channels = channels[0].channels
 
     def __iter__(self) -> Iterator[Channel]:
         for ch in self.channels:
@@ -242,18 +250,6 @@ class ChannelList(Channel):
 
     def empty(self):
         return not self.channels or all(ch.empty() for ch in self.channels)
-
-
-def check_list_of_channels(*args, **kwargs):
-    for value in list(args) + list(kwargs.values()):
-        try:
-            for item in value:
-                if isinstance(item, Channel):
-                    raise ValueError(f"The value {value} is a List/Tuple of Channel."
-                                     f"You should not pass a list of Channels as input."
-                                     f"A Possible fix is to use `*input` before pass to flow/task.")
-        except TypeError:
-            pass
 
 
 Var = ValueChannel

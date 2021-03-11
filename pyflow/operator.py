@@ -33,6 +33,25 @@ class Merge(BaseTask):
             await self.output.put(data)
 
 
+class Split(BaseTask):
+    """
+    Multiple outputs of a task.run will be wrapped into a tuple, use split to split each output into a channel
+    """
+
+    def __init__(self, num: int, **kwargs):
+        assert num >= 2, "Number of outputs must be at least 2."
+        super().__init__(**kwargs)
+        self.num_output_ch = num
+
+    async def handle_data_input(self, input_data: DATA):
+        if input_data is END:
+            return
+        if not isinstance(input_data, tuple) or len(input_data) != self.num_output_ch:
+            raise RuntimeError(f"The input data {input_data} can't be splitted into {self.num_output_ch} channels")
+        for out_ch, value in zip(self.output, input_data):
+            await out_ch.put(value)
+
+
 class Mix(BaseTask):
     async def handle_channel_input(self, input_ch: ChannelList):
         num_constant_ch = sum(isinstance(ch, ValueChannel) for ch in input_ch)
@@ -64,12 +83,7 @@ class Clone(BaseTask):
     def __init__(self, num: int = 2, **kwargs):
         assert num > 1, "The number of clones should be at least 2"
         super().__init__(**kwargs)
-        self.num = num
-
-    def initialize_output(self) -> OUTPUT:
-        channels = tuple(QueueChannel(task=self) for i in range(self.num))
-        self.output = ChannelList(channels, task=self)
-        return self.output
+        self.num_output_ch = num
 
     async def handle_channel_input(self, input_ch: ChannelList):
         async for data in input_ch:
@@ -81,11 +95,7 @@ class Branch(BaseTask):
         assert isinstance(by, (list, tuple)) and len(by) > 0, "Must specify a list with at least 1 branch function."
         super().__init__(**kwargs)
         self.fns = by
-
-    def initialize_output(self) -> OUTPUT:
-        channels = tuple(QueueChannel(task=self) for i in range(len(self.fns) + 1))
-        self.output = ChannelList(channels, task=self)
-        return self.output
+        self.num_output_ch = len(self.fns) + 1
 
     async def handle_channel_input(self, input_ch: ChannelList):
         async for data in input_ch:
@@ -394,7 +404,7 @@ def __rshift__(self, others):
         if len(others) <= 1:
             raise ValueError("Must contain at least two Task/Flow object")
         else:
-            cloned_chs = self.clone(len(others))
+            cloned_chs = self.clone(num=len(others))
             outputs = []
             for task, ch in zip(others, cloned_chs):
                 outputs.append(task(ch))

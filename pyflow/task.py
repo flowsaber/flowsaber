@@ -1,24 +1,45 @@
 from .channel import Channel, QueueChannel, END, ChannelList
 from .executor import get_executor
-from .store import get_up_flow, get_flow_stack, get_top_flow
+from .store import get_up_flow, get_top_flow, get_flow_stack
 from .utils import INPUT, OUTPUT, DATA
 
 
-class BaseTask(object):
-    def __init__(self, name: str = None, retry: int = 1, **kwargs):
+class FlowComponent(object):
+    def __init__(self, name: str = "", retry: int = 1, **kwargs):
         self.input_args = None
         self.input_kwargs = None
         self.input: INPUT = None
         self.output: OUTPUT = None
 
-        self.up_flow = None
-        self.top_flow = None
-
-        self.name = name or f"{get_flow_stack()}-{hash(self)}"
-        self.retry = 1
+        self.name = name
+        self.name_with_id = True
+        self.retry = retry
+        self.up_flow: 'Flow' = None
+        self.top_flow: 'Flow' = None
         for k, v in kwargs.items():
             if not hasattr(self, k):
                 setattr(self, k, v)
+
+    def __repr__(self):
+        name = f"{self.name}|{type(self).__name__}({type(self).__bases__[0].__name__})"
+        if self.name_with_id:
+            name += f"[{hex(hash(self))}]"
+
+        return name.lstrip('|')
+
+    def __call__(self, *args, **kwargs) -> OUTPUT:
+        raise NotImplementedError
+
+    def copy_new(self):
+        from copy import deepcopy
+        # must deepcopy, otherwise all flow will share self.task_futures and other container attrs
+        new = deepcopy(self)
+        new.up_flow = get_up_flow()
+        new.top_flow = get_top_flow() or self
+        up_flow_name = str(new.up_flow.name) if new.up_flow else ""
+        new.name = f"{up_flow_name}-{new}".lstrip('-')
+        print(new.name)
+        return new
 
     def initialize_input(self, *args, **kwargs) -> ChannelList:
         self.input_args = args
@@ -26,18 +47,39 @@ class BaseTask(object):
         self.input = ChannelList(list(args) + list(kwargs.values()), name=str(self), task=self)
         return self.input
 
+
+class BaseTask(FlowComponent):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.num_output_ch = 1
+
     def initialize_output(self) -> OUTPUT:
-        self.output = QueueChannel(name=str(self), task=self)
+        if self.num_output_ch == 1:
+            self.output = QueueChannel(task=self)
+        else:
+            channels = tuple(QueueChannel(task=self) for i in range(self.num_output_ch))
+            self.output = ChannelList(channels, task=self)
         return self.output
 
+    def register_graph(self, *args, **kwargs):
+        g = self.top_flow.graph
+        kwargs = dict(
+            style="filled",
+            colorscheme="svg"
+        )
+        g.node(self.name, **kwargs)
+        for ch in self.input:
+            src = ch.task or ch
+            shape = 'box' if isinstance(self, Task) else 'ellipse'
+            if f"\t{src.name}" not in g.source:
+                g.node(src.name, shape=shape, **kwargs)
+            g.edge(src.name, self.name)
+
     def __call__(self, *args, **kwargs) -> OUTPUT:
-        # deepcopy or copy
-        from copy import copy, deepcopy
-        task = deepcopy(self)
+        task = self.copy_new()
         task.initialize_input(*args, **kwargs)
         task.initialize_output()
-        task.up_flow = get_up_flow()
-        task.top_flow = get_top_flow()
+        task.register_graph(*args, **kwargs)
 
         up_flow = get_up_flow()
         assert task not in up_flow.tasks
@@ -70,9 +112,6 @@ class BaseTask(object):
 
     async def handle_data_input(self, input_data: DATA):
         return NotImplemented
-
-    def __repr__(self):
-        return str(self.name) + "-" + self.__class__.__name__ + str(hash(self))
 
     def __ror__(self, lch: Channel) -> Channel:
         return self(lch)
