@@ -1,8 +1,6 @@
 import asyncio
-import inspect
 from collections.abc import Iterable
 from typing import Union, Sequence, Iterator
-from .store import get_top_flow, flow_stack
 
 
 class Target(object):
@@ -78,7 +76,7 @@ class Channel(object):
     @staticmethod
     def value(value, **kwargs):
         """
-        Channel.value(1)
+        Channel.output(1)
         """
         return ValueChannel(value, **kwargs)
 

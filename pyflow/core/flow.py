@@ -3,10 +3,10 @@ from collections import OrderedDict
 
 from graphviz import Digraph
 
-from .store import get_flow_stack
-from .channel import Channel, END
+from pyflow.context import pyflow
+from pyflow.utility.utils import OUTPUT, class_deco
+from .channel import Channel
 from .task import FlowComponent
-from .utils import INPUT, OUTPUT
 
 
 class Flow(FlowComponent):
@@ -18,11 +18,11 @@ class Flow(FlowComponent):
         self._graph = None
 
     def __enter__(self):
-        get_flow_stack().append(self)
+        pyflow.flow_stack.append(self)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        get_flow_stack().pop(-1)
+        pyflow.flow_stack.pop(-1)
 
     def __call__(self, *args, **kwargs) -> OUTPUT:
         flow = self.copy_new()
@@ -36,7 +36,7 @@ class Flow(FlowComponent):
             if flow.output is None:
                 flow.output = Channel.end()
 
-        if flow.up_flow:
+        if pyflow.up_flow:
             assert flow not in flow.up_flow.tasks
             flow.up_flow.tasks.setdefault(flow, {})
 
@@ -78,6 +78,12 @@ class FlowRunner(object):
         output = self.flow(*args, **kwargs)
         flow = output.flows[-1]
 
-        asyncio.run(flow.execute())
+        try:
+            asyncio.run(flow.execute())
+        except Exception as e:
+            raise e
 
         return flow
+
+
+flow = class_deco(Flow, 'run')

@@ -1,14 +1,11 @@
 import asyncio
-
 from collections import defaultdict, abc
-from typing import Callable, Sequence, Any, Union, Tuple
+from typing import Callable, Sequence, Any, Union
 
-from .channel import Channel, ValueChannel, QueueChannel, END, ChannelList
-from .task import BaseTask, OUTPUT, DATA
-from .executor import get_executor
-from .utils import extend_method, generate_operator, generate_method
-from .flow import Flow
-from .store import get_up_flow
+from pyflow.core.channel import Channel, ValueChannel, END, ChannelList
+from pyflow.core.flow import Flow
+from pyflow.core.task import BaseTask, DATA
+from pyflow.utility.utils import extend_method, class_to_func, class_to_method
 
 """
 Only Map and Reduce uses executor, other operators runs locally
@@ -56,7 +53,7 @@ class Mix(BaseTask):
     async def handle_channel_input(self, input_ch: ChannelList):
         num_constant_ch = sum(isinstance(ch, ValueChannel) for ch in input_ch)
         if num_constant_ch > 0:
-            raise ValueError("Can not mix with value channel.")
+            raise ValueError("Can not mix with output channel.")
 
         async def pump_queue(ch: Channel):
             async for data in ch:
@@ -162,7 +159,7 @@ class Map(BaseTask):
     async def handle_data_input(self, input_data: DATA):
         if input_data is END:
             return
-        res = await get_executor().run(self.fn, input_data)
+        res = self.fn(input_data)
         await self.output.put(res)
 
 
@@ -181,7 +178,7 @@ class Reduce(BaseTask):
             if self.prev_result is not Reduce.NOTSET:
                 await self.output.put(self.result)
         else:
-            result = await get_executor().run(self.fn, self.result, input_data)
+            result = self.fn(self.result, input_data)
             self.prev_result, self.result = self.result, result
 
 
@@ -257,7 +254,7 @@ class Filter(BaseTask):
     async def handle_data_input(self, input_data: DATA):
         if input_data is END:
             return
-        # two cases, filter by predicate or by value
+        # two cases, filter by predicate or by output
         value = input_data
         if callable(self.fn):
             keep = self.fn(value)
@@ -368,30 +365,15 @@ class Count(Reduce):
 
 ######################################################## Utility Task #################################################
 
-class CollectFile(BaseTask):
-    pass
-
-
-class SplitFasta(BaseTask):
-    pass
-
-
-class SplitFastq(BaseTask):
-    pass
-
-
-class SplitText(BaseTask):
-    pass
-
 
 operators = set()
 operators_map = {}
 for var in tuple(locals().values()):
     if isinstance(var, type) and issubclass(var, BaseTask) and var is not BaseTask:
-        operator = generate_operator(var)
+        operator = class_to_func(var)
         operators_map[operator.__name__] = operator
         operators.add(operator)
-        extend_method(Channel)(generate_method(var))
+        extend_method(Channel)(class_to_method(var))
 locals().update(operators_map)
 
 

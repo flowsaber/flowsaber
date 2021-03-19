@@ -32,3 +32,54 @@ from pyflow import *
 #     fq2fa(fq)
 #     blast_results = blast(fa, db)  # both is ok
 #     blast_results = blast(fq2fa.out, db)
+
+# def shell(**kwargs):
+#     return fn
+#
+#
+class _(object):
+    def __init__(self, *args, **kwargs):
+        pass
+
+
+@conda("samtools pybigwig")
+@shell
+def bwa_map(fa, fastq):
+    bam = 'a.bam'
+    _(f"bwa mem {fa} {fastq} | samtools view -Sb > {bam}")
+
+    return bam
+
+
+@docker("ubuntu:latest")
+@shell(
+    cpu=10,
+    mem="10G",
+    priority=2
+)
+def samtools_sort(bam: File):
+    sorted_bam = 'a.bam'
+    _(f"""samtools sort -T sorted -O bam {bam} > {sorted_bam}""")
+    return sorted_bam
+
+
+@shell
+def bcftools_call(fa, bam):
+    vcf = 'a.vcf'
+    _(f"""samtools mpileup -g -f {fa} {bam} | bcftools call -mv - > {vcf}""")
+    return vcf
+
+
+@flow
+def pipeline(fa, fastq):
+    bam = bwa_map(fa, fastq)
+    sorted_bam = samtools_sort(bam)
+    vcf = bcftools_call(fa, sorted_bam)
+
+    return vcf
+
+
+fa = Channel.value('1.fa')
+samples = Channel.from_file_pairs("*_{1, 2}.fastq")
+
+FlowRunner(pipeline).run(fa, samples)

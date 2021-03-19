@@ -1,2 +1,5 @@
-makefun
-graphviz
+makefun~=1.10.0
+graphviz~=0.16
+cloudpickle~=1.6.0
+numpydoc
+setuptools~=50.3.2
