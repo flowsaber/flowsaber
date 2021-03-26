@@ -51,7 +51,7 @@ def test_flow():
     for res in results:
         print(res, type(res))
 
-    # workflow.graph.render('/Users/bakezq/Desktop/dag', view=True, format='pdf', cleanup=True)
+    workflow.graph.render('/Users/bakezq/Desktop/dag', view=True, format='pdf', cleanup=True)
 
 
 if __name__ == "__main__":

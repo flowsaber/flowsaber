@@ -3,7 +3,10 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Set, Callable, Dict
 
+from pyflow.utility.logtool import get_logger
 from .task import Task
+
+logger = get_logger(__name__)
 
 
 class Solver(object):
@@ -26,7 +29,7 @@ class Job:
     args: tuple
     kwargs: dict
     task: Task
-    future = None
+    future: asyncio.Future = None
 
     def __hash__(self):
         return id(self)
@@ -76,6 +79,7 @@ class Scheduler(object):
             state = self.tasks[job.task]
             state.pending.remove(job)
             state.running.add(job)
+            logger.debug("run start in scheculer.run._run")
             try:
                 res = await job.runner.run_job(*job.args, **job.kwargs)
                 await job.done_callback(res)
@@ -101,3 +105,16 @@ class Scheduler(object):
                 for fut in self.error_futures:
                     raise fut.exception()
             await asyncio.sleep(0.05)
+
+    def check_error(self):
+        for task, state in self.tasks.items():
+            if state.pending:
+                raise ValueError(f"This jobs is not scheduled: {state.pending}")
+            if state.running:
+                for job in state.running:
+                    if job.future.exception():
+                        raise job.future.exception()
+                raise ValueError(f"This jobs are still running: {state.running}")
+            for job in state.done:
+                if job.future.exception():
+                    raise job.future.exception()

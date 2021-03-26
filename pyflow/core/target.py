@@ -66,7 +66,6 @@ class File(Target):
 
     async def check_hash(self) -> bool:
         assert self.initialized
-        print(self._hash_key)
         new_hash = await get_executor().run(self.calculate_hash)
         return new_hash == self.hash
 
@@ -120,4 +119,16 @@ class End(Target):
         return hash("[END]")
 
 
+class Skip(Target):
+    def __repr__(self):
+        return "[SKIP]"
+
+    def __copy__(self):
+        return self
+
+    def __hash__(self):
+        return hash("[SKIP]")
+
+
 END = End()
+SKIP = Skip()

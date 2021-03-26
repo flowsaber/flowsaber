@@ -1,3 +1,5 @@
+# TODO try to make things more simple for ease of pickle problems
+
 import builtins
 import inspect
 import os
@@ -11,7 +13,7 @@ from typing import Union, Callable, Tuple
 from makefun import with_signature
 
 from pyflow.core.channel import Channel, End
-from pyflow.utility.doctool import NumpyDocInheritor
+
 
 TaskOutput = Union[Sequence[Channel], Channel, None]
 Data = Union[tuple, End]
@@ -189,29 +191,6 @@ def class_deco(base_cls: type, method_name: str):
     return deco
 
 
-def copy_sig_meta(*func_name_pairs: Tuple[str, str]) -> type:
-    assert all(len(item) == 2 for item in func_name_pairs)
-
-    class CopySigMeta(NumpyDocInheritor):
-        def __new__(mcs, class_name, bases, class_dict):
-            for src_fn, tgt_fn in func_name_pairs:
-                if src_fn == tgt_fn:
-                    raise ValueError(f"src {src_fn} and tgt {tgt_fn} can not be the same.")
-                src = class_dict.get(src_fn) or next(getattr(c, src_fn) for c in bases)
-                tgt = class_dict.get(tgt_fn) or next(getattr(c, tgt_fn) for c in bases)
-                sigs = inspect.signature(src)
-
-                @with_signature(sigs, func_name=tgt.__name__, qualname=tgt.__qualname__, doc=src.__doc__)
-                def new_tgt_fn(*args, **kwargs):
-                    return tgt(*args, **kwargs)
-
-                # used for source the real func
-                new_tgt_fn.__source_func__ = src
-                class_dict[tgt_fn] = new_tgt_fn
-
-            return super().__new__(mcs, class_name, bases, class_dict)
-
-    return CopySigMeta
 
 
 @contextmanager
@@ -227,11 +206,14 @@ def change_cwd(path: Union[str, Path]) -> Path:
     """
     path = Path(path).expanduser().resolve()
     path.mkdir(parents=True, exist_ok=True)
-    prev_cwd = os.getcwd()
-    os.chdir(path)
+    try:
+        prev_cwd = os.getcwd()
+        os.chdir(path)
+    except Exception as e:
+        print(path)
+        raise e
+
     try:
         yield Path(path)
     finally:
         os.chdir(prev_cwd)
-
-

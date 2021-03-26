@@ -223,6 +223,8 @@ class Channel(DataObject):
     def watch_paths(paths: Union[str, Sequence[str]]):
         pass
 
+    # Operators defined for use of ide, the true definition is dynamically generated
+
 
 class ConstantQueue(object):
     def __init__(self):

@@ -6,8 +6,8 @@ from graphviz import Digraph
 
 from pyflow.context import pyflow
 from pyflow.utility.utils import class_deco, TaskOutput
+from .base import FlowComponent
 from .channel import Channel
-from .utils import FlowComponent
 from .scheduler import Scheduler
 
 
@@ -83,7 +83,9 @@ class FlowRunner(object):
             loop = asyncio.get_running_loop()
             loop._scheduler = self.scheduler
             asyncio.ensure_future(self.scheduler.execute())
-            return await self.flow.execute(scheduler=self.scheduler)
+            exec_res = await self.flow.execute(scheduler=self.scheduler)
+            self.scheduler.check_error()
+            return exec_res
 
         assert self.flow is not None, "Please call run() method before running the flow."
         try:

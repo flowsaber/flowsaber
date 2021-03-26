@@ -9,14 +9,14 @@ from typing import Optional, Callable
 from dask.base import tokenize
 
 from pyflow.context import pyflow, config
-from pyflow.core.cache import LocalCache
+from pyflow.core.cache import get_cache_cls, CacheInvalidError
 from pyflow.core.env import Env
 from pyflow.core.executor import get_executor
-from pyflow.core.target import File, Stdout, Stdin
+from pyflow.core.target import File, Stdout, Stdin, END, Skip
 from pyflow.utility.logtool import get_logger
-from pyflow.utility.utils import change_cwd, copy_sig_meta, class_deco, TaskOutput, Data
-from .channel import Channel, END, Consumer
-from .utils import FlowComponent, TaskConfig
+from pyflow.utility.utils import change_cwd, class_deco, TaskOutput, Data
+from .base import FlowComponent, TaskConfig
+from .channel import Channel, Consumer
 
 logger = get_logger(__name__)
 
@@ -44,13 +44,14 @@ class BaseTask(FlowComponent):
             style="filled",
             colorscheme="svg"
         )
-        g.node(self.name, **kwargs)
+        g.node(self.identity_name, **kwargs)
         for q in self._input.queues:
             src = q.ch.task or q.ch
+            src_name = getattr(src, 'identity_name', None) or src.name
             shape = 'box' if isinstance(self, Task) else 'ellipse'
-            if f"\t{src.name}" not in g.source:
-                g.node(src.name, shape=shape, **kwargs)
-            g.edge(src.name, self.name)
+            if f"\t{src_name}" not in g.source:
+                g.node(src_name, shape=shape, **kwargs)
+            g.edge(src_name, self.identity_name)
 
     def copy_new(self, *args, **kwargs):
         new = super().copy_new(*args, **kwargs)
@@ -126,14 +127,19 @@ class BaseTask(FlowComponent):
 class Task(BaseTask):
     DEFAULT_CONFIG = {}
 
+    def __new__(cls, *args, **kwargs):
+        # handle for pickle not support __getattr__
+        obj = super().__new__(cls)
+        # 1. load global default config
+        obj.config = TaskConfig()
+        # 2. load task class's default config
+        obj.config.update(cls.DEFAULT_CONFIG)
+        # 3. load config specified by kwargs
+        obj.config.update(kwargs)
+        return obj
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # 1. load global default config
-        self.config = TaskConfig()
-        # 2. load task class's default config
-        self.config.update(self.DEFAULT_CONFIG)
-        # 3. load config specified by kwargs
-        self.config.update(kwargs)
         # task specific
         self.cache = None
         self.skip_fn: Optional[Callable] = None
@@ -172,13 +178,19 @@ class Task(BaseTask):
         cls_name = new.__class__.__name__
         if hasattr(config, cls_name) and isinstance(config[cls_name], dict):
             new.config.update(config[cls_name])
+        # set working directory
         task_key = f"{new.__class__.__name__}-{new.hash}"
         task_workdir = (Path(new.config.workdir) / Path(task_key)).expanduser().resolve()
         task_workdir.mkdir(parents=True, exist_ok=True)
 
         new.workdir = task_workdir
         new.task_key = str(task_workdir)
-        new.cache = LocalCache(task_key=new.task_key)
+        logger.debug(f"the working directory of {self} is {new.task_key}")
+        # set cache
+        new.cache = get_cache_cls(new.config.cache_type)(
+            task_key=new.task_key,
+            cache=new.config.cache
+        )
         return new
 
     async def handle_consumer(self, consumer: Consumer, **kwargs):
@@ -204,7 +216,10 @@ class Task(BaseTask):
             await wait_q.join()
 
     async def enqueue_output(self, res):
-        await self._output.put(res)
+        if not isinstance(res, Skip):
+            await self._output.put(res)
+        else:
+            logger.debug("Skipped result by SKIP")
 
     def create_run_args(self, data: Data) -> BoundArguments:
         # 1. build BoundArgument
@@ -219,64 +234,84 @@ class Task(BaseTask):
 
     async def run_job(self, run_args: BoundArguments, **kwargs):
         # used for scheduler call
-        return await self.handle_input(run_args, **kwargs)
+        res = await self.handle_input(run_args, **kwargs)
+        logger.info(f"output of {self} is: {res}")
+        return res
 
     async def handle_input(self, run_args: BoundArguments, **kwargs):
+        logger.debug("start handle input")
         run_args = await self.check_run_args(run_args)
-        self._input_key = input_key = await self.cache.hash(run_args)
+        run_args = await self.check_run_input(run_args)
+
+        self._input_key = input_key = self.cache.hash(run_args)
         # try to use cache
-        if await self.cache.contains(input_key):
-            res = self.cache.get(input_key)
-        else:
-            # handle retry
-            exception = None
-            run_args = await self.pre_handle_input(run_args)
-            for i in range(self.config.retry + 1):
-                try:
-                    # skip if possible
-                    if await self.need_skip(run_args):
-                        res = kwargs['raw_data']
-                    else:
-                        res = await get_executor().run(self.run, *run_args.args, *run_args.kwargs)
-                except Exception as e:
-                    exception = e
-                    if not hasattr(self, '_errors'):
-                        self._errors = []
-                    self._errors.append(e)
-                else:
-                    self.cache.put(input_key, res)
-                    break
+        retry = self.config.retry + 1
+        while retry > 0:
+            try:
+                no_cache = object()
+                res = self.cache.get(input_key, no_cache)
+                res_is_cache = res is not no_cache
+                if not res_is_cache:
+                    res = await self.run_in_executor(self.run, *run_args.args, **run_args.kwargs)
+                res = await self.check_run_output(res, is_cache=res_is_cache)
+            except Exception as e:
+                if not hasattr(self, '_errors'):
+                    self._errors = []
+                self._errors.append(e)
+                # if it's caused by checking failed
+                if isinstance(e, CacheInvalidError):
+                    self.cache.clean(input_key)
+                    retry += 1
             else:
-                raise exception
+                self.cache.put(input_key, res)
+                break
+        else:
+            raise self._errors[-1]
         self._input_key = None
         return res
 
     async def check_run_args(self, run_args: BoundArguments) -> BoundArguments:
-        # 2. do some type conversion in case with type annotation
         run_params = dict(inspect.signature(self.run).parameters)
         arguments = run_args.arguments
         for arg, param in run_params.items():
             ano_type = param.annotation
             if ano_type is not Parameter.empty and isinstance(ano_type, type):
                 value = arguments[arg]
+                # 1. do some type conversion in case with type annotation
                 if not isinstance(value, ano_type):
                     try:
                         arguments[arg] = ano_type(value)
                     except Exception as e:
                         raise TypeError(f"The input argument `{arg}` has annotation `{ano_type}`, but "
                                         f"the input value `{value}` can not be converted.")
-            # make sure each File's  checksum being computed
-            # only check the first level
+                # 2. if has File annotation, make sure it exists
+                if ano_type is File and not arguments[arg].is_file():
+                    raise ValueError(f"The argument {arg} has a File annotation but "
+                                     f"the file {arguments[arg]} does not exists.")
+            # 3. make sure each File's  checksum being computed, only check the first level
             value = arguments[arg]
             values = [value] if not isinstance(value, (list, tuple, set)) else value
             for f in [v for v in values if isinstance(v, File)]:
                 if not f.initialized:
-                    new_hash = await get_executor().run(f.calculate_hash)
+                    new_hash = await self.run_in_executor(f.calculate_hash)
                     f.hash = new_hash
 
         return run_args
 
-    async def pre_handle_input(self, data: BoundArguments) -> BoundArguments:
+    async def check_run_output(self, res, is_cache: bool = False):
+        # make sure each File's checksum didn't change
+        if is_cache:
+            values = [res] if not isinstance(res, (list, tuple, set)) else res
+            for f in [v for v in values if isinstance(v, File)]:
+                if f.initialized:
+                    check_hash = await self.run_in_executor(f.calculate_hash)
+                    if check_hash != f.hash:
+                        msg = f"Task {self.task_name} read cache failed from disk because file content hash changed."
+                        logger.debug(msg)
+                        raise CacheInvalidError(msg)
+        return res
+
+    async def check_run_input(self, data: BoundArguments) -> BoundArguments:
         return data
 
     async def need_skip(self, bound_args: BoundArguments) -> bool:
@@ -288,6 +323,11 @@ class Task(BaseTask):
         else:
             return False
 
+    async def run_in_executor(self, fn, *args, **kwargs):
+        executor = get_executor(self.config.executor)
+        res = await executor.run(fn, *args, **kwargs)
+        return res
+
     def run(self, *args, **kwargs):
         """
         This function should be stateless
@@ -295,7 +335,7 @@ class Task(BaseTask):
         raise NotImplementedError
 
 
-class ShellTask(Task, metaclass=copy_sig_meta(('command', 'run'))):
+class ShellTask(Task, func_pairs=[('command', 'run')]):
     SCRIPT_CMD = "SCRIPT_CMD"
 
     def __init__(self, **kwargs):
@@ -322,9 +362,10 @@ class ShellTask(Task, metaclass=copy_sig_meta(('command', 'run'))):
     @property
     def running_path(self) -> Path:
         assert self.task_key is not None and self._input_key is not None
+        assert Path(self.task_key).is_dir()
         return Path(self.task_key) / Path(self._input_key)
 
-    async def pre_handle_input(self, input_args: BoundArguments) -> BoundArguments:
+    async def check_run_input(self, input_args: BoundArguments) -> BoundArguments:
         # run user defined function and get the true bash commands
         with pyflow():
             self._cmd_output = self.command(*input_args.args, **input_args.kwargs)
@@ -367,10 +408,9 @@ class ShellTask(Task, metaclass=copy_sig_meta(('command', 'run'))):
                 stderr = stdout_file.read(1000)
                 stdout_file.close()
             except Exception as e:
-                print(stdout_file)
-                raise e
+                raise ValueError(f"Prepare environment for task {self} with error: {stderr} check {stdout_file} "
+                                 f"with error: {e}")
             if p.returncode:
-                print(stdout_file)
                 raise ValueError(f"Prepare environment for task {self} with error: {stderr} check {stdout_file}")
 
             # run in environment, stdout and stderr are separated, stdout of other commands are redirected
@@ -387,7 +427,7 @@ class ShellTask(Task, metaclass=copy_sig_meta(('command', 'run'))):
             stdout_file.close()
             stderr_file.close()
             if p.returncode:
-                raise ValueError(f"Run in environment for task {self} with error: {stderr}")
+                raise ValueError(f"Run in environment for task {self} with error: {stderr} in {self.running_path}")
 
             # return stdout or globed new files
             output = self._cmd_output
