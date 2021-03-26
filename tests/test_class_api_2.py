@@ -1,4 +1,3 @@
-from pyflow.core.task import _
 from pyflow import *
 import numpy as np
 
@@ -17,14 +16,14 @@ def test():
 
     class Shell1(ShellTask):
         def command(self, f: str):
-            _(f"echo  '{f}' > {f}")
+            Shell(f"echo  '{f}' > {f}")
             return f
 
     class Shell2(ShellTask):
         def command(self, f: File):
             f1 = "t1.txt"
             f2 = "t2.txt"
-            _(f"""
+            Shell(f"""
                cat  '{f}' >> {f1}
                cat '{f1}' >> {f2}
                cat '{f}' >> {f2}
@@ -33,7 +32,7 @@ def test():
 
     class Shell3(ShellTask):
         def command(self, f: File) -> str:
-            _(f"cat {f}")
+            Shell(f"cat {f}")
 
     comput1 = Comput1()
     comput2 = Comput2()
@@ -67,16 +66,15 @@ def test():
     fasta1 = Channel.values("1", "2", "4", "1")
     fasta2 = Channel.values("A", "B", "x", "A")
 
-    workflow = FlowRunner(myflow).run(fasta1, fasta2)
+    runner, workflow = FlowRunner(myflow).run(fasta1, fasta2)
+    consumer = Consumer.from_channels(workflow._output)
+    runner.execute()
     results = []
-    while not workflow.output.empty():
-        item = workflow.output.get_nowait()
-        if item is END:
-            break
-        results.append(item)
+    for data in consumer:
+        results.append(data)
     print("Results are: ")
     for res in results:
-        print(res, type(res), len(res))
+        print(res, type(res))
 
     # workflow.graph.render('/Users/bakezq/Desktop/dag', view=True, format='pdf', cleanup=True)
 

@@ -12,10 +12,13 @@ logger = get_logger(__name__)
 
 
 class Cache(object):
-    def __init__(self, task_key: str):
-        self.task_key = task_key
+    NO_CACHE = object()
 
-    async def input_key(self, input_args: BoundArguments):
+    def __init__(self, task_key: str, enable: bool = True):
+        self.task_key = task_key
+        self.enable = enable
+
+    async def hash(self, input_args: BoundArguments, **kwargs):
         raise NotImplementedError
 
     async def contains(self, input_key: str) -> bool:
@@ -43,17 +46,27 @@ class LocalCache(Cache):
         self.cache = {}
         self.serializer = serializer
 
-    async def input_key(self, input_args: BoundArguments):
-        for k, value in input_args.arguments.items():
-            # make sure each File's  checksum being computed
-            values = [value] if not isinstance(value, (list, tuple, set)) else value
-            for f in [v for v in values if isinstance(v, File)]:
-                await f.initialize_hash()
+    def __copy__(self):
+        return self
 
-        hash_key = tokenize(input_args.arguments)
+    def __deepcopy__(self, memodict={}):
+        return self
+
+    async def hash(self, input_args: BoundArguments, **kwargs):
+        # we do not count for parameter names, we only care about orders
+        if not self.enable:
+            return ""
+        hash_dict = {
+            'run_args': tuple(input_args.arguments.values()),
+            **kwargs,
+        }
+        hash_key = tokenize(hash_dict)
         return hash_key
 
     async def contains(self, input_key: str) -> bool:
+        if not self.enable:
+            return False
+
         def cleanup(msg=""):
             path = self.path / Path(input_key)
             if path.exists():
@@ -63,7 +76,7 @@ class LocalCache(Cache):
 
         # case 1, in memory cache
         if input_key in self.cache:
-            logger.debug(f"Task {self.task_name} read cache succeed in: {input_key} from memory.")
+            logger.debug(f"Task {self.task_name} read cache succeed with key: {input_key} from memory.")
             return True
         # case 2, in disk cache
         value_path = self.path / Path(input_key) / Path(self.VALUE_FILE)
@@ -71,22 +84,24 @@ class LocalCache(Cache):
             with value_path.open('rb') as f:
                 value = self.serializer.load(f)
         except Exception as e:
-            return cleanup(f"Task {self.task_name} read cache failed in: {input_key} from disk with error: {e}")
+            return cleanup(f"Task {self.task_name} read cache failed with key: {input_key} from disk with error: {e}")
         # make sure each File's checksum didn't change
         values = [value] if not isinstance(value, (list, tuple, set)) else value
         for f in [v for v in values if isinstance(v, File)]:
             if not await f.check_hash():
-                return cleanup(f"Task {self.task_name} read cache failed in: {input_key}"
+                return cleanup(f"Task {self.task_name} read cache failed with key: {input_key}"
                                f" from disk because file content hash changed.")
         self.cache[input_key] = value
-        logger.debug(f"Task {self.task_name} read cache succeed in: {input_key} from disk.")
+        logger.debug(f"Task {self.task_name} read cache succeed with key: {input_key} from disk.")
         return True
 
     def put(self, input_key: str, output):
+        if not self.enable:
+            return
         self.cache[input_key] = output
 
     def get(self, input_key: str):
-        return self.cache[input_key]
+        return self.cache.get(input_key, self.NO_CACHE)
 
     def persist(self):
         """

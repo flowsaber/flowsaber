@@ -1,20 +1,20 @@
 import asyncio
-from collections import OrderedDict
+from collections import defaultdict
+from typing import Union
 
 from graphviz import Digraph
 
 from pyflow.context import pyflow
-from pyflow.utility.utils import OUTPUT, class_deco
+from pyflow.utility.utils import class_deco, TaskOutput
 from .channel import Channel
-from .task import FlowComponent
+from .utils import FlowComponent
+from .scheduler import Scheduler
 
 
 class Flow(FlowComponent):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.tasks = OrderedDict()
-        self.all_tasks = OrderedDict()
-        self.task_futures = []
+        self.tasks = defaultdict(dict)
         self._graph = None
 
     def __enter__(self):
@@ -24,66 +24,73 @@ class Flow(FlowComponent):
     def __exit__(self, exc_type, exc_val, exc_tb):
         pyflow.flow_stack.pop(-1)
 
-    def __call__(self, *args, **kwargs) -> OUTPUT:
+    def __call__(self, *args, **kwargs) -> Union[TaskOutput, 'Flow']:
         flow = self.copy_new()
-        flow.initialize_input(*args, **kwargs)
         # set up flows environments
         with flow:
-            flow.output = flow.run(*args, **kwargs)
-            if flow.output is not None and not isinstance(flow.output, Channel):
-                raise ValueError("Flow's run must return a Channel or Nothing/None(Which means a END Channel)")
-            # in case the output is None/Nothing, create a END Channel
-            if flow.output is None:
-                flow.output = Channel.end()
+            flow._output = flow.run(*args, **kwargs)
+            # in case the _output is None/Nothing, create a END Channel
+            if flow._output is None:
+                flow._output = Channel.end()
 
         if pyflow.up_flow:
-            assert flow not in flow.up_flow.tasks
-            flow.up_flow.tasks.setdefault(flow, {})
-
-        flow.output.flows.append(flow)
-        return flow.output
+            pyflow.up_flow.tasks.setdefault(flow, {})
+            return flow._output
+        # in the top level flow, just return the flow itself
+        else:
+            return flow
 
     def run(self, *args, **kwargs) -> Channel:
         raise NotImplementedError
 
-    async def execute(self):
+    async def execute(self, **kwargs):
+        task_futures = []
         for task, task_info in self.tasks.items():
-            future = task_info['future'] = asyncio.ensure_future(task.execute())
-            self.task_futures.append(future)
+            future = task_info['future'] = asyncio.ensure_future(task.execute(**kwargs))
+            task_futures.append(future)
 
             # used fo debugging
             loop = asyncio.get_running_loop()
-            if not hasattr(loop, 'task_futures'):
-                loop.task_futures = []
-            loop.task_futures.append((task, future))
+            if not hasattr(loop, '_task_futures'):
+                loop._task_futures = []
+            loop._task_futures.append((task, future))
 
-        res_list = await asyncio.gather(*self.task_futures)
-        for res, task_info in zip(res_list, self.tasks.values()):
-            task_info['result'] = res_list
+        res_list = await asyncio.gather(*task_futures)
 
         return res_list
 
     @property
     def graph(self):
-        if self._graph is None:
+        if not getattr(self, '_graph', None):
             self._graph = Digraph()
         return self._graph
 
 
 class FlowRunner(object):
     def __init__(self, flow):
-        self.flow = flow
+        self.src_flow = flow
+        self.flow = None
+        self.scheduler = Scheduler()
 
     def run(self, *args, **kwargs):
-        output = self.flow(*args, **kwargs)
-        flow = output.flows[-1]
+        self.flow = self.src_flow(*args, **kwargs)
 
+        return self, self.flow
+
+    def execute(self):
+
+        async def _execute():
+            loop = asyncio.get_running_loop()
+            loop._scheduler = self.scheduler
+            asyncio.ensure_future(self.scheduler.execute())
+            return await self.flow.execute(scheduler=self.scheduler)
+
+        assert self.flow is not None, "Please call run() method before running the flow."
         try:
-            asyncio.run(flow.execute())
+            res = asyncio.run(_execute())
         except Exception as e:
             raise e
-
-        return flow
+        return res
 
 
 flow = class_deco(Flow, 'run')

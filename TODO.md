@@ -9,3 +9,4 @@
 - [ ] Executor
 - [ ] Conda/Docker environment support
 - [ ] CWL support
+- [ ] Network/Local supported named PIPE

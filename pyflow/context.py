@@ -14,7 +14,7 @@ def merge_dicts(d1: DictLike, d2: DictLike) -> DictLike:
     Updates `d1` from `d2` by replacing each `(k, v1)` pair in `d1` with the
     corresponding `(k, v2)` pair in `d2`.
 
-    If the output of each pair is itself a dict, then the output is updated
+    If the _output of each pair is itself a dict, then the _output is updated
     recursively.
 
     Args:
@@ -47,7 +47,7 @@ class DotDict(MutableMapping):
     Args:
         - init_dict (dict, optional): dictionary to initialize the `DotDict`
         with
-        - **kwargs (optional): input_key, output pairs with which to initialize the
+        - **kwargs (optional): hash, _output pairs with which to initialize the
         `DotDict`
 
     Example:
@@ -60,7 +60,7 @@ class DotDict(MutableMapping):
     """
 
     def __init__(self, init_dict: DictLike = None, **kwargs: Any):
-        # a DotDict could have a input_key that shadows `update`
+        # a DotDict could have a hash that shadows `update`
         if init_dict:
             super().update(init_dict)
         super().update(kwargs)
@@ -71,11 +71,11 @@ class DotDict(MutableMapping):
         the inherited `.get()` method incorrectly.
 
         Args:
-            - input_key (str): the input_key to retrieve
-            - default (Any): a default output to return if the input_key is not found
+            - hash (str): the hash to retrieve
+            - default (Any): a default _output to return if the hash is not found
 
         Returns:
-            - Any: the output of the input_key, or the default output if the input_key is not found
+            - Any: the _output of the hash, or the default _output if the hash is not found
         """
         return super().get(key, default)
 
@@ -150,20 +150,20 @@ def as_nested_dict(
 
 class Context(DotDict):
     """
-    A thread safe context store for Prefect data.
+    A thread safe context store for Prefect _input.
 
     The `Context` is a `DotDict` subclass, and can be instantiated the same way.
 
     Args:
-        - *input_args (Any): arguments to provide to the `DotDict` constructor (e.g.,
+        - *run_args (Any): arguments to provide to the `DotDict` constructor (e.g.,
             an initial dictionary)
-        - **kwargs (Any): any input_key / output pairs to initialize this context with
+        - **kwargs (Any): any hash / _output pairs to initialize this context with
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         # TODO merge with config
         init = {}
-        # Overwrite with explicit input_args
+        # Overwrite with explicit run_args
         init.update(dict(*args, **kwargs))
         super().__init__(init)
         self.__flow_stack = []
@@ -218,3 +218,5 @@ class Context(DotDict):
 
 
 pyflow = Context()
+
+config = Context()

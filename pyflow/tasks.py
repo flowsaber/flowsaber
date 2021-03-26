@@ -1,6 +1,7 @@
 from pyflow.core.task import ShellTask
 
 
+
 class CWLTask(ShellTask):
     pass
 

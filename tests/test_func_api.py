@@ -34,27 +34,24 @@ def test_flow():
             .map(by=lambda x: x + x) \
             .concat(Channel.values('5', '6', '7', 8, 9, 10))
         a = Channel.from_list([1, 2, 3, 4]).mix(txt)
-        b, b2 = a.clone()
-        c, d, e = b.clone(num=3)
-        m = merge(c, d, e)
+        m = merge(a, a, a)
         outputs = m >> [mod, flow1, flow2, flow1]
-        return merge(*outputs).flatten() >> [mod, bwa, stat, flow1, flow2, flow1] | Split(num=6) | Take(num=2)
+        return merge(*outputs) | flatten | [mod, bwa, stat, flow1, flow2, flow1] | split(6) | merge
 
     fasta1 = Channel.values("1", "2", "4")
     fasta2 = Channel.values("A", "B", "x", "a")
 
-    workflow = FlowRunner(myflow).run(fasta1, fasta2)
+    runner, workflow = FlowRunner(myflow).run(fasta1, fasta2)
+    consumer = Consumer.from_channels(workflow._output)
+    runner.execute()
     results = []
-    while not workflow.output.empty():
-        item = workflow.output.get_nowait()
-        if item is END:
-            break
-        results.append(item)
+    for data in consumer:
+        results.append(data)
     print("Results are: ")
     for res in results:
-        print(res, type(res), len(res))
+        print(res, type(res))
 
-    workflow.graph.render('/Users/bakezq/Desktop/dag', view=True, format='pdf', cleanup=True)
+    # workflow.graph.render('/Users/bakezq/Desktop/dag', view=True, format='pdf', cleanup=True)
 
 
 if __name__ == "__main__":

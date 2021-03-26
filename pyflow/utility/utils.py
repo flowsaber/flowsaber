@@ -5,16 +5,16 @@ import types
 from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
+from typing import Sequence
 from typing import Union, Callable, Tuple
 
 from makefun import with_signature
 
-from pyflow.core.channel import Channel, ChannelList, End
+from pyflow.core.channel import Channel, End
 from pyflow.utility.doctool import NumpyDocInheritor
 
-INPUT = ChannelList
-OUTPUT = Union[ChannelList, Channel]
-DATA = Union[object, End]
+TaskOutput = Union[Sequence[Channel], Channel, None]
+Data = Union[tuple, End]
 
 
 def get_sig_param(sig, param_type) -> tuple:
@@ -30,7 +30,7 @@ def _c(self):
     pass
 
 
-def _b() -> OUTPUT:
+def _b() -> TaskOutput:
     pass
 
 
@@ -47,10 +47,10 @@ def class_to_func(cls: type):
             def __init__(self, a: int, b: str = "x", **kwargs):
                 pass
     into a function:
-        def a(*input_args, a: int, b: str = "x", **kwargs):
-            return A(a=a, b=b, **kwargs)(*input_args)
+        def a(*run_args, a: int, b: str = "x", **kwargs):
+            return A(a=a, b=b, **kwargs)(*run_args)
     """
-    assert isinstance(cls, type), "The input_ch argument must be a class"
+    assert isinstance(cls, type), "The consumer argument must be a class"
     # Get signature of cls.__init__ except for self
     fn = types.MethodType(cls.__init__, object)
     fn_name = cls.__name__.lower()
@@ -58,11 +58,11 @@ def class_to_func(cls: type):
     if fn_name in dir(builtins):
         fn_name += "_by"
     # replace POSITIONAL_OR_KEYWORD to KEYWORD_ONLY
-    # append *input_args VAR_POSITIONAL at the front
+    # append *run_args VAR_POSITIONAL at the front
     sigs = list(inspect.signature(fn).parameters.values())
     for i, sig in enumerate(sigs):
         if sig.kind == inspect.Parameter.VAR_POSITIONAL:
-            raise ValueError("The input_ch cls.__init__ should not have *input_args: VAR_POSITIONAL parameter.")
+            raise ValueError("The consumer cls.__init__ should not have *run_args: VAR_POSITIONAL parameter.")
         elif sig.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD:
             sigs[i] = sig.replace(kind=inspect.Parameter.KEYWORD_ONLY)
     sigs.insert(0, ARGS_SIG)
@@ -82,16 +82,16 @@ def class_to_method(cls: type):
             def __init__(self, a: int, b: str = "x", **kwargs):
                 pass
     into a function:
-        def a(self, *input_args, a: int, b: str = "x", **kwargs):
-            return A(a=a, b=b, **kwargs)(self, *input_args)
+        def a(self, *run_args, a: int, b: str = "x", **kwargs):
+            return A(a=a, b=b, **kwargs)(self, *run_args)
     """
-    assert isinstance(cls, type), "The input_ch argument must be a class"
+    assert isinstance(cls, type), "The consumer argument must be a class"
     fn = types.MethodType(cls.__init__, object)
     fn_name = cls.__name__.lower()
     sigs = list(inspect.signature(fn).parameters.values())
     for i, sig in enumerate(sigs):
         if sig.kind == inspect.Parameter.VAR_POSITIONAL:
-            raise ValueError(f"The input class {cls}.__init__ should not have *input_args: VAR_POSITIONAL parameter.")
+            raise ValueError(f"The input class {cls}.__init__ should not have *run_args: VAR_POSITIONAL parameter.")
         elif sig.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD:
             sigs[i] = sig.replace(kind=inspect.Parameter.KEYWORD_ONLY)
     sigs = [SELF_SIG, ARGS_SIG] + sigs
@@ -218,7 +218,7 @@ def copy_sig_meta(*func_name_pairs: Tuple[str, str]) -> type:
 def change_cwd(path: Union[str, Path]) -> Path:
     """
     A context manager which changes the working directory to the given
-    path, and then changes it back to its previous output on exit.
+    path, and then changes it back to its previous _output on exit.
     Usage:
     > # Do something in original directory
     > with working_directory('/my/new/path'):
@@ -233,3 +233,5 @@ def change_cwd(path: Union[str, Path]) -> Path:
         yield Path(path)
     finally:
         os.chdir(prev_cwd)
+
+

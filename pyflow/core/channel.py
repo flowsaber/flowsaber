@@ -1,55 +1,42 @@
 import asyncio
-from collections.abc import Iterable
-from typing import Union, Sequence, Iterator
+from collections import abc
+from queue import SimpleQueue
+from typing import Union, Sequence, Dict, Optional
+
+from pyflow.core.target import END, End
+from pyflow.utility.logtool import get_logger
+
+logger = get_logger(__name__)
 
 
-class Target(object):
-    def __init__(self, data_type=None):
-        pass
-
-
-class End(Target):
-    def __repr__(self):
-        return "[END]"
-
-
-class Channel(object):
-
-    def __init__(self, name="", task=None, **kwargs):
-        self.task = task
-        self.flows = []
-        self.name = name
-        self.name_with_id = True
-        self.name = f"{task or ''}-{self}".lstrip('-')
+class DataObject(object):
+    def __init__(self, **kwargs):
         for k, v in kwargs.items():
             if not hasattr(self, k):
                 setattr(self, k, v)
 
-    def __repr__(self):
-        name = f"{self.name}|{type(self).__name__}({type(self).__bases__[0].__name__})"
-        if self.name_with_id:
-            name += f"[{hex(hash(self))}]"
-        return name.lstrip('|')
+
+class Fetcher(DataObject):
 
     def __aiter__(self):
         return self
 
     async def __anext__(self):
         value = await self.get()
-        if value is END:
+        if isinstance(value, End):
             raise StopAsyncIteration
         else:
             return value
 
     def __iter__(self):
-        yield self
-
-    def __len__(self):
-        return 1
-
-    def __getitem__(self, index):
-        assert index == 0, "This is a single Channel, index must be 0"
         return self
+
+    def __next__(self):
+        value = self.get_nowait()
+        if isinstance(value, End):
+            raise StopIteration
+        else:
+            return value
 
     async def get(self):
         return self.get_nowait()
@@ -57,11 +44,89 @@ class Channel(object):
     def get_nowait(self):
         raise NotImplementedError
 
-    async def put(self, item):
-        return self.put_nowait(item)
+
+class Queue(Fetcher):
+    def __init__(self, ch, consumer, queue_factory, **kwargs):
+        super().__init__(**kwargs)
+        self.consumer = consumer
+        self.ch: 'Channel' = ch
+        self.queue_factory = queue_factory
+        self._queue: Optional[asyncio.Queue] = None
+
+    @property
+    def queue(self):
+        if self._queue is None:
+            self._queue = self.queue_factory()
+        return self._queue
+
+    async def get(self):
+        if not self.ch.async_activated:
+            self.ch.activate()
+        return await self.queue.get()
+
+    def get_nowait(self):
+        return self.queue.get_nowait()
 
     def put_nowait(self, item):
-        raise NotImplementedError
+        return self.queue.put_nowait(item)
+
+    async def put(self, item):
+        return await self.queue.put(item)
+
+    def empty(self):
+        return self.queue.empty()
+
+
+class Channel(DataObject):
+
+    def __init__(self, name="", task=None, queue_factory: type = asyncio.Queue, **kwargs):
+        super().__init__(**kwargs)
+        # info
+        self.task = task
+        self.name = name
+        self.name_with_id = True
+        self.name = f"{task or ''}-{self}".lstrip('-')
+        # _input
+        self.buffer = SimpleQueue()
+        self.async_activated = False
+        self.queues: Dict[str, Queue] = {}
+        self.queue_factory = queue_factory
+
+    def __repr__(self):
+        name = f"{self.name}|{type(self).__name__}({type(self).__bases__[0].__name__})"
+        if self.name_with_id:
+            name += f"[{hex(hash(self))}]"
+        return name.lstrip('|')
+
+    def put_nowait(self, item):
+        if self.async_activated:
+            for q in self.queues.values():
+                q.put_nowait(item)
+        else:
+            self.buffer.put(item)
+
+    def activate(self):
+        if not self.async_activated:
+            self.async_activated = True
+            if self.buffer.qsize():
+                # always put a END
+                self.buffer.put(END)
+                while not self.buffer.empty():
+                    _item = self.buffer.get()
+                    for q in self.queues.values():
+                        q.put_nowait(_item)
+
+    async def put(self, item):
+        for q in self.queues.values():
+            await q.put(item)
+
+    def create_queue(self, consumer, key=None):
+        q = Queue(ch=self, consumer=consumer, queue_factory=self.queue_factory)
+        key = key or str(hash(q))
+        if key in self.queues:
+            raise ValueError(f"The chosen key {key} exists in this channel. Use a different key.")
+        self.queues[key] = q
+        return q
 
     def __lshift__(self, other):
         """
@@ -70,25 +135,42 @@ class Channel(object):
         self.put_nowait(other)
         return self
 
-    def empty(self):
-        raise NotImplemented
+    def __rshift__(self, tasks) -> Union['Channel', Sequence['Channel']]:
+        """
+        ch >> task                   -> task(ch)
+        ch >> [task1, tasks, task3]  -> [task1(ch), task2(ch), task3(ch)]
+        """
+        if isinstance(tasks, abc.Sequence):
+            outputs = [task(self) for task in tasks]
+            if isinstance(tasks, tuple):
+                outputs = tuple(tasks)
+            return outputs
+
+        else:
+            return tasks(self)
+
+    def __or__(self, tasks) -> Union['Channel', Sequence['Channel']]:
+        """
+        ch | [a, b, c, d] equals to ch >> [a, b, c, d]
+        """
+        return self >> tasks
 
     @staticmethod
     def value(value, **kwargs):
         """
-        Channel.output(1)
+        Channel._output(1)
         """
-        return ValueChannel(value, **kwargs)
-
-    def subscribe(self, on_next, on_complete):
-        """
-        How to implement ?
-        """
-        raise NotImplemented
+        if callable(value):
+            raise ValueError("You has passed a callable object as inputs, "
+                             "you should explicitly specify the argument name like:"
+                             "`ch.map(by=lambda x : x)`.")
+        ch = ConstantChannel(**kwargs)
+        ch.put_nowait(value)
+        return ch
 
     @staticmethod
     def end():
-        return ValueChannel(END)
+        return ConstantChannel()
 
     @staticmethod
     def values(*args):
@@ -96,7 +178,11 @@ class Channel(object):
         Channel.values(1, 2, 3, 4, 5)
         QueueChannel created by this method will always include a END signal
         """
-        return QueueChannel(args)
+        ch = Channel()
+        for item in args:
+            ch.put_nowait(item)
+        ch.put_nowait(END)
+        return ch
 
     @staticmethod
     def from_list(items: Sequence):
@@ -104,21 +190,21 @@ class Channel(object):
         Channel.from_list([1, 2, 3, 4, 5])
         QueueChannel created by this method will always include a END signal
         """
-        return QueueChannel(items)
+        return Channel.values(*items)
 
     @staticmethod
     def from_path(path: Union[str, Sequence[str]], hidden: bool = False, type="file", check_exit: bool = True):
         """
-        files = Channel.fromPath( 'data/**.fa' )
+        files = Channel.fromPath( '_input/**.fa' )
         """
         pass
 
     @staticmethod
     def from_file_pairs(path: str):
         """
-        Channel.from_file_pairs('/my/data/SRR*_{1,2}.fastq')
+        Channel.from_file_pairs('/my/_input/SRR*_{1,2}.fastq')
 
-        [SRR493366, [/my/data/SRR493366_1.fastq, /my/data/SRR493366_2.fastq]]
+        [SRR493366, [/my/_input/SRR493366_1.fastq, /my/_input/SRR493366_2.fastq]]
         """
         pass
 
@@ -138,117 +224,81 @@ class Channel(object):
         pass
 
 
-class ValueChannel(Channel):
-    def __init__(self, value, **kwargs):
-        super().__init__(**kwargs)
-        self.value = value
-        if callable(value):
-            raise ValueError("You has passed a callable object as inputs, "
-                             "you should explicitly specify the argument name like:"
-                             "`ch.map(by=lambda x : x)`.")
-
-    def get_nowait(self):
-        return self.value
+class ConstantQueue(object):
+    def __init__(self):
+        self.value = END
 
     def put_nowait(self, item):
         self.value = item
 
-    def empty(self):
+    async def put(self, item):
+        return self.put_nowait(item)
+
+    def get_nowait(self):
+        return self.value
+
+    async def get(self):
+        return self.get_nowait()
+
+    @staticmethod
+    def empty():
         return False
 
 
-class QueueChannel(Channel):
-    def __init__(self, items: Union[None, Sequence] = None, **kwargs):
+class ConstantChannel(Channel):
+    def __init__(self, **kwargs):
+        super().__init__(queue_factory=ConstantQueue, **kwargs)
+
+
+class Consumer(Fetcher):
+    def __init__(self, queues: Sequence[Queue], **kwargs):
         super().__init__(**kwargs)
-        assert items is None or isinstance(items, Iterable)
-        self.initial_items = items
-        self.async_queue = None
-
-    @property
-    def queue(self) -> asyncio.Queue:
-        if self.async_queue is None:
-            self.async_queue = asyncio.Queue()
-            # as long as initial initial_items is not None, there will be a END
-            if self.initial_items is not None:
-                for item in self.initial_items:
-                    self.queue.put_nowait(item)
-                    # as end of stream signal
-                self.async_queue.put_nowait(END)
-        return self.async_queue
-
-    def __getattribute__(self, item: str):
-        if item in ['queue', 'async_queue']:
-            return super().__getattribute__(item)
-        if not item.startswith('_') and hasattr(asyncio.Queue, item):
-            return getattr(self.queue, item)
-        else:
-            return super().__getattribute__(item)
-
-
-class ChannelList(Channel):
-    def __init__(self, channels: Sequence[Union['ChannelList', Channel]], **kwargs):
-        super().__init__(**kwargs)
-        channels = list(channels)
-        for i, ch in enumerate(channels):
-            if not isinstance(ch, Channel):
-                channels[i] = Channel.value(ch, **kwargs)
-        self.channels = channels
-        # Note: when a channelist passed as a single channel, we use it's channels
-        if len(channels) == 1 and isinstance(channels[0], ChannelList):
-            self.channels = channels[0].channels
-
-    def __iter__(self) -> Iterator[Channel]:
-        for ch in self.channels:
-            yield ch
+        self.queues = list(queues)
+        assert all(isinstance(q, Queue) for q in self.queues)
 
     def __len__(self):
-        return len(self.channels)
+        return len(self.queues)
 
-    def __getitem__(self, index) -> Channel:
-        assert isinstance(index, int), "Can only index with intergers."
-        return self.channels[index]
-
-    async def get(self):
-        if len(self.channels) == 0:
-            return END
+    async def get(self) -> Union[tuple, End]:
         values = []
-        for ch in self.channels:
-            value = await ch.get()
-            if value is END:
+        for q in self.queues:
+            value = await q.get()
+            if isinstance(value, End):
                 return END
             else:
                 values.append(value)
-        if len(values) == 1:
+        if len(self.queues) == 1:
             return values[0]
         else:
             return tuple(values)
 
-    def get_nowait(self):
-        if len(self.channels) == 0:
-            return END
+    def get_nowait(self) -> Union[tuple, End]:
         values = []
-        for ch in self.channels:
-            value = ch.get_nowait()
-            if value is END:
+        for q in self.queues:
+            value = q.get_nowait()
+            if isinstance(value, End):
                 return END
             else:
                 values.append(value)
-        if len(values) == 1:
+        if len(self.queues) == 1:
             return values[0]
         else:
             return tuple(values)
 
-    async def put(self, data):
-        for ch in self.channels:
-            await ch.put(data)
-
-    def put_nowait(self, data):
-        for ch in self.channels:
-            ch.put(data)
-
-    def empty(self):
-        return not self.channels or all(ch.empty() for ch in self.channels)
-
-
-Var = ValueChannel
-END = End()
+    @classmethod
+    def from_channels(cls, channels: Sequence[Union[Channel, object]], consumer=None, **kwargs) -> 'Consumer':
+        if not isinstance(channels, abc.Sequence):
+            channels = [channels]
+        else:
+            channels = list(channels)
+        for i, ch in enumerate(channels):
+            if not isinstance(ch, Channel):
+                if isinstance(ch, (tuple, list)) and any(isinstance(v, Channel) for v in ch):
+                    raise ValueError(f"The _input: {ch} is a list/tuple of channels, "
+                                     f"please unwrap it before pass into a Task/Flow")
+                else:
+                    channels[i] = Channel.values(ch)
+        queues = []
+        for ch in channels:
+            queues.append(ch.create_queue(consumer=consumer))
+        return cls(queues, **kwargs)

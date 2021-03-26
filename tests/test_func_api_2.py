@@ -1,4 +1,3 @@
-from pyflow.core.task import _
 from pyflow import *
 import numpy as np
 
@@ -15,26 +14,26 @@ def test():
         print(self.name)
         return '-'.join([str(k) for k in dic.keys()])
 
-    @shell
+    @shell(conda_env="bwa samtools")
     def shell1(f: str):
-        _(f"echo  '{f}' > {f}")
+        Shell(f"echo  '{f}' > {f}")
         return f
 
-    @shell
+    @shell(image="docker://continuumio/miniconda")
     def shell2(self, f: File):
         print(self.task_key)
         f1 = "t1.txt"
         f2 = "t2.txt"
-        _(f"""
+        Shell(f"""
                cat  '{f}' >> {f1}
                cat '{f1}' >> {f2}
                cat '{f}' >> {f2}
               """)
         return f1, f2
 
-    @shell(workdir='/tmp')
+    @shell(conda_env="samtools bwa python", image="docker://continuumio/miniconda")
     def shell3(f: File):
-        _(f"cat {f}")
+        Shell(f"cat {f}")
 
     @flow
     def flow1(self, ch1, ch2):
@@ -58,14 +57,14 @@ def test():
 
     workflow = FlowRunner(myflow).run(fasta1, fasta2)
     results = []
-    while not workflow.output.empty():
-        item = workflow.output.get_nowait()
+    while not workflow._output.empty():
+        item = workflow._output.get_nowait()
         if item is END:
             break
         results.append(item)
     print("Results are: ")
     for res in results:
-        print(res, type(res), len(res))
+        print(res, type(res))
 
     # workflow.graph.render('/Users/bakezq/Desktop/dag', view=True, format='pdf', cleanup=True)
 
