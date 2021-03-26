@@ -99,5 +99,5 @@ class Scheduler(object):
                 self.run(job)
             if len(self.error_futures):
                 for fut in self.error_futures:
-                    raise fut.exception
+                    raise fut.exception()
             await asyncio.sleep(0.05)

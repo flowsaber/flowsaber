@@ -8,7 +8,7 @@ from typing import Optional, Callable
 
 from dask.base import tokenize
 
-from pyflow.context import pyflow
+from pyflow.context import pyflow, config
 from pyflow.core.cache import LocalCache
 from pyflow.core.env import Env
 from pyflow.core.executor import get_executor
@@ -105,7 +105,6 @@ class BaseTask(FlowComponent):
         ch >> task              -> task(ch)
         [ch1, ch2, ch3] >> task -> [task(ch1), task(ch2), task(ch3)]
         """
-        print("find ", self, chs)
         if isinstance(chs, abc.Sequence):
             assert all(isinstance(ch, Channel) for ch in chs)
             output_chs = [self(ch) for ch in chs]
@@ -129,9 +128,11 @@ class Task(BaseTask):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # config
+        # 1. load global default config
         self.config = TaskConfig()
+        # 2. load task class's default config
         self.config.update(self.DEFAULT_CONFIG)
+        # 3. load config specified by kwargs
         self.config.update(kwargs)
         # task specific
         self.cache = None
@@ -141,6 +142,9 @@ class Task(BaseTask):
         # run specific
         self._input_key = None
         self._errors = []
+
+    def __getattr__(self, item):
+        return getattr(self.config, item)
 
     def skip(self, skip_fn: Callable):
         assert callable(skip_fn)
@@ -164,9 +168,12 @@ class Task(BaseTask):
 
     def copy_new(self, *args, **kwargs):
         new = super().copy_new(*args, **kwargs)
-
-        task_key = f"{self.__class__.__name__}-{self.hash}"
-        task_workdir = (Path(self.config.workdir) / Path(task_key)).expanduser().resolve()
+        # 4. update user defined config
+        cls_name = new.__class__.__name__
+        if hasattr(config, cls_name) and isinstance(config[cls_name], dict):
+            new.config.update(config[cls_name])
+        task_key = f"{new.__class__.__name__}-{new.hash}"
+        task_workdir = (Path(new.config.workdir) / Path(task_key)).expanduser().resolve()
         task_workdir.mkdir(parents=True, exist_ok=True)
 
         new.workdir = task_workdir

@@ -12,7 +12,6 @@ logger = get_logger(__name__)
 
 class FlowComponent(object, metaclass=NumpyDocInheritor):
     def __init__(self, name: str = "", **kwargs):
-        super().__init__(**kwargs)
         self._input_args = None
         self._input_kwargs = None
         self._input: Optional[Consumer] = None
@@ -32,7 +31,6 @@ class FlowComponent(object, metaclass=NumpyDocInheritor):
                 try:
                     setattr(new, k, deepcopy(v))
                 except:
-                    print(k, v)
                     raise ValueError
 
         return new
@@ -86,12 +84,12 @@ class TaskConfig:
     retry: int = 0
     fork: int = 99999999999
     # Shell Task
-    pubdir: str = None,
-    storedir: str = None,
-    modules: str = None,
-    conda_env: str = None,
-    image: str = None,
-    runtime: str = "singularity",
+    pubdir: str = None
+    storedir: str = None
+    modules: str = None
+    conda_env: str = None
+    image: str = None
+    runtime: str = "singularity"
 
     def __getattr__(self, item):
         if item.startswith("max_"):

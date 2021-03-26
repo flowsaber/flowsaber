@@ -43,7 +43,6 @@ class File(Target):
     @property
     def hash(self) -> str:
         if not self._hash_key:
-            print(self, " error ")
             raise ValueError("Should run File.calculate_hash before accessing hash_code.")
         return self._hash_key
 
@@ -51,7 +50,6 @@ class File(Target):
     def hash(self, value: str):
         if self._hash_key:
             raise ValueError("Hash of file could only be settled one.")
-        print(self, value)
         self._hash_key = value
 
     @property

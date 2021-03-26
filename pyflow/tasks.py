@@ -1,16 +1,7 @@
 from pyflow.core.task import ShellTask
 
 
-
 class CWLTask(ShellTask):
-    pass
-
-
-class CondaTask(ShellTask):
-    pass
-
-
-class DockerTask(ShellTask):
     pass
 
 

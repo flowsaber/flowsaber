@@ -55,16 +55,17 @@ def test():
     fasta1 = Channel.values("1", "2", "4", "1")
     fasta2 = Channel.values("A", "B", "x", "A")
 
-    workflow = FlowRunner(myflow).run(fasta1, fasta2)
+
+    runner, workflow = FlowRunner(myflow).run(fasta1, fasta2)
+    consumer = Consumer.from_channels(workflow._output)
+    runner.execute()
     results = []
-    while not workflow._output.empty():
-        item = workflow._output.get_nowait()
-        if item is END:
-            break
-        results.append(item)
+    for data in consumer:
+        results.append(data)
     print("Results are: ")
     for res in results:
         print(res, type(res))
+
 
     # workflow.graph.render('/Users/bakezq/Desktop/dag', view=True, format='pdf', cleanup=True)
 
