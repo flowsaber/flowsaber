@@ -21,7 +21,7 @@ class Merge(BaseTask):
     Even if there is only one channel _input, always _output a tuple
     """
 
-    async def handle_input(self, data, **kwargs):
+    async def handle_input(self, data, *args, **kwargs):
         if data is not END:
             await self._output.put(data)
 
@@ -32,13 +32,12 @@ class Split(BaseTask):
 
     def __init__(self, num: int, **kwargs):
         assert num >= 2, "Number of outputs must be at least 2."
-        super().__init__(**kwargs)
-        self.num_output_ch = num
+        super().__init__(num_out=num, **kwargs)
 
-    async def handle_input(self, data: Data, **kwargs):
+    async def handle_input(self, data: Data, *args, **kwargs):
         if data is not END:
-            if not isinstance(data, (tuple, list)) or len(data) != self.num_output_ch:
-                raise RuntimeError(f"The _input _input {data} can't be split into {self.num_output_ch} channels")
+            if not isinstance(data, (tuple, list)) or len(data) != self.num_out:
+                raise RuntimeError(f"The _input _input {data} can't be split into {self.num_out} channels")
             for out_ch, value in zip(self._output, data):
                 await out_ch.put(value)
 
@@ -51,7 +50,7 @@ class Select(BaseTask):
         super().__init__(**kwargs)
         self.index = index
 
-    async def handle_input(self, data, **kwargs):
+    async def handle_input(self, data, *args, **kwargs):
         if data is not END:
             try:
                 await self._output.put(data[self.index])
@@ -91,20 +90,30 @@ class Concat(BaseTask):
                 await self._output.put(data)
 
 
+class Collect(BaseTask):
+    """Opposite to flatten, turns a channel into a tuple
+    """
+
+    async def handle_consumer(self, consumer: Consumer, **kwargs):
+        values = []
+        async for data in consumer:
+            values.append(data)
+        await self._output.put(tuple(values))
+
+
 class Branch(BaseTask):
     """Dispatch _input into specified number of channels base on the returned index of the predicate function.
     """
 
     def __init__(self, num: int, by: Callable, **kwargs):
         assert num > 1 and callable(by)
-        super().__init__(**kwargs)
+        super().__init__(num_out=num, **kwargs)
         self.fn = by
-        self.num_output_ch = num
 
     async def handle_consumer(self, consumer: Consumer, **kwargs):
         async for data in consumer:
             chosen_index = self.fn(data)
-            if chosen_index >= self.num_output_ch:
+            if chosen_index >= self.num_out:
                 raise RuntimeError(f"The returned index of {self.fn} >= number of _output channels")
             await self._output[chosen_index].put(data)
 
@@ -172,7 +181,7 @@ class Map(BaseTask):
         super().__init__(**kwargs)
         self.fn = by
 
-    async def handle_input(self, data: Data, **kwargs):
+    async def handle_input(self, data: Data, *args, **kwargs):
         if data is not END:
             res = self.fn(data)
             await self._output.put(res)
@@ -189,7 +198,7 @@ class Reduce(BaseTask):
         self.result = result
         self.prev_result = self.NOTSET
 
-    async def handle_input(self, data: Data, **kwargs):
+    async def handle_input(self, data: Data, *args, **kwargs):
         if data is not END:
             result = self.fn(self.result, data)
             self.prev_result, self.result = self.result, result
@@ -207,7 +216,7 @@ class Flatten(BaseTask):
         super().__init__(**kwargs)
         self.max_level = max_level or 999999999999
 
-    async def handle_input(self, data: Data, **kwargs):
+    async def handle_input(self, data: Data, *args, **kwargs):
         if data is not END:
 
             flattened_items = []
@@ -243,7 +252,7 @@ class Group(BaseTask):
         self.keep_rest = keep
         self.groups = defaultdict(list)
 
-    async def handle_input(self, data: Data, **kwargs):
+    async def handle_input(self, data: Data, *args, **kwargs):
         if data is not END:
             key = self.key_fn(data)
             group = self.groups[key]
@@ -266,7 +275,7 @@ class Filter(BaseTask):
         super().__init__(**kwargs)
         self.by = by
 
-    async def handle_input(self, data: Data, **kwargs):
+    async def handle_input(self, data: Data, *args, **kwargs):
         if data is not END:
             # two cases, filter by predicate or by _output
             if callable(self.by):
@@ -318,7 +327,7 @@ class Take(BaseTask):
         super().__init__(**kwargs)
         self.num = num
 
-    async def handle_input(self, data, **kwargs):
+    async def handle_input(self, data, *args, **kwargs):
         if data is not END and self.num > 0:
             await self._output.put(data)
             self.num -= 1
@@ -339,7 +348,7 @@ class Last(BaseTask):
         super().__init__(**kwargs)
         self.prev = self.NOTSET
 
-    async def handle_input(self, data: Data, **kwargs):
+    async def handle_input(self, data: Data, *args, **kwargs):
         if data is not END:
             self.prev = data
         else:
@@ -356,7 +365,7 @@ class Until(BaseTask):
         self.by = by
         self.stop = False
 
-    async def handle_input(self, data, **kwargs):
+    async def handle_input(self, data, *args, **kwargs):
         if data is not END and not self.stop:
             if callable(self.by):
                 self.stop = self.by(data)
@@ -406,6 +415,7 @@ view = View()
 unique = Unique()
 distinct = Distinct()
 first = First()
+collect = Collect()
 last = Last()
 count = Count()
 min_ = Min()

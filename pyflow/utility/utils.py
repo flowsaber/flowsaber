@@ -8,12 +8,11 @@ from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
 from typing import Sequence
-from typing import Union, Callable, Tuple
+from typing import Union, Callable
 
 from makefun import with_signature
 
 from pyflow.core.channel import Channel, End
-
 
 TaskOutput = Union[Sequence[Channel], Channel, None]
 Data = Union[tuple, End]
@@ -191,8 +190,6 @@ def class_deco(base_cls: type, method_name: str):
     return deco
 
 
-
-
 @contextmanager
 def change_cwd(path: Union[str, Path]) -> Path:
     """
@@ -210,7 +207,6 @@ def change_cwd(path: Union[str, Path]) -> Path:
         prev_cwd = os.getcwd()
         os.chdir(path)
     except Exception as e:
-        print(path)
         raise e
 
     try:

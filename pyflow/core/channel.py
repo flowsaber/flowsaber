@@ -227,24 +227,32 @@ class Channel(DataObject):
 
 
 class ConstantQueue(object):
+    """constant value can only be settled once by using put_nowait or put"""
+    NOTSET = object()
+
     def __init__(self):
-        self.value = END
+        self.value = self.NOTSET
+        self.has_value = asyncio.Event()
 
     def put_nowait(self, item):
-        self.value = item
+        if not self.has_value.is_set():
+            self.value = item
+            self.has_value.set()
 
     async def put(self, item):
-        return self.put_nowait(item)
+        self.put_nowait(item)
 
     def get_nowait(self):
+        if self.value is self.NOTSET:
+            raise RuntimeError("The ConstantQueue is not initialized, please use ch.put to set the initial value")
         return self.value
 
     async def get(self):
+        await self.has_value.wait()
         return self.get_nowait()
 
-    @staticmethod
-    def empty():
-        return False
+    def empty(self):
+        return self.value is not self.NOTSET
 
 
 class ConstantChannel(Channel):
@@ -257,24 +265,40 @@ class Consumer(Fetcher):
         super().__init__(**kwargs)
         self.queues = list(queues)
         assert all(isinstance(q, Queue) for q in self.queues)
+        self.num_emited = 0
+
+    @property
+    def empty(self):
+        return len(self.queues) == 0
+
+    @property
+    def single(self):
+        return len(self.queues) == 1
 
     def __len__(self):
         return len(self.queues)
 
-    async def get(self) -> Union[tuple, End]:
+    async def get(self) -> tuple:
+        # make sure empty inputs only emit once
+        if self.empty and self.num_emited >= 1:
+            return END
         values = []
         for q in self.queues:
             value = await q.get()
             if isinstance(value, End):
+                logger.debug(f"{self.task} get END from {q.ch.task}")
                 return END
             else:
                 values.append(value)
-        if len(self.queues) == 1:
-            return values[0]
-        else:
-            return tuple(values)
+        self.num_emited += 1
+        # emit single input without tuple
+        res = tuple(values) if not self.single else values[0]
+        return res
 
-    def get_nowait(self) -> Union[tuple, End]:
+    def get_nowait(self) -> tuple:
+        # make sure empty inputs only emit once
+        if self.empty and self.num_emited >= 1:
+            return END
         values = []
         for q in self.queues:
             value = q.get_nowait()
@@ -282,10 +306,9 @@ class Consumer(Fetcher):
                 return END
             else:
                 values.append(value)
-        if len(self.queues) == 1:
-            return values[0]
-        else:
-            return tuple(values)
+        self.num_emited += 1
+        # emit single input without tuple
+        return tuple(values) if not self.single else values[0]
 
     @classmethod
     def from_channels(cls, channels: Sequence[Union[Channel, object]], consumer=None, **kwargs) -> 'Consumer':
@@ -304,3 +327,6 @@ class Consumer(Fetcher):
         for ch in channels:
             queues.append(ch.create_queue(consumer=consumer))
         return cls(queues, **kwargs)
+
+    def add_channel(self, channel: Channel, consumer=None):
+        self.queues.append(channel.create_queue(consumer=consumer))

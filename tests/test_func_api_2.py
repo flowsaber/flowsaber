@@ -1,4 +1,6 @@
 from pyflow import *
+from pyflow.context import config
+import uuid
 import numpy as np
 
 
@@ -11,17 +13,15 @@ def test():
 
     @task
     def comput2(self, dic):
-        print(self.name)
         return '-'.join([str(k) for k in dic.keys()])
 
-    @shell(conda_env="bwa samtools")
+    @shell(conda="bwa samtools")
     def shell1(f: str):
         Shell(f"echo  '{f}' > {f}")
         return f
 
-    @shell(image="docker://continuumio/miniconda")
+    @shell(image="docker://continuumio/miniconda", pubdir="results/shell2")
     def shell2(self, f: File):
-        print(self.task_key)
         f1 = "t1.txt"
         f2 = "t2.txt"
         Shell(f"""
@@ -31,7 +31,7 @@ def test():
               """)
         return f1, f2
 
-    @shell(conda_env="samtools bwa python", image="docker://continuumio/miniconda")
+    @shell(conda="samtools bwa python", image="docker://continuumio/miniconda")
     def shell3(f: File):
         Shell(f"cat {f}")
 
@@ -52,8 +52,18 @@ def test():
         ch = flow1(a, b)
         return flow2(ch)
 
-    fasta1 = Channel.values("1", "2", "4", "1")
-    fasta2 = Channel.values("A", "B", "x", "A")
+    fasta1_list = [uuid.uuid4() for i in range(100)]
+    fasta2_list = [uuid.uuid4() for i in range(100)]
+
+    fasta1 = Channel.values(*fasta1_list)
+    fasta2 = Channel.values(*fasta2_list)
+
+    config.update({
+        'cpu': 40,
+        'memory': 100,
+        'time': 1000,
+        'io': 80
+    })
 
 
     runner, workflow = FlowRunner(myflow).run(fasta1, fasta2)
@@ -61,13 +71,14 @@ def test():
     runner.execute()
     results = []
     for data in consumer:
+        print(data)
         results.append(data)
     print("Results are: ")
     for res in results:
         print(res, type(res))
 
 
-    # workflow.graph.render('/Users/bakezq/Desktop/dag', view=True, format='pdf', cleanup=True)
+    workflow.graph.render('/store/qzhong/dag.pdf', view=True, format='pdf', cleanup=True)
 
 
 if __name__ == "__main__":

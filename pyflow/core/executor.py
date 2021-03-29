@@ -1,22 +1,60 @@
 import asyncio
 import inspect
+import sys
 from functools import partial
+from io import StringIO
 from multiprocessing import cpu_count
 
 from loky import get_reusable_executor
 
-from pyflow.context import config
 from pyflow.utility.logtool import get_logger
 
 logger = get_logger(__name__)
 
 
+class Capture(object):
+    def __init__(self, stdout=None, stderr=None):
+        if isinstance(stdout, str):
+            stdout = open(stdout, 'a')
+        if isinstance(stderr, str):
+            stderr = open(stderr, 'a')
+        self.stdout = stdout
+        self.stderr = stderr
+        self.stringio_stdout = StringIO()
+        self.stringio_stderr = StringIO()
+
+    def __enter__(self):
+        self._stdout = sys.stdout
+        self._stderr = sys.stderr
+        sys.stdout = self.stdout or self.stringio_stdout
+        sys.stderr = self.stderr or self.stringio_stderr
+        return self
+
+    def __exit__(self, *args):
+        self.stringio_stdout = StringIO()
+        self.stringio_stderr = StringIO()
+        sys.stdout = self._stdout
+        sys.stderr = self._stderr
+
+
 class Executor(object):
-    async def run(self, fn, *args):
+    def __init__(self, config):
+        self.config = config
+
+    async def run(self, fn, *args, **kwargs):
         raise NotImplementedError
+
+    def init(self):
+        pass
+
+    def shutdown(self):
+        pass
 
 
 class Local(Executor):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     async def run(self, fn, *args, **kwargs):
         if inspect.iscoroutine(fn):
             return await fn(*args, **kwargs)
@@ -25,33 +63,39 @@ class Local(Executor):
 
 
 class ProcessExecutor(Executor):
-    # TODO ProcessExecutor will not work, need to find a way to use cloudpicke as pickler
-    def __init__(self, pool_cls=get_reusable_executor):
+    # TODO ProcessExecutor will not work, need to find a way to use cloudpickle as pickler
+    def __init__(self, pool_cls=get_reusable_executor, **kwargs):
+        super().__init__(**kwargs)
         self.pool = pool_cls()
 
     async def run(self, fn, *args, **kwargs):
         loop = asyncio.get_running_loop()
         _run = partial(fn, *args, **kwargs)
-        logger.debug("run in executor")
         res = await loop.run_in_executor(self.pool, _run)
-        logger.debug(f"result is: {res}")
         return res
 
 
 class RayExecutor(Executor):
-    def __init__(self, config):
-        self.config = config
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.inited = False
 
     def init(self):
         if not self.inited:
             import ray
-            ray.init(num_cpus=cpu_count())
+            with Capture('.ray_stdout.log', '.ray_stderr.log'):
+                ray.init(num_cpus=max(cpu_count() - 2, 1))
             self.inited = True
+
+    def shutdown(self):
+        if self.inited:
+            import ray
+            ray.shutdown()
+            self.inited = False
 
     async def run(self, fn, *args, **kwargs):
         import ray
-        self.init()
+        assert self.inited, "Not inited, please use executor.init()"
 
         # TODO why use closure doesn't work ?
         @ray.remote
@@ -62,14 +106,14 @@ class RayExecutor(Executor):
         return res
 
 
-local = Local()
-process = ProcessExecutor()
-ray = RayExecutor(config=config)
-
-
-def get_executor(executor: str = 'local'):
-    return {
-        'local': local,
-        'process': process,
-        'ray': ray
-    }[executor]
+def get_executor(executor: str = 'local', *args, **kwargs):
+    executors = {
+        'local': Local,
+        'process': ProcessExecutor,
+        'ray': RayExecutor
+    }
+    if executor not in executors:
+        raise ValueError(f"{executor} not supported, please choose one of {executors.keys()}")
+    exe = executors[executor](*args, **kwargs)
+    exe.init()
+    return exe

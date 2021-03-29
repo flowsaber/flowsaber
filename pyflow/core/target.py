@@ -21,7 +21,7 @@ class Target(object):
 class File(Target):
     def __new__(cls, *args, **kwargs):
         obj = super().__new__(cls)
-        obj.path = Path(*args)
+        obj.path = Path(*args).expanduser().resolve()
         return obj
 
     def __init__(self, *args, **kwargs):

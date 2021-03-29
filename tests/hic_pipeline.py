@@ -273,7 +273,6 @@ def hic_flow(inputs, assembly, enzyme):
     pair_stats = [exp_pairs, sample_pairs] >> stat_pair | mix
 
 
-print(stat_pair.__rshift__)
 
 config.raw_reads = {
     'sample1': [

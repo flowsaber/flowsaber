@@ -6,3 +6,4 @@ setuptools~=50.3.2
 cloudpickle~=1.6.0
 loky
 ray
+rich

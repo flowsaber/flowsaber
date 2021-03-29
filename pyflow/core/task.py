@@ -1,51 +1,62 @@
+import asyncio
 import inspect
 import os
 import subprocess
-from collections import abc
+from collections import abc, defaultdict
+from functools import partial
 from inspect import BoundArguments, Parameter
 from pathlib import Path
-from typing import Optional, Callable
+from typing import Optional, Callable, Sequence
 
 from dask.base import tokenize
 
 from pyflow.context import pyflow, config
-from pyflow.core.cache import get_cache_cls, CacheInvalidError
-from pyflow.core.env import Env
-from pyflow.core.executor import get_executor
+from pyflow.core.cache import get_cache_cls, CacheInvalidError, Cache
+from pyflow.core.env import Env, EnvCreator
+from pyflow.core.executor import get_executor, Executor
 from pyflow.core.target import File, Stdout, Stdin, END, Skip
 from pyflow.utility.logtool import get_logger
 from pyflow.utility.utils import change_cwd, class_deco, TaskOutput, Data
 from .base import FlowComponent, TaskConfig
-from .channel import Channel, Consumer
+from .channel import Channel, Consumer, ConstantChannel, Queue
+from .scheduler import Scheduler
 
 logger = get_logger(__name__)
 
 
 class BaseTask(FlowComponent):
-    def __init__(self, **kwargs):
+    def __init__(self, num_out: int = 1, **kwargs):
         super().__init__(**kwargs)
-        self.num_output_ch = 1
+        self.num_out = num_out
+        self._dependencies: dict = None
 
     def initialize_input(self, *args, **kwargs) -> Consumer:
         super().initialize_input(*args, **kwargs)
         channels = list(args) + list(kwargs.values())
         self._input = Consumer.from_channels(channels, consumer=self, task=self)
+        self._dependencies = {}
         return self._input
 
+    def add_dependency(self, name: str, channel: Channel):
+        assert name not in self._dependencies
+        self._dependencies[name] = channel
+        self._input.add_channel(channel, consumer=self)
+        self.register_graph([self._input.queues[-1]])
+
     def initialize_output(self) -> TaskOutput:
-        self._output = tuple(Channel(task=self) for i in range(self.num_output_ch))
+        self._output = tuple(Channel(task=self) for i in range(self.num_out))
         if len(self._output) == 1:
             self._output = self._output[0]
         return self._output
 
-    def register_graph(self):
+    def register_graph(self, qv: Sequence[Queue]):
         g = pyflow.top_flow.graph
         kwargs = dict(
             style="filled",
             colorscheme="svg"
         )
         g.node(self.identity_name, **kwargs)
-        for q in self._input.queues:
+        for q in qv:
             src = q.ch.task or q.ch
             src_name = getattr(src, 'identity_name', None) or src.name
             shape = 'box' if isinstance(self, Task) else 'ellipse'
@@ -56,7 +67,7 @@ class BaseTask(FlowComponent):
     def copy_new(self, *args, **kwargs):
         new = super().copy_new(*args, **kwargs)
         new.initialize_output()
-        new.register_graph()
+        new.register_graph(new._input.queues)
         return new
 
     def __call__(self, *args, **kwargs) -> TaskOutput:
@@ -88,7 +99,7 @@ class BaseTask(FlowComponent):
             await self.handle_input(data)
         await self.handle_input(END)
 
-    async def handle_input(self, data, **kwargs):
+    async def handle_input(self, data, *args, **kwargs):
         return NotImplemented
 
     def __ror__(self, chs) -> TaskOutput:
@@ -141,13 +152,10 @@ class Task(BaseTask):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # task specific
-        self.cache = None
         self.skip_fn: Optional[Callable] = None
         self.workdir = None
-        self.task_key = None
         # run specific
-        self._input_key = None
-        self._errors = []
+        self.run_info: dict = None
 
     def __getattr__(self, item):
         return getattr(self.config, item)
@@ -157,12 +165,12 @@ class Task(BaseTask):
         self.skip_fn = skip_fn
 
     def clean(self):
-        if self.cache:
+        if hasattr(self, 'cache'):
             self.cache.persist()
 
     @property
-    def hash(self):
-        # get the hash of this task defined by the real source code of self.run
+    def task_hash(self):
+        # get the task_hash of this task defined by the real source code of self.run
         fn = self.run
         # for wrapped func, use __source_func__ as a link
         while hasattr(fn, '__source_func__'):
@@ -172,54 +180,74 @@ class Task(BaseTask):
 
         return tokenize(code, annotations)
 
+    @property
+    def input_hash_source(self) -> dict:
+        return {}
+
+    @property
+    def task_key(self):
+        return f"{self.__class__.__name__}-{self.task_hash}"
+
     def copy_new(self, *args, **kwargs):
-        new = super().copy_new(*args, **kwargs)
+        new: Task = super().copy_new(*args, **kwargs)
         # 4. update user defined config
         cls_name = new.__class__.__name__
         if hasattr(config, cls_name) and isinstance(config[cls_name], dict):
             new.config.update(config[cls_name])
-        # set working directory
-        task_key = f"{new.__class__.__name__}-{new.hash}"
-        task_workdir = (Path(new.config.workdir) / Path(task_key)).expanduser().resolve()
-        task_workdir.mkdir(parents=True, exist_ok=True)
-
-        new.workdir = task_workdir
-        new.task_key = str(task_workdir)
+        # set task_key and working directory
+        # task key is the unique identifier of the task and task' working directory, cache, run_key_lock
+        new.workdir = Path(new.config.workdir, new.task_key).expanduser().resolve()
         logger.debug(f"the working directory of {self} is {new.task_key}")
         # set cache
-        new.cache = get_cache_cls(new.config.cache_type)(
-            task_key=new.task_key,
-            cache=new.config.cache
-        )
         return new
 
     async def handle_consumer(self, consumer: Consumer, **kwargs):
-        scheduler = kwargs.get('scheduler')
+        # make working directory
+        self.workdir.mkdir(parents=True, exist_ok=True)
+        scheduler: Scheduler = kwargs.get('scheduler')
         scheduled = False
 
         async for data in consumer:
             # handle _input _input_args
-            # Must convert to tuple since it's untupled by consumer
-            _data = (data,) if self._input_len == 1 else data
-            run_args = self.create_run_args(_data)
-            # should must cost much time
-            if scheduler:
-                # create a clean task for ease of serialization
-                new_task = self.copy_clean()
-                scheduler.schedule(self, self.enqueue_output, new_task, run_args, raw_data=data)
-                scheduled = True
+            # tuple if needed
+            run_data = (data,) if self._input.single else data
+            logger.debug(f"{self} get data {data} from consumer.")
+            len_args = self._input_len
+            # split run data and dependent data
+            run_data, depend_data = run_data[:len_args], run_data[len_args:]
+            run_args = self.create_run_args(run_data)
+            depend_args = dict(zip(self._dependencies, depend_data))
+            # initialize run_info
+            run_info = depend_args
+            # skip
+            if self.skip_fn and await self.skip_fn(*run_args.args, **run_args.kwargs):
+                # untuple if has only one argument
+                enque_data = run_data[0] if len_args == 1 else run_data
+                await self.enqueue_output(enque_data)
+            # or run
             else:
-                res = await self.handle_input(run_args, raw_data=data)
-                await self.enqueue_output(res)
+                # run in scheduler
+                if scheduler:
+                    # create a clean task for ease of serialization
+                    job = scheduler.schedule(self, self.handle_input, run_args, run_info=run_info)
+                    job.add_async_done_callback(self.enqueue_output)
+                    if self.config.fork <= 1:
+                        await job
+                    scheduled = True
+                # or in current loop
+                else:
+                    res = await self.handle_input(run_args, run_info=run_info)
+                    await self.enqueue_output(res)
         if scheduler and scheduled:
-            wait_q = scheduler.get_wait_q(self)
-            await wait_q.join()
+            task_state = scheduler.get_state(self)
+            await task_state
 
     async def enqueue_output(self, res):
         if not isinstance(res, Skip):
+            logger.debug(f"{self} send {res} to output channel.")
             await self._output.put(res)
         else:
-            logger.debug("Skipped result by SKIP")
+            logger.debug(f"{self} skipped put output by SKIP")
 
     def create_run_args(self, data: Data) -> BoundArguments:
         # 1. build BoundArgument
@@ -232,42 +260,82 @@ class Task(BaseTask):
         run_args.apply_defaults()
         return run_args
 
-    async def run_job(self, run_args: BoundArguments, **kwargs):
-        # used for scheduler call
-        res = await self.handle_input(run_args, **kwargs)
-        logger.info(f"output of {self} is: {res}")
-        return res
+    @property
+    def cache(self) -> Cache:
+        create_cache = partial(get_cache_cls, self.config.cache_type, task=self)
+        caches = pyflow.setdefault('__caches__', defaultdict(create_cache))
+        return caches[self.task_key]
+
+    @property
+    def executor(self) -> Executor:
+        executor_type = self.config.executor
+        executors = pyflow.setdefault('__executors__', {})
+        if executor_type not in executors:
+            executors[executor_type] = get_executor(executor_type, config=self.config)
+
+        return executors[executor_type]
+
+    def run_key_lock(self, run_key: str):
+        locks = pyflow.setdefault('__run_key_locks__', defaultdict(asyncio.Lock))
+        return locks[run_key]
 
     async def handle_input(self, run_args: BoundArguments, **kwargs):
-        logger.debug("start handle input")
-        run_args = await self.check_run_args(run_args)
-        run_args = await self.check_run_input(run_args)
+        logger.debug(f"{self} start handle_input()")
+        self.run_info = kwargs.get('run_info', {})
 
-        self._input_key = input_key = self.cache.hash(run_args)
-        # try to use cache
-        retry = self.config.retry + 1
-        while retry > 0:
-            try:
-                no_cache = object()
-                res = self.cache.get(input_key, no_cache)
-                res_is_cache = res is not no_cache
-                if not res_is_cache:
-                    res = await self.run_in_executor(self.run, *run_args.args, **run_args.kwargs)
-                res = await self.check_run_output(res, is_cache=res_is_cache)
-            except Exception as e:
-                if not hasattr(self, '_errors'):
-                    self._errors = []
-                self._errors.append(e)
-                # if it's caused by checking failed
-                if isinstance(e, CacheInvalidError):
-                    self.cache.clean(input_key)
-                    retry += 1
+        run_args = await self.check_run_args(run_args)
+        input_hash = self.cache.hash(run_args, **self.input_hash_source)
+        run_key = self.run_key(input_hash)
+        logger.debug(f"{self} {run_args} {self.input_hash_source} {run_key}")
+        # get and set run_info
+        self.run_info.update({
+            'run_key': run_key,
+        })
+        await self.update_run_info(run_args)
+
+        errors = []
+        # 1. set running info and lock key
+        # must lock input key to avoid collision in cache and files in running path
+        async with self.run_key_lock(run_key):
+            # try to use _cache
+            logger.debug(f"{self} get lock:{run_key}")
+            retry = self.config.retry + 1
+            while retry > 0:
+                try:
+                    no_cache = object()
+                    res = self.cache.get(run_key, no_cache)
+                    use_cache = res is not no_cache
+                    if not use_cache:
+                        # print(f"{self}  no use cache")
+                        # Important, need create a clean task, as serialization will included self
+                        # clean task will not contain _xxx like attribute
+                        # should maintain input/run specific information in self.run_info dict
+                        clean_task = self.copy_clean()
+                        res = await self.executor.run(clean_task.run, *run_args.args, **run_args.kwargs)
+                    else:
+                        # print(f"{self}  use cache")
+                        pass
+                    res = await self.check_run_output(res, is_cache=use_cache)
+                except Exception as e:
+                    errors.append(e)
+                    # if it's caused by checking failed
+                    if isinstance(e, CacheInvalidError):
+                        logger.debug(f'{self} read cache:{run_key} with error: {CacheInvalidError}')
+                        self.cache.remove(run_key)
+                        retry += 1
+                else:
+                    if not use_cache:
+                        self.cache.put(run_key, res)
+                    break
+                retry -= 1
             else:
-                self.cache.put(input_key, res)
-                break
-        else:
-            raise self._errors[-1]
-        self._input_key = None
+                if self.config.skip_error:
+                    res = Skip
+                else:
+                    raise errors[-1]
+        logger.debug(f"{self} release lock:{run_key}")
+        # 3. unset running info
+        self.run_info = {}
         return res
 
     async def check_run_args(self, run_args: BoundArguments) -> BoundArguments:
@@ -293,9 +361,8 @@ class Task(BaseTask):
             values = [value] if not isinstance(value, (list, tuple, set)) else value
             for f in [v for v in values if isinstance(v, File)]:
                 if not f.initialized:
-                    new_hash = await self.run_in_executor(f.calculate_hash)
+                    new_hash = await self.executor.run(f.calculate_hash)
                     f.hash = new_hash
-
         return run_args
 
     async def check_run_output(self, res, is_cache: bool = False):
@@ -304,15 +371,14 @@ class Task(BaseTask):
             values = [res] if not isinstance(res, (list, tuple, set)) else res
             for f in [v for v in values if isinstance(v, File)]:
                 if f.initialized:
-                    check_hash = await self.run_in_executor(f.calculate_hash)
+                    check_hash = await self.executor.run(f.calculate_hash)
                     if check_hash != f.hash:
-                        msg = f"Task {self.task_name} read cache failed from disk because file content hash changed."
-                        logger.debug(msg)
+                        msg = f"Task {self.task_name} read cache failed from disk because file content task_hash changed."
                         raise CacheInvalidError(msg)
         return res
 
-    async def check_run_input(self, data: BoundArguments) -> BoundArguments:
-        return data
+    async def update_run_info(self, data: BoundArguments):
+        pass
 
     async def need_skip(self, bound_args: BoundArguments) -> bool:
         if self.skip_fn:
@@ -323,103 +389,111 @@ class Task(BaseTask):
         else:
             return False
 
-    async def run_in_executor(self, fn, *args, **kwargs):
-        executor = get_executor(self.config.executor)
-        res = await executor.run(fn, *args, **kwargs)
-        return res
-
     def run(self, *args, **kwargs):
         """
         This function should be stateless
         """
         raise NotImplementedError
 
+    def run_key(self, input_hash):
+        assert self.task_key is not None and Path(self.workdir).is_dir()
+        return str(Path(self.workdir, input_hash))
 
-class ShellTask(Task, func_pairs=[('command', 'run')]):
+
+class ShellTask(Task):
+    FUNC_PAIRS = [('command', 'run')]
     SCRIPT_CMD = "SCRIPT_CMD"
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        # task specific
-        self.env = None
-        # run specific
-        self._cmd = None
-        self._cmd_output = None
-        self._stdin = ''
+    class Script(object):
+        def __init__(self, cmd: str):
+            assert isinstance(cmd, str)
+            self.cmd = cmd
+            pyflow[ShellTask.SCRIPT_CMD] = self
+
+        def __str__(self):
+            return f"{self.cmd}"
+
+    class ShellScript(Script):
+        pass
+
+    class PythonScript(Script):
+        def __init__(self, cmd: str):
+            super().__init__(cmd)
+            raise NotImplementedError("Why not write python code in Task?")
+
+    class Rscript(Script):
+        SCRIPT_FILE = ".__Rscript.R"
+
+        def __str__(self):
+            Path(self.SCRIPT_FILE).write_text(self.cmd)
+            return f"Rscript {self.SCRIPT_FILE};"
 
     def copy_new(self, *args, **kwargs):
         new = super().copy_new(*args, **kwargs)
-        new.env = Env(workdir=new.workdir,
-                      modules=new.config.modules,
-                      conda_env=new.config.conda_env,
-                      image=new.config.image,
-                      runtime=new.config.runtime)
+        # handling env dependency
+        config = new.config
+        if config.module or config.conda or config.image:
+            env_creator = EnvCreator(
+                module=config.module,
+                conda=config.conda,
+                image=config.image
+            )
+            if env_creator not in pyflow.env_tasks:
+                pyflow.env_tasks[env_creator] = EnvTask(env_creator=env_creator)()
+            env_task_out_ch: Channel = pyflow.env_tasks[env_creator]
+            new.add_dependency(name='env', channel=env_task_out_ch)
+
         return new
 
     def command(self, *args, **kwargs) -> str:
         raise NotImplementedError
 
-    @property
-    def running_path(self) -> Path:
-        assert self.task_key is not None and self._input_key is not None
-        assert Path(self.task_key).is_dir()
-        return Path(self.task_key) / Path(self._input_key)
-
-    async def check_run_input(self, input_args: BoundArguments) -> BoundArguments:
+    async def update_run_info(self, data: BoundArguments):
         # run user defined function and get the true bash commands
+        await super().update_run_info(data)
         with pyflow():
-            self._cmd_output = self.command(*input_args.args, **input_args.kwargs)
-            self._cmd = pyflow.get(self.SCRIPT_CMD)
-            assert isinstance(self._cmd, Script)
-            if self._cmd is None:
+            cmd_output = self.command(*data.args, **data.kwargs)
+            cmd = pyflow.get(self.SCRIPT_CMD)
+            assert isinstance(cmd, self.Script)
+            if cmd is None:
                 raise ValueError("ShellTask must be registered with a shell script_cmd "
                                  "by calling `_(CMD) or Bash(CMD)` inside the function.")
-        self._stdin = ''
+        stdin = ''
         # check if there are _stdin
-        for arg in list(input_args.args) + list(input_args.kwargs.values()):
+        for arg in list(data.args) + list(data.kwargs.values()):
             if isinstance(arg, Stdin):
-                if self._stdin:
+                if stdin:
                     raise RuntimeError(f"Found two stdin inputs.")
-                self._stdin = arg
+                stdin = arg
 
-        return input_args
+        self.run_info.update({
+            'cmd_output': cmd_output,
+            'cmd': cmd,
+            'stdin': stdin
+        })
 
     def run(self, *args, **kwargs):
         """
         This function should be stateless
         """
+        run_info = self.run_info
+        stdin = run_info['stdin']
+        cmd = run_info['cmd']
+        cmd_output = run_info['cmd_output']
+        run_key = run_info['run_key']
+        env: Env = run_info.get('env') or Env()
+        running_path = Path(run_key)
+        pubdirs = self.config.get_pubdirs()
+        with change_cwd(running_path) as path:
 
-        with change_cwd(self.running_path) as path:
-            # run bash
-            env = os.environ.copy()
-            # do some cleaning
-            self.env.init()
-
-            # prepare environment, stdout and stderr are merged
-            try:
-                prepare_env_cmd, script = self.env.prepare_cmd("")
-                stdout_file = (self.running_path / Path(f"{script}.stdout")).open('w+')
-                with subprocess.Popen(prepare_env_cmd,
-                                      stdout=stdout_file,
-                                      stderr=subprocess.STDOUT, env=env, shell=True) as p:
-                    p.wait()
-
-                stdout_file.seek(0)
-                stderr = stdout_file.read(1000)
-                stdout_file.close()
-            except Exception as e:
-                raise ValueError(f"Prepare environment for task {self} with error: {stderr} check {stdout_file} "
-                                 f"with error: {e}")
-            if p.returncode:
-                raise ValueError(f"Prepare environment for task {self} with error: {stderr} check {stdout_file}")
-
-            # run in environment, stdout and stderr are separated, stdout of other commands are redirected
-            run_env_cmd, script = self.env.run_cmd(str(self._cmd))
-            stdout_file = (self.running_path / Path(f"{script}.stdout")).open('w')
-            stderr_file = (self.running_path / Path(f"{script}.stderr")).open('w+')
-            with subprocess.Popen(f"{self._stdin} {run_env_cmd}",
+            # 2. run in environment, stdout and stderr are separated, stdout of other commands are redirected
+            run_env_cmd = env.gen_cmd(str(cmd))
+            stdout_file = (running_path / Path(f".__run__.stdout")).open('w')
+            stderr_file = (running_path / Path(f".__run__.stderr")).open('w+')
+            with subprocess.Popen(f"{stdin} {run_env_cmd}",
                                   stdout=stdout_file,
-                                  stderr=stderr_file, env=env, shell=True) as p:
+                                  stderr=stderr_file,
+                                  env=os.environ.copy(), shell=True) as p:
                 p.wait()
 
             stderr_file.seek(0)
@@ -427,14 +501,14 @@ class ShellTask(Task, func_pairs=[('command', 'run')]):
             stdout_file.close()
             stderr_file.close()
             if p.returncode:
-                raise ValueError(f"Run in environment for task {self} with error: {stderr} in {self.running_path}")
-
+                raise ValueError(
+                    f"Run in environment for task {self} with error: {stderr} in {running_path} task: {self}")
             # return stdout or globed new files
-            output = self._cmd_output
+            output = cmd_output
 
             # 1. return stdout simulated by file
             if output is None:
-                stdout_path = (self.running_path / Path(f"{script}.stdout")).resolve()
+                stdout_path = Path(stdout_file.name).resolve()
                 stdout = Stdout(stdout_path)
                 stdout.initialize_hash()
                 return stdout
@@ -450,16 +524,22 @@ class ShellTask(Task, func_pairs=[('command', 'run')]):
                 output = list(output)
 
             # 3. loop through element in the first level
-
             def check_item(item):
                 if type(item) is str:
-                    files = [File(p.resolve()) for p in Path().glob(item) if not p.name.startswith('.')]
+                    files = [File(p.resolve())
+                             for p in Path().glob(item)
+                             if not p.name.startswith('.') and p.is_file()]
                     for f in files:
-                        f.initialize_hash()
+                        check_item(f)
+
                     return files[0] if len(files) == 1 else tuple(files)
                 # initialize File
                 elif isinstance(item, File):
                     item.initialize_hash()
+                    for pubdir in pubdirs:
+                        pub_file = pubdir / Path(item.name)
+                        if not pub_file.exists():
+                            item.link_to(pub_file)
 
                 elif isinstance(item, dict):
                     for k, v in item.items():
@@ -473,38 +553,45 @@ class ShellTask(Task, func_pairs=[('command', 'run')]):
             return output if not single else output[0]
 
 
-class Script(object):
-    def __init__(self, cmd: str):
-        assert isinstance(cmd, str)
-        self.cmd = cmd
-        pyflow[ShellTask.SCRIPT_CMD] = self
+class EnvTask(ShellTask):
+    def __init__(self, env_creator: EnvCreator = None, **kwargs):
+        super().__init__(**kwargs)
+        self.env_creator: EnvCreator = env_creator
+        self.env: Env = None
 
-    def __str__(self):
-        return f"{self.cmd}"
+    def copy_new(self, *args, **kwargs):
+        new = super().copy_new(*args, **kwargs)
+        if new.env_creator is None:
+            new.env_creator = EnvCreator(
+                module=new.config.module,
+                conda=new.config.conda,
+                image=new.config.image
+            )
+        return new
 
+    @property
+    def input_hash_source(self) -> dict:
+        return {
+            'env_hash': self.env_creator.hash
+        }
 
-class ShellScript(Script):
-    pass
+    def initialize_output(self) -> TaskOutput:
+        self._output = ConstantChannel(task=self)
+        return self._output
 
-
-class PythonScript(Script):
-    def __init__(self, cmd: str):
-        super().__init__(cmd)
-        raise ValueError("You should write python syntax right in here.")
-
-
-class Rscript(Script):
-    SCRIPT_FILE = ".__Rscript.R"
-
-    def __str__(self):
-        Path(self.SCRIPT_FILE).write_text(self.cmd)
-        return f"Rscript {self.SCRIPT_FILE};"
+    def command(self) -> Env:
+        running_path = Path(self.run_info['run_key'])
+        with change_cwd(running_path) as path:
+            cmd, env = self.env_creator.gen_cmd_env()
+        Shell(cmd)
+        self.env = env
+        return env
 
 
 # decorator to make Task
 task = class_deco(Task, 'run')
 shell = class_deco(ShellTask, 'command')
 # function to register command
-Shell = ShellScript
-Python = PythonScript
-Rscript = Rscript
+Shell = ShellTask.ShellScript
+Python = ShellTask.PythonScript
+Rscript = ShellTask.Rscript

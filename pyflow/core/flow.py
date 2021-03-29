@@ -4,7 +4,7 @@ from typing import Union
 
 from graphviz import Digraph
 
-from pyflow.context import pyflow
+from pyflow.context import pyflow, config
 from pyflow.utility.utils import class_deco, TaskOutput
 from .base import FlowComponent
 from .channel import Channel
@@ -80,14 +80,25 @@ class FlowRunner(object):
     def execute(self):
 
         async def _execute():
+            # TODO carefully handle ctrl + C signal caused exception
             loop = asyncio.get_running_loop()
             loop._scheduler = self.scheduler
             asyncio.ensure_future(self.scheduler.execute())
-            exec_res = await self.flow.execute(scheduler=self.scheduler)
+            flow_exec_res = await self.flow.execute(scheduler=self.scheduler)
+            await asyncio.sleep(0.5)
+            # check error
             self.scheduler.check_error()
-            return exec_res
+            # stop executors
+            for executor in pyflow.get('__executors__', {}).values():
+                executor.shutdown()
+
+            return flow_exec_res
 
         assert self.flow is not None, "Please call run() method before running the flow."
+        # print config
+        from rich import print
+        print("Your config is: ", config.__dict__)
+
         try:
             res = asyncio.run(_execute())
         except Exception as e:

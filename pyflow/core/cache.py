@@ -31,23 +31,25 @@ class CacheInvalidError(Exception):
     pass
 
 
-class Cache(object):
-    NO_CACHE = object()
+NO_CACHE = object()
 
-    def __init__(self, task_key: str, cache: bool = True):
-        self.task_key = task_key
+
+class Cache(object):
+
+    def __init__(self, task=None, cache: bool = True):
+        self.task = task
         self.enable = cache
 
-    async def hash(self, input_args: BoundArguments, **kwargs):
-        raise NotImplementedError
-
-    async def contains(self, input_key: str) -> bool:
+    def hash(self, input_args: BoundArguments, **kwargs):
         raise NotImplementedError
 
     def put(self, input_key: str, output):
         raise NotImplementedError
 
-    def get(self, input_key: str):
+    def get(self, input_key: str, default=NO_CACHE):
+        raise NotImplementedError
+
+    def remove(self, input_key: str):
         raise NotImplementedError
 
     def persist(self):
@@ -59,10 +61,6 @@ class LocalCache(Cache):
 
     def __init__(self, serializer: Serializer = CloudPickleSerializer(), **kwargs):
         super().__init__(**kwargs)
-        path = Path(self.task_key)
-        assert path.is_dir()
-        self.path = path.expanduser().resolve()
-        self.task_name = str(path.name)
         self.cache = {}
         self.serializer = serializer
 
@@ -73,6 +71,7 @@ class LocalCache(Cache):
         return self
 
     def hash(self, input_args: BoundArguments, **kwargs):
+        logger.debug("hash input", input_args, kwargs)
         # we do not count for parameter names, we only care about orders
         if not self.enable:
             return ""
@@ -83,50 +82,63 @@ class LocalCache(Cache):
         hash_key = tokenize(hash_dict)
         return hash_key
 
-    def remove(self, input_key):
-        path = self.path / Path(input_key)
+    def remove(self, run_key):
+        path = Path(run_key)
         if path.exists():
-            shutil.rmtree(path, ignore_errors=True)
-            return self.cache.pop(input_key, None)
+            for f in path.glob('*'):
+                if not f.name.startswith('._'):
+                    if f.is_file():
+                        f.unlink(missing_ok=True)
+                    else:
+                        shutil.rmtree(f, ignore_errors=True)
 
-    def get(self, input_key: str, default=Cache.NO_CACHE) -> object:
+            return self.cache.pop(run_key, None)
+
+    def get(self, run_key: str, default=NO_CACHE) -> object:
         if not self.enable:
-            self.remove(input_key)
-            logger.debug("Clean original cache if possible since cache set to False")
+            self.remove(run_key)
+            logger.debug(f"Clean cache: {run_key} since cache set to False")
             return default
         # case 1, in memory cache
-        if input_key in self.cache:
-            logger.debug(f"Task {self.task_name} read cache succeed with key: {input_key} from memory.")
+        if run_key in self.cache:
+            logger.debug(f"{self.task} read cache:{run_key} succeed from memory.")
         else:
             # case 2, in disk cache
-            value_path = self.path / Path(input_key) / Path(self.VALUE_FILE)
+            value_path = Path(run_key, self.VALUE_FILE)
             try:
                 with value_path.open('rb') as f:
                     value = self.serializer.load(f)
             except Exception as e:
-                self.remove(input_key)
-                logger.debug(f"Task {self.task_name} read cache failed with key: {input_key} from disk with error: {e}")
+                self.remove(run_key)
+                logger.debug(f"{self.task} read cache:{run_key} failed from disk with error: {e}")
                 return default
-            self.cache[input_key] = value
-        return self.cache[input_key]
+            self.cache[run_key] = value
+            logger.debug(f"{self.task} read cache:{run_key} succeed from disk.")
+        return self.cache[run_key]
 
-    def put(self, input_key: str, output):
+    def put(self, run_key: str, output):
         if not self.enable:
             return
-        self.cache[input_key] = output
+        logger.debug(f"set cache:{run_key} with: {output}")
+        self.cache[run_key] = output
 
     def persist(self):
         """
         This should be called before python program ends
         """
+        logger.debug(f"Persist cache data: {self.cache}")
         for key, value in self.cache.items():
-            p = self.path / Path(key)
-            p.mkdir(parents=True, exist_ok=True)
-            with (p / Path(self.VALUE_FILE)).open('wb') as f:
-                self.serializer.dump(value, f)
+            f = Path(key, self.VALUE_FILE)
+            f.parent.mkdir(parents=True, exist_ok=True)
+            with f.open('wb') as wf:
+                self.serializer.dump(value, wf)
 
 
-def get_cache_cls(cache_type: str = 'local'):
-    return {
+def get_cache_cls(cache_type: str = 'local', *args, **kwargs):
+    cache_cls = {
         'local': LocalCache
-    }[cache_type]
+    }
+    if cache_type not in cache_cls:
+        raise ValueError(f"cache type {cache_type} not supported, choose one of {cache_cls.keys()}")
+
+    return cache_cls[cache_type](*args, **kwargs)

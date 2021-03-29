@@ -1,5 +1,9 @@
+import sys
+
+sys.path.insert(0, '../')
 from pyflow import *
 import numpy as np
+import uuid
 
 
 def test():
@@ -31,7 +35,7 @@ def test():
             return f1, f2
 
     class Shell3(ShellTask):
-        def command(self, f: File) -> str:
+        def command(self, f: File):
             Shell(f"cat {f}")
 
     comput1 = Comput1()
@@ -51,7 +55,7 @@ def test():
             fch = shell1(ch)
             f12 = shell2(fch)
             f1ch, f2ch = Split(num=2)(f12)
-            return concat(f1ch, f2ch) | shell3
+            return concat(f1ch, f2ch) | shell3 | shell3
 
     flow1 = Flow1()
     flow2 = Flow2()
@@ -63,8 +67,20 @@ def test():
 
     myflow = Flow12()
 
-    fasta1 = Channel.values("1", "2", "4", "1")
-    fasta2 = Channel.values("A", "B", "x", "A")
+    fasta1_list = [uuid.uuid4() for i in range(100)]
+    fasta2_list = [uuid.uuid4() for i in range(100)]
+
+    fasta1 = Channel.values(*fasta1_list)
+    fasta2 = Channel.values(*fasta2_list)
+    # fasta1 = Channel.values("1", "2", "4", "1")
+    # fasta2 = Channel.values("A", "B", "x", "A")
+
+    config.update({
+        'cpu': 7,
+        'memory': 100,
+        'time': 1000,
+        'io': 80
+    })
 
     runner, workflow = FlowRunner(myflow).run(fasta1, fasta2)
     consumer = Consumer.from_channels(workflow._output)

@@ -47,7 +47,7 @@ class DotDict(MutableMapping):
     Args:
         - init_dict (dict, optional): dictionary to initialize the `DotDict`
         with
-        - **kwargs (optional): hash, _output pairs with which to initialize the
+        - **kwargs (optional): task_hash, _output pairs with which to initialize the
         `DotDict`
 
     Example:
@@ -60,7 +60,7 @@ class DotDict(MutableMapping):
     """
 
     def __init__(self, init_dict: DictLike = None, **kwargs: Any):
-        # a DotDict could have a hash that shadows `update`
+        # a DotDict could have a task_hash that shadows `update`
         if init_dict:
             super().update(init_dict)
         super().update(kwargs)
@@ -71,11 +71,11 @@ class DotDict(MutableMapping):
         the inherited `.get()` method incorrectly.
 
         Args:
-            - hash (str): the hash to retrieve
-            - default (Any): a default _output to return if the hash is not found
+            - task_hash (str): the task_hash to retrieve
+            - default (Any): a default _output to return if the task_hash is not found
 
         Returns:
-            - Any: the _output of the hash, or the default _output if the hash is not found
+            - Any: the _output of the task_hash, or the default _output if the task_hash is not found
         """
         return super().get(key, default)
 
@@ -157,7 +157,7 @@ class Context(DotDict):
     Args:
         - *run_args (Any): arguments to provide to the `DotDict` constructor (e.g.,
             an initial dictionary)
-        - **kwargs (Any): any hash / _output pairs to initialize this context with
+        - **kwargs (Any): any task_hash / _output pairs to initialize this context with
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -167,8 +167,12 @@ class Context(DotDict):
         init.update(dict(*args, **kwargs))
         super().__init__(init)
         self.__flow_stack = []
-
+        self.__env_tasks = {}
         self.__dict__['_flow_stack'] = []
+
+    @property
+    def env_tasks(self):
+        return self.__env_tasks
 
     @property
     def flow_stack(self):

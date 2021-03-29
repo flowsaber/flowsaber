@@ -1,6 +1,7 @@
 import inspect
 from dataclasses import dataclass
-from typing import Optional, Union, List, Sequence, Tuple
+from pathlib import Path
+from typing import Optional, Union, List, Sequence
 
 from makefun import with_signature
 
@@ -14,7 +15,15 @@ logger = get_logger(__name__)
 
 
 class CopySigMeta(NumpyDocInheritor):
-    def __new__(mcs, class_name, bases, class_dict, func_pairs: Sequence[Tuple[str, str]] = None):
+    PAIR_ARG_NAME = 'FUNC_PAIRS'
+
+    def __new__(mcs, class_name, bases, class_dict):
+        func_pairs = class_dict.get(mcs.PAIR_ARG_NAME, None)
+        if func_pairs is None:
+            for base_cls in bases:
+                func_pairs = getattr(base_cls, mcs.PAIR_ARG_NAME, None)
+                if func_pairs:
+                    break
         if func_pairs:
             assert all(len(item) == 2 for item in func_pairs)
             for src_fn, tgt_fn in func_pairs:
@@ -37,39 +46,15 @@ class CopySigMeta(NumpyDocInheritor):
 
 class FlowComponent(object, metaclass=CopySigMeta):
     def __init__(self, name: str = "", **kwargs):
-        self._input_args = None
-        self._input_kwargs = None
-        self._input: Optional[Consumer] = None
+        self._input_args: tuple = None
+        self._input_kwargs: dict = None
         self._input_len: int = None
+        self._input: Optional[Consumer] = None
         self._output: TaskOutput = None
 
         self.name = name
         self.identity_name = ""
         self.name_with_id = True
-
-    def __copy__(self):
-        from copy import deepcopy
-        cls = self.__class__
-        new = cls.__new__(cls)
-        for k, v in self.__dict__.items():
-            if not k.startswith('_'):
-                try:
-                    setattr(new, k, deepcopy(v))
-                except:
-                    raise ValueError
-
-        return new
-
-    def copy_new(self, *args, **kwargs):
-        from copy import copy
-        new = copy(self)
-        new.initialize_name()
-        new.initialize_input(*args, **kwargs)
-        return new
-
-    def copy_clean(self):
-        from copy import copy
-        return copy(self)
 
     def __repr__(self):
         name = f"{self.name}|{type(self).__name__}({type(self).__bases__[0].__name__})"
@@ -80,6 +65,27 @@ class FlowComponent(object, metaclass=CopySigMeta):
 
     def __call__(self, *args, **kwargs) -> Union[List[Channel], Channel, None]:
         raise NotImplementedError
+
+    def copy_clean(self):
+        from copy import copy
+        return copy(self)
+
+    def __copy__(self):
+        from copy import deepcopy
+        cls = self.__class__
+        new = cls.__new__(cls)
+        for k, v in self.__dict__.items():
+            if not k.startswith('_'):
+                setattr(new, k, deepcopy(v))
+
+        return new
+
+    def copy_new(self, *args, **kwargs):
+        from copy import copy
+        new = copy(self)
+        new.initialize_name()
+        new.initialize_input(*args, **kwargs)
+        return new
 
     def initialize_name(self):
         up_flow = pyflow.up_flow
@@ -92,45 +98,60 @@ class FlowComponent(object, metaclass=CopySigMeta):
         self._input_len = len(args) + len(kwargs)
 
     def clean(self):
-        return
+        pass
 
 
 @dataclass
 class TaskConfig:
-    # Task
+    # identity info
     slug: str = None
     tags: tuple = None
+    # run info
     workdir: str = "work"
-    stage: str = "link"
-    # Per task resource cost or global resource constraint
-    cpu: int = 0
-    memory: int = 0
-    time: int = 0
-    io: int = 0
-    # Per task threshold or global threshold
-    fork: int = 999999
-    retry: int = 0
+    pubdir: Union[str, Sequence[str]] = None
     skip_error: bool = False
-    # Shell Task
-    pubdir: str = None
-    storedir: str = None
-    modules: str = None
-    conda_env: str = None
-    image: str = None
-    runtime: str = "singularity"
-    # cache
+    executor: str = 'ray'
     cache: bool = True
     cache_type: str = 'local'
-    # executor
-    executor: str = 'ray'
+    retry: int = 0
+    fork: int = 7
+    # resource
+    cpu: int = 1
+    memory: int = 4
+    time: int = 1
+    io: int = 3
+    # shell task env
+    module: str = None
+    conda: str = None
+    image: str = None
+    runtime: str = "singularity"
 
-    def __getattr__(self, item):
-        if item.startswith("max_"):
-            return 999999999
-        else:
-            raise AttributeError
+    def __getitem__(self, item):
+        return self.__dict__[item]
+
+    def resources(self):
+        resource_keys = ['cpu', 'memory', 'time', 'io']
+        return {k: self[k] for k in resource_keys}
+
+    def cost_resources(self, config):
+        for k, v in self.resources().items():
+            if k in config:
+                config[k] -= v
+
+    def release_resources(self, config):
+        for k, v in self.resources().items():
+            if k in config:
+                config[k] += v
 
     def update(self, dic: dict):
         for k, v in dic.items():
-            if hasattr(self, k) or k.startswith('max_'):
-                setattr(self, k, v)
+            setattr(self, k, v)
+
+    def get_pubdirs(self):
+        if not self.pubdir:
+            return []
+        pubdirs = self.pubdir
+        if not isinstance(self.pubdir, (tuple, list)):
+            pubdirs = [self.pubdir]
+        pubdirs = [Path(p).expanduser().resolve() for p in pubdirs]
+        return pubdirs
