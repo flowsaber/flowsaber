@@ -3,3 +3,4 @@ __pycache__/
 *$py.class
 tests/work
 tests/results
+.idea
