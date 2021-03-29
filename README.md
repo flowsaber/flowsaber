@@ -28,8 +28,7 @@ def sort(bam: File):
 @shell(conda="bcftools=1.9 samtools=1.9")
 def call(fa: File, bams: list):
     bams = ' '.join(str(bam) for bam in bams)
-    Shell(f"samtools mpileup -g -f {fa} {bams} |"
-          f"bcftools call -mv - > all.vcf")
+    Shell(f"samtools mpileup -g -f {fa} {bams} | bcftools call -mv - > all.vcf")
     return "*.vcf"
 
 
