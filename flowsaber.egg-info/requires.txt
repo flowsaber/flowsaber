@@ -1,8 +1,0 @@
-makefun~=1.10.0
-graphviz~=0.16
-httpimport
-numpydoc
-cloudpickle~=1.6.0
-loky
-ray
-rich

@@ -5,3 +5,6 @@ tests/work
 tests/results
 .idea
 dist/
+build/
+flowsaber.egg-info
+/docs/build
