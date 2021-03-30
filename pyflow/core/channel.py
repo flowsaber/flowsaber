@@ -140,14 +140,13 @@ class Channel(DataObject):
         ch >> task                   -> task(ch)
         ch >> [task1, tasks, task3]  -> [task1(ch), task2(ch), task3(ch)]
         """
-        if isinstance(tasks, abc.Sequence):
-            outputs = [task(self) for task in tasks]
-            if isinstance(tasks, tuple):
-                outputs = tuple(tasks)
-            return outputs
-
-        else:
+        if not isinstance(tasks, abc.Sequence):
             return tasks(self)
+
+        outputs = [task(self) for task in tasks]
+        if isinstance(tasks, tuple):
+            outputs = tuple(tasks)
+        return outputs
 
     def __or__(self, tasks) -> Union['Channel', Sequence['Channel']]:
         """
@@ -312,10 +311,7 @@ class Consumer(Fetcher):
 
     @classmethod
     def from_channels(cls, channels: Sequence[Union[Channel, object]], consumer=None, **kwargs) -> 'Consumer':
-        if not isinstance(channels, abc.Sequence):
-            channels = [channels]
-        else:
-            channels = list(channels)
+        channels = list(channels) if isinstance(channels, abc.Sequence) else [channels]
         for i, ch in enumerate(channels):
             if not isinstance(ch, Channel):
                 if isinstance(ch, (tuple, list)) and any(isinstance(v, Channel) for v in ch):
@@ -323,9 +319,7 @@ class Consumer(Fetcher):
                                      f"please unwrap it before pass into a Task/Flow")
                 else:
                     channels[i] = Channel.values(ch)
-        queues = []
-        for ch in channels:
-            queues.append(ch.create_queue(consumer=consumer))
+        queues = [ch.create_queue(consumer=consumer) for ch in channels]
         return cls(queues, **kwargs)
 
     def add_channel(self, channel: Channel, consumer=None):

@@ -278,10 +278,7 @@ class Filter(BaseTask):
     async def handle_input(self, data: Data, *args, **kwargs):
         if data is not END:
             # two cases, filter by predicate or by _output
-            if callable(self.by):
-                keep = self.by(data)
-            else:
-                keep = data == self.by
+            keep = self.by(data) if callable(self.by) else data == self.by
             if keep:
                 await self._output.put(data)
 
@@ -367,10 +364,7 @@ class Until(BaseTask):
 
     async def handle_input(self, data, *args, **kwargs):
         if data is not END and not self.stop:
-            if callable(self.by):
-                self.stop = self.by(data)
-            else:
-                self.stop = data == self.by
+            self.stop = self.by(data) if callable(self.by) else data == self.by
             if not self.stop:
                 await self._output.put(data)
 

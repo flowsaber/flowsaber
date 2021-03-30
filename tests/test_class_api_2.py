@@ -16,7 +16,7 @@ def test():
 
     class Comput2(Task):
         def run(self, dic):
-            return '-'.join([str(k) for k in dic.keys()])
+            return '-'.join(str(k) for k in dic.keys())
 
     class Shell1(ShellTask):
         def command(self, f: str):

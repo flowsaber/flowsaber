@@ -253,9 +253,10 @@ class Task(BaseTask):
         # 1. build BoundArgument
         len_args = len(self._input_args)
         args = data[:len_args]
-        kwargs = {}
-        for i, k in enumerate(self._input_kwargs.keys()):
-            kwargs[k] = data[len_args + i]
+        kwargs = {
+            k: data[len_args + i] for i, k in enumerate(self._input_kwargs.keys())
+        }
+
         run_args = inspect.signature(self.run).bind(*args, **kwargs)
         run_args.apply_defaults()
         return run_args
