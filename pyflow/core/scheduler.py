@@ -131,7 +131,7 @@ class Scheduler(object):
         self.wait_time = wait_time
         self.tasks: Dict[Task, TaskState] = defaultdict(TaskState)
         self.solver = GaSolver()
-        self.error_futures = []
+        self.error_jobs = []
         self.count = 0
 
     def schedule(self, task: Task, job, *args, **kwargs) -> Job:
@@ -188,8 +188,8 @@ class Scheduler(object):
                 res = await job.runner(*job.args, **job.kwargs)
             except Exception as e:
                 # record error, since the future are never been waited
-                self.error_futures.append(job.future)
                 job.set_exception(e)
+                self.error_jobs.append(job)
                 raise e
             finally:
                 # always move to done
@@ -229,9 +229,11 @@ class Scheduler(object):
                     jobs = pending_jobs
                 for job in jobs:
                     self.run(job)
-            if len(self.error_futures):
-                for fut in self.error_futures:
-                    raise fut.exception()
+            # handle error
+            if len(self.error_jobs):
+                for job in self.error_jobs:
+                    raise job.exception()
+            # update message
             for task, state in self.tasks.items():
                 pending = len(state.pending)
                 running = len(state.running)
@@ -248,16 +250,3 @@ class Scheduler(object):
                     process.update(state.task_id, completed=1)
 
             await asyncio.sleep(self.wait_time)
-
-    def check_error(self):
-        for task, state in self.tasks.items():
-            if state.pending:
-                raise ValueError(f"This jobs is not scheduled: {state.pending}")
-            if state.running:
-                for job in state.running:
-                    if job.future.exception():
-                        raise job.future.exception()
-                raise ValueError(f"This jobs are still running: {state.running}")
-            for job in state.done:
-                if job.future.exception():
-                    raise job.future.exception()

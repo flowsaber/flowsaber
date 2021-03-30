@@ -1,39 +1,32 @@
 import sys
+
 sys.path.insert(0, '../')
 from pyflow import *
 
-
-@shell(
-    conda="bwa=0.7.17 samtools=1.9"
-)
-def bwa(self, fa: File, fastq: File):
-    bam = f"{fastq.stem}.bam"
-    Shell(f"bwa mem -t {self.cpu} {fa} {fastq} | samtools view -Sb - > {bam}")
-    return bam
+# EnvTask is the real dependent task when using conda/image option
+EnvTask.DEFAULT_CONFIG = {'workdir': '/tmp/Env'}  # make the EnvTask cache at a global place
 
 
-@shell(
-    conda="bwa=0.7.17 samtools=1.9"
-)
-def sort(bam: File):
-    sorted_bam = f"{bam.stem}.sorted.bam"
-    Shell(f"samtools sort -o {sorted_bam} {bam}")
-    return sorted_bam
+@shell(conda="bwa=0.7.17 samtools=1.9")
+def bwa(self, fa: File, fastq: File):  # input will be automatically converted if has type annotation
+    """bwa mem -t {self.cpu} {fa} {fastq} | samtools view -Sb - > {fastq.stem}.bam"""
+    return "*.bam"  # for ShellTask, str variable in the return will be treated as File and globed
 
 
-@shell(
-    conda="bcftools=1.9 samtools=1.9"
-)
-def call(fa: File, bams: list):
+@shell(conda="bwa=0.7.17 samtools=1.9")
+def sort(bam: File):  # self is optional in case you don't want to access the current task
+    """samtools sort -o {bam.stem}.sorted.bam {bam}"""
+    return "*.sorted.bam"
+
+
+@shell(conda="bcftools=1.9 samtools=1.9", pubdir="results/vcf")
+def call(fa: File, bams: list):  # In case you need to write some python codes
     bams = ' '.join(str(bam) for bam in bams)
-    Shell(f"samtools mpileup -g -f {fa} {bams} |"
-          f"bcftools call -mv - > all.vcf")
-    return "*.vcf"
+    Shell(f"samtools mpileup -g -f {fa} {bams} | bcftools call -mv - > all.vcf")
+    return "all.vcf"
 
 
-@task(
-    pubdir="results/stats"
-)
+@task(pubdir="results/stats")
 def stats(vcf: File):
     import matplotlib
     matplotlib.use("Agg")
@@ -48,8 +41,12 @@ def stats(vcf: File):
 
 @flow
 def call_vcf_flow(fa, fastq):
-    bams = bwa(fa, fastq) | sort | collect
-    call(fa, bams) | stats
+    def _call(bams):  # task is normal function, use python as wish
+        return call(fa, bams)
+
+    bam1 = bwa(fa, fastq)  # automatically clone channel
+    bam2 = bwa(fa, fastq)
+    mix(bam1, bam2) | sort | collect | _call | stats
 
 
 config.update({

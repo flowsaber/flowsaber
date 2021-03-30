@@ -86,8 +86,6 @@ class FlowRunner(object):
             asyncio.ensure_future(self.scheduler.execute())
             flow_exec_res = await self.flow.execute(scheduler=self.scheduler)
             await asyncio.sleep(0.5)
-            # check error
-            self.scheduler.check_error()
             # stop executors
             for executor in pyflow.get('__executors__', {}).values():
                 executor.shutdown()

@@ -129,6 +129,9 @@ class TaskConfig:
     def __getitem__(self, item):
         return self.__dict__[item]
 
+    def get(self):
+        return self.__dict__.get
+
     def resources(self):
         resource_keys = ['cpu', 'memory', 'time', 'io']
         return {k: self[k] for k in resource_keys}

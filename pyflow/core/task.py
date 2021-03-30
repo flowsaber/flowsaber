@@ -220,7 +220,7 @@ class Task(BaseTask):
             # initialize run_info
             run_info = depend_args
             # skip
-            if self.skip_fn and await self.skip_fn(*run_args.args, **run_args.kwargs):
+            if self.skip_fn and await self.need_skip(run_args):
                 # untuple if has only one argument
                 enque_data = run_data[0] if len_args == 1 else run_data
                 await self.enqueue_output(enque_data)
@@ -312,7 +312,7 @@ class Task(BaseTask):
                         # clean task will not contain _xxx like attribute
                         # should maintain input/run specific information in self.run_info dict
                         clean_task = self.copy_clean()
-                        res = await self.executor.run(clean_task.run, *run_args.args, **run_args.kwargs)
+                        res = await self.executor.run(clean_task.run, **run_args.arguments)
                     else:
                         # print(f"{self}  use cache")
                         pass
@@ -384,9 +384,9 @@ class Task(BaseTask):
     async def need_skip(self, bound_args: BoundArguments) -> bool:
         if self.skip_fn:
             if inspect.iscoroutine(self.skip_fn):
-                return await self.skip_fn(*bound_args.args, **bound_args.kwargs)
+                return await self.skip_fn(**bound_args.arguments)
             else:
-                return self.skip_fn(*bound_args.args, **bound_args.kwargs)
+                return self.skip_fn(**bound_args.arguments)
         else:
             return False
 
@@ -453,12 +453,16 @@ class ShellTask(Task):
         # run user defined function and get the true bash commands
         await super().update_run_info(data)
         with pyflow():
-            cmd_output = self.command(*data.args, **data.kwargs)
-            cmd = pyflow.get(self.SCRIPT_CMD)
-            assert isinstance(cmd, self.Script)
+            cmd_output = self.command(**data.arguments)
+            cmd: str = pyflow.get(self.SCRIPT_CMD, None)
             if cmd is None:
-                raise ValueError("ShellTask must be registered with a shell script_cmd "
-                                 "by calling `_(CMD) or Bash(CMD)` inside the function.")
+                cmd = self.command.__doc__
+                if cmd is None:
+                    raise ValueError("ShellTask must be registered with a shell script_cmd "
+                                     "by calling `_(CMD) or Bash(CMD)` inside the function or add the "
+                                     "script_cmd as the commnd method's documentation by setting __doc__ ")
+                command_local_vars = {'self': self, **data.arguments}
+                cmd = cmd.format(**command_local_vars)
         stdin = ''
         # check if there are _stdin
         for arg in list(data.args) + list(data.kwargs.values()):
@@ -536,8 +540,11 @@ class ShellTask(Task):
                     return files[0] if len(files) == 1 else tuple(files)
                 # initialize File
                 elif isinstance(item, File):
+                    # initialize hash
                     item.initialize_hash()
+                    # publish to pubdir
                     for pubdir in pubdirs:
+                        pubdir.mkdir(parents=True, exist_ok=True)
                         pub_file = pubdir / Path(item.name)
                         if not pub_file.exists():
                             item.link_to(pub_file)
