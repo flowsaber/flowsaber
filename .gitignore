@@ -4,3 +4,4 @@ __pycache__/
 tests/work
 tests/results
 .idea
+dist/
