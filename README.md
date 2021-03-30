@@ -15,7 +15,7 @@
 - This is a rewrite version of [snakemake tutorial](https://snakemake.readthedocs.io/en/stable/tutorial/short.html)
 
 ```python
-from pyflow import *
+from flowsaber import *
 
 # EnvTask is the real dependent task when using conda/image option
 EnvTask.DEFAULT_CONFIG = {'workdir': '/tmp/Env'}  # make the EnvTask cache at a global place
@@ -91,7 +91,7 @@ cd tests && python test_snakemake_tutorial.py
 - [ ] Pbs/Torque executor
 - [ ] More cache mode.
 - [ ] Support run in Cloud platform.
-- [ ] Run CWL script, Convert between CWL and pyflow script.
+- [ ] Run CWL script, Convert between CWL and flowsaber script.
 
 ### Reference
 - [nextflow](https://github.com/nextflow-io/nextflow)

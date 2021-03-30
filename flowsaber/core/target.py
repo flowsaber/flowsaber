@@ -2,8 +2,8 @@ import hashlib
 from pathlib import Path
 from typing import Union
 
-from pyflow.core.executor import get_executor
-from pyflow.utility.logtool import get_logger
+from flowsaber.core.executor import get_executor
+from flowsaber.utility.logtool import get_logger
 
 logger = get_logger(__name__)
 

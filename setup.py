@@ -17,7 +17,7 @@ keywords = [
 
 
 def get_version():
-    with open("pyflow/__init__.py") as f:
+    with open("flowsaber/__init__.py") as f:
         for line in f.readlines():
             m = re.match("__version__ = '([^']+)'", line)
             if m:
@@ -38,7 +38,7 @@ def get_install_requires():
 
 
 setup(
-    name='pyflow',
+    name='flowsaber',
     author='',
     author_email='',
     version=get_version(),

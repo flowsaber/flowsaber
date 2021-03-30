@@ -3,9 +3,9 @@ import builtins
 from collections import defaultdict, abc
 from typing import Callable, Any, Union
 
-from pyflow.core.channel import ConstantChannel, END, Consumer, Queue, Channel
-from pyflow.core.task import BaseTask, Data
-from pyflow.utility.utils import extend_method, class_to_method
+from flowsaber.core.channel import ConstantChannel, END, Consumer, Queue, Channel
+from flowsaber.core.task import BaseTask, Data
+from flowsaber.utility.utils import extend_method, class_to_method
 
 """
 Only Map and Reduce uses executor, other operators runs locally

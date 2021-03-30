@@ -10,13 +10,13 @@ from typing import Optional, Callable, Sequence
 
 from dask.base import tokenize
 
-from pyflow.context import pyflow, config
-from pyflow.core.cache import get_cache_cls, CacheInvalidError, Cache
-from pyflow.core.env import Env, EnvCreator
-from pyflow.core.executor import get_executor, Executor
-from pyflow.core.target import File, Stdout, Stdin, END, Skip
-from pyflow.utility.logtool import get_logger
-from pyflow.utility.utils import change_cwd, class_deco, TaskOutput, Data, capture_local
+from flowsaber.context import flowsaber, config
+from flowsaber.core.cache import get_cache_cls, CacheInvalidError, Cache
+from flowsaber.core.env import Env, EnvCreator
+from flowsaber.core.executor import get_executor, Executor
+from flowsaber.core.target import File, Stdout, Stdin, END, Skip
+from flowsaber.utility.logtool import get_logger
+from flowsaber.utility.utils import change_cwd, class_deco, TaskOutput, Data, capture_local
 from .base import FlowComponent, TaskConfig
 from .channel import Channel, Consumer, ConstantChannel, Queue
 from .scheduler import Scheduler
@@ -50,7 +50,7 @@ class BaseTask(FlowComponent):
         return self._output
 
     def register_graph(self, qv: Sequence[Queue]):
-        g = pyflow.top_flow.graph
+        g = flowsaber.top_flow.graph
         kwargs = dict(
             style="filled",
             colorscheme="svg"
@@ -72,7 +72,7 @@ class BaseTask(FlowComponent):
 
     def __call__(self, *args, **kwargs) -> TaskOutput:
         task = self.copy_new(*args, **kwargs)
-        up_flow = pyflow.up_flow
+        up_flow = flowsaber.up_flow
         assert task not in up_flow.tasks
         up_flow.tasks.setdefault(task, {})
 
@@ -192,8 +192,14 @@ class Task(BaseTask):
         new: Task = super().copy_new(*args, **kwargs)
         # 4. update user defined config
         cls_name = new.__class__.__name__
+        # update if has self's class name
         if hasattr(config, cls_name) and isinstance(config[cls_name], dict):
             new.config.update(config[cls_name])
+        # update if has self's base classes
+        for base in self.__class__.__mro__:
+            if base in config:
+                new.config.update(config[base])
+
         # set task_key and working directory
         # task key is the unique identifier of the task and task' working directory, cache, run_key_lock
         new.workdir = Path(new.config.workdir, new.task_key).expanduser().resolve()
@@ -264,20 +270,20 @@ class Task(BaseTask):
     @property
     def cache(self) -> Cache:
         create_cache = partial(get_cache_cls, self.config.cache_type, task=self)
-        caches = pyflow.setdefault('__caches__', defaultdict(create_cache))
+        caches = flowsaber.setdefault('__caches__', defaultdict(create_cache))
         return caches[self.task_key]
 
     @property
     def executor(self) -> Executor:
         executor_type = self.config.executor
-        executors = pyflow.setdefault('__executors__', {})
+        executors = flowsaber.setdefault('__executors__', {})
         if executor_type not in executors:
             executors[executor_type] = get_executor(executor_type, config=self.config)
 
         return executors[executor_type]
 
     def run_key_lock(self, run_key: str):
-        locks = pyflow.setdefault('__run_key_locks__', defaultdict(asyncio.Lock))
+        locks = flowsaber.setdefault('__run_key_locks__', defaultdict(asyncio.Lock))
         return locks[run_key]
 
     async def handle_input(self, run_args: BoundArguments, **kwargs):
@@ -410,7 +416,7 @@ class ShellTask(Task):
         def __init__(self, cmd: str):
             assert isinstance(cmd, str)
             self.cmd = cmd
-            pyflow[ShellTask.SCRIPT_CMD] = self
+            flowsaber[ShellTask.SCRIPT_CMD] = self
 
         def __str__(self):
             return f"{self.cmd}"
@@ -440,9 +446,9 @@ class ShellTask(Task):
                 conda=config.conda,
                 image=config.image
             )
-            if env_creator not in pyflow.env_tasks:
-                pyflow.env_tasks[env_creator] = EnvTask(env_creator=env_creator)()
-            env_task_out_ch: Channel = pyflow.env_tasks[env_creator]
+            if env_creator not in flowsaber.env_tasks:
+                flowsaber.env_tasks[env_creator] = EnvTask(env_creator=env_creator)()
+            env_task_out_ch: Channel = flowsaber.env_tasks[env_creator]
             new.add_dependency(name='env', channel=env_task_out_ch)
 
         return new
@@ -454,10 +460,10 @@ class ShellTask(Task):
         # run user defined function and get the true bash commands
         await super().update_run_info(data)
         # find the real shell commands
-        with pyflow():
+        with flowsaber():
             with capture_local() as local_vars:
                 cmd_output = self.command(**data.arguments)
-            cmd: str = pyflow.get(self.SCRIPT_CMD, None)
+            cmd: str = flowsaber.get(self.SCRIPT_CMD, None)
             # two options: 1. use Shell('cmd') 2. use __doc__ = 'cmd'
             if cmd is None:
                 cmd = self.command.__doc__

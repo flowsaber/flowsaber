@@ -12,7 +12,7 @@ from typing import Union, Callable
 
 from makefun import with_signature
 
-from pyflow.core.channel import Channel, End
+from flowsaber.core.channel import Channel, End
 
 TaskOutput = Union[Sequence[Channel], Channel, None]
 Data = Union[tuple, End]

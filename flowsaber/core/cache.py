@@ -4,7 +4,7 @@ from pathlib import Path
 
 from dask.base import tokenize
 
-from pyflow.utility.logtool import get_logger
+from flowsaber.utility.logtool import get_logger
 
 logger = get_logger(__name__)
 

@@ -203,12 +203,12 @@ class Context(DotDict):
     @contextlib.contextmanager
     def __call__(self, *args: MutableMapping, **kwargs: Any) -> Iterator["Context"]:
         """
-        A context manager for setting / resetting the pyflow context
+        A context manager for setting / resetting the flowsaber context
 
         Example:
-            from pyflow import pyflow
-            with pyflow(dict(a=1, b=2), c=3):
-                print(pyflow.a) # 1
+            from flowsaber import flowsaber
+            with flowsaber(dict(a=1, b=2), c=3):
+                print(flowsaber.a) # 1
         """
         # Avoid creating new `Context` object, copy as `dict` instead.
         previous_context = self.__dict__.copy()
@@ -221,6 +221,6 @@ class Context(DotDict):
             self.update(previous_context)
 
 
-pyflow = Context()
+flowsaber = Context()
 
 config = Context()

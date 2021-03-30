@@ -5,11 +5,11 @@ from typing import Optional, Union, List, Sequence
 
 from makefun import with_signature
 
-from pyflow.context import pyflow
-from pyflow.core.channel import Consumer, Channel
-from pyflow.utility.doctool import NumpyDocInheritor
-from pyflow.utility.logtool import get_logger
-from pyflow.utility.utils import TaskOutput
+from flowsaber.context import flowsaber
+from flowsaber.core.channel import Consumer, Channel
+from flowsaber.utility.doctool import NumpyDocInheritor
+from flowsaber.utility.logtool import get_logger
+from flowsaber.utility.utils import TaskOutput
 
 logger = get_logger(__name__)
 
@@ -88,7 +88,7 @@ class FlowComponent(object, metaclass=CopySigMeta):
         return new
 
     def initialize_name(self):
-        up_flow = pyflow.up_flow
+        up_flow = flowsaber.up_flow
         up_flow_name = str(up_flow.name) if up_flow else ""
         self.identity_name = f"{up_flow_name}-{self}".lstrip('-')
 

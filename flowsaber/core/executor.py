@@ -7,7 +7,7 @@ from multiprocessing import cpu_count
 
 from loky import get_reusable_executor
 
-from pyflow.utility.logtool import get_logger
+from flowsaber.utility.logtool import get_logger
 
 logger = get_logger(__name__)
 
@@ -83,7 +83,7 @@ class RayExecutor(Executor):
     def init(self):
         if not self.inited:
             import ray
-            with Capture('/tmp/.pyflow.ray_stdout.log', '/tmp/.pyflow.ray_stderr.log'):
+            with Capture('/tmp/.flowsaber.ray_stdout.log', '/tmp/.flowsaber.ray_stderr.log'):
                 ray.init(num_cpus=max(cpu_count() - 2, 1))
             self.inited = True
 

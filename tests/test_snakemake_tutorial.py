@@ -1,7 +1,7 @@
 import sys
 
 sys.path.insert(0, '../')
-from pyflow import *
+from flowsaber import *
 
 # EnvTask is the real dependent task when using conda/image option
 EnvTask.DEFAULT_CONFIG = {'workdir': '/tmp/Env'}  # make the EnvTask cache at a global place

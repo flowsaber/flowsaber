@@ -1,5 +1,5 @@
-from pyflow import *
-from pyflow.context import config
+from flowsaber import *
+from flowsaber.context import config
 import uuid
 import numpy as np
 

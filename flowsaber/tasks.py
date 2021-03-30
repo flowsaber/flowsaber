@@ -1,4 +1,4 @@
-from pyflow.core.task import ShellTask
+from flowsaber.core.task import ShellTask
 
 
 class CWLTask(ShellTask):

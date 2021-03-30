@@ -1,7 +1,7 @@
 import sys
 
 sys.path.insert(0, '../')
-from pyflow import *
+from flowsaber import *
 import numpy as np
 import uuid
 

@@ -1,6 +1,6 @@
-import pyflow
-from pyflow import *
-from pyflow.utility import load
+import flowsaber
+from flowsaber import *
+from flowsaber.utility import load
 
 
 def test_remote_import():

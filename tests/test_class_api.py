@@ -1,4 +1,4 @@
-from pyflow import *
+from flowsaber import *
 
 
 def test_flow():

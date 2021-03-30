@@ -12,9 +12,9 @@ from rich.progress import (
     TimeElapsedColumn
 )
 
-from pyflow.context import config
-from pyflow.core.base import TaskConfig
-from pyflow.utility.logtool import get_logger
+from flowsaber.context import config
+from flowsaber.core.base import TaskConfig
+from flowsaber.utility.logtool import get_logger
 
 # TODO The displaying and scheduler should be separated.
 process = Progress(
@@ -250,3 +250,4 @@ class Scheduler(object):
                     process.update(state.task_id, completed=1)
 
             await asyncio.sleep(self.wait_time)
+        process.stop()

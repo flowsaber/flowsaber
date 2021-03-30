@@ -2,7 +2,7 @@ import re
 from functools import partial
 from typing import Tuple
 from dataclasses import dataclass
-from pyflow import *
+from flowsaber import *
 
 
 def iter_list(li, item, res):

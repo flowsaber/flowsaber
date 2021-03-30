@@ -4,11 +4,11 @@ from typing import Union
 
 from graphviz import Digraph
 
-from pyflow.context import pyflow, config
-from pyflow.utility.utils import class_deco, TaskOutput
+from flowsaber.context import flowsaber, config
+from flowsaber.utility.utils import class_deco, TaskOutput
 from .base import FlowComponent
 from .channel import Channel
-from .scheduler import Scheduler
+from .scheduler import Scheduler, process
 
 
 class Flow(FlowComponent):
@@ -18,11 +18,11 @@ class Flow(FlowComponent):
         self._graph = None
 
     def __enter__(self):
-        pyflow.flow_stack.append(self)
+        flowsaber.flow_stack.append(self)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        pyflow.flow_stack.pop(-1)
+        flowsaber.flow_stack.pop(-1)
 
     def __call__(self, *args, **kwargs) -> Union[TaskOutput, 'Flow']:
         flow = self.copy_new()
@@ -33,8 +33,8 @@ class Flow(FlowComponent):
             if flow._output is None:
                 flow._output = Channel.end()
 
-        if pyflow.up_flow:
-            pyflow.up_flow.tasks.setdefault(flow, {})
+        if flowsaber.up_flow:
+            flowsaber.up_flow.tasks.setdefault(flow, {})
             return flow._output
         # in the top level flow, just return the flow itself
         else:
@@ -77,28 +77,35 @@ class FlowRunner(object):
 
         return self, self.flow
 
-    def execute(self):
-
-        async def _execute():
-            # TODO carefully handle ctrl + C signal caused exception
-            loop = asyncio.get_running_loop()
-            loop._scheduler = self.scheduler
-            asyncio.ensure_future(self.scheduler.execute())
-            flow_exec_res = await self.flow.execute(scheduler=self.scheduler)
-            await asyncio.sleep(0.5)
-            # stop executors
-            for executor in pyflow.get('__executors__', {}).values():
-                executor.shutdown()
-
-            return flow_exec_res
-
+    async def _execute(self):
         assert self.flow is not None, "Please call run() method before running the flow."
         # print config
         from rich import print
         print("Your config is: ", config.__dict__)
 
+        # TODO carefully handle ctrl + C signal caused exception
+        loop = asyncio.get_running_loop()
+        loop._scheduler = self.scheduler
+        asyncio.ensure_future(self.scheduler.execute())
+        flow_exec_res = await self.flow.execute(scheduler=self.scheduler)
+        await asyncio.sleep(0.5)
+        process.stop()
+        # stop executors
+        for executor in flowsaber.get('__executors__', {}).values():
+            executor.shutdown()
+
+        return flow_exec_res
+
+    def execute(self):
         try:
-            res = asyncio.run(_execute())
+            res = asyncio.run(self._execute())
+        except Exception as e:
+            raise e
+        return res
+
+    async def aexecute(self):
+        try:
+            res = await self._execute()
         except Exception as e:
             raise e
         return res
