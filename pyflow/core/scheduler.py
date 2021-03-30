@@ -2,7 +2,7 @@ import asyncio
 import inspect
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Set, Callable, Dict, Awaitable, Any, TypeVar, Sequence
+from typing import Set, Callable, Dict, Awaitable, Any, TypeVar, Sequence, Optional
 
 from rich.progress import (
     Progress,
@@ -59,7 +59,7 @@ class Job(asyncio.Future):
         self.args = args
         self.kwargs = kwargs
         self.task = task
-        self.future: asyncio.Future = None
+        self.future: Optional[asyncio.Future] = None
         self.async_done_callbacks = []
 
     def add_async_done_callback(self, callback: AsyncFunc):

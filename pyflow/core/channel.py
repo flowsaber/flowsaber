@@ -10,7 +10,8 @@ logger = get_logger(__name__)
 
 
 class DataObject(object):
-    def __init__(self, **kwargs):
+    def __init__(self, task = None, **kwargs):
+        self.task = task
         for k, v in kwargs.items():
             if not hasattr(self, k):
                 setattr(self, k, v)
@@ -192,7 +193,7 @@ class Channel(DataObject):
         return Channel.values(*items)
 
     @staticmethod
-    def from_path(path: Union[str, Sequence[str]], hidden: bool = False, type="file", check_exit: bool = True):
+    def from_path(path: Union[str, Sequence[str]], hidden: bool = False, file_type="file", check_exit: bool = True):
         """
         files = Channel.fromPath( '_input/**.fa' )
         """
@@ -264,7 +265,7 @@ class Consumer(Fetcher):
         super().__init__(**kwargs)
         self.queues = list(queues)
         assert all(isinstance(q, Queue) for q in self.queues)
-        self.num_emited = 0
+        self.num_emitted = 0
 
     @property
     def empty(self):
@@ -279,7 +280,7 @@ class Consumer(Fetcher):
 
     async def get(self) -> tuple:
         # make sure empty inputs only emit once
-        if self.empty and self.num_emited >= 1:
+        if self.empty and self.num_emitted >= 1:
             return END
         values = []
         for q in self.queues:
@@ -289,14 +290,14 @@ class Consumer(Fetcher):
                 return END
             else:
                 values.append(value)
-        self.num_emited += 1
+        self.num_emitted += 1
         # emit single input without tuple
         res = tuple(values) if not self.single else values[0]
         return res
 
     def get_nowait(self) -> tuple:
         # make sure empty inputs only emit once
-        if self.empty and self.num_emited >= 1:
+        if self.empty and self.num_emitted >= 1:
             return END
         values = []
         for q in self.queues:

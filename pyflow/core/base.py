@@ -46,11 +46,11 @@ class CopySigMeta(NumpyDocInheritor):
 
 class FlowComponent(object, metaclass=CopySigMeta):
     def __init__(self, name: str = "", **kwargs):
-        self._input_args: tuple = None
-        self._input_kwargs: dict = None
-        self._input_len: int = None
+        self._input_args: Optional[tuple] = None
+        self._input_kwargs: Optional[dict] = None
+        self._input_len: Optional[int] = None
         self._input: Optional[Consumer] = None
-        self._output: TaskOutput = None
+        self._output: Optional[TaskOutput] = None
 
         self.name = name
         self.identity_name = ""

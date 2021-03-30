@@ -22,7 +22,7 @@ schema:
     for task receive no input channels, the task's run will be run once
         output_ch = task()
 
-    EnvTask is task with no input channels, it's output_ch is a ConstantChannel, it's implementaion is like:
+    EnvTask is task with no input channels, it's output_ch is a ConstantChannel, it's implementation is like:
         @shell
         def envTask():
         def command():

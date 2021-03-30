@@ -28,7 +28,7 @@ class BaseTask(FlowComponent):
     def __init__(self, num_out: int = 1, **kwargs):
         super().__init__(**kwargs)
         self.num_out = num_out
-        self._dependencies: dict = None
+        self._dependencies: Optional[dict] = None
 
     def initialize_input(self, *args, **kwargs) -> Consumer:
         super().initialize_input(*args, **kwargs)
@@ -155,7 +155,7 @@ class Task(BaseTask):
         self.skip_fn: Optional[Callable] = None
         self.workdir = None
         # run specific
-        self.run_info: dict = None
+        self.run_info: Optional[dict] = None
 
     def __getattr__(self, item):
         return getattr(self.config, item)
@@ -221,9 +221,9 @@ class Task(BaseTask):
             run_info = depend_args
             # skip
             if self.skip_fn and await self.need_skip(run_args):
-                # untuple if has only one argument
-                enque_data = run_data[0] if len_args == 1 else run_data
-                await self.enqueue_output(enque_data)
+                # un-tuple if has only one argument
+                enqueue_data = run_data[0] if len_args == 1 else run_data
+                await self.enqueue_output(enqueue_data)
             # or run
             else:
                 # run in scheduler
@@ -374,7 +374,8 @@ class Task(BaseTask):
                 if f.initialized:
                     check_hash = await self.executor.run(f.calculate_hash)
                     if check_hash != f.hash:
-                        msg = f"Task {self.task_name} read cache failed from disk because file content task_hash changed."
+                        msg = f"Task {self.task_name} read cache failed from disk " \
+                              f"because file content task_hash changed."
                         raise CacheInvalidError(msg)
         return res
 
@@ -460,7 +461,7 @@ class ShellTask(Task):
                 if cmd is None:
                     raise ValueError("ShellTask must be registered with a shell script_cmd "
                                      "by calling `_(CMD) or Bash(CMD)` inside the function or add the "
-                                     "script_cmd as the commnd method's documentation by setting __doc__ ")
+                                     "script_cmd as the command() method's documentation by setting __doc__ ")
                 command_local_vars = {'self': self, **data.arguments}
                 cmd = cmd.format(**command_local_vars)
         stdin = ''
@@ -565,7 +566,7 @@ class EnvTask(ShellTask):
     def __init__(self, env_creator: EnvCreator = None, **kwargs):
         super().__init__(**kwargs)
         self.env_creator: EnvCreator = env_creator
-        self.env: Env = None
+        self.env: Optional[Env] = None
 
     def copy_new(self, *args, **kwargs):
         new = super().copy_new(*args, **kwargs)

@@ -24,17 +24,17 @@ class DocInheritorBase(type):
             if isinstance(child_attr, (staticmethod, classmethod)):
                 child_attr = child_attr.__func__
 
-            prnt_attr_doc = None
+            parent_attr_doc = None
             # Even for middle cls with no attr, the hasattr will find the attr recursively.
             for p_cls in (cls for cls in class_bases if hasattr(cls, attr)):
-                prnt_attr_doc = getattr(p_cls, attr).__doc__
-                if prnt_attr_doc is not None:
+                parent_attr_doc = getattr(p_cls, attr).__doc__
+                if parent_attr_doc is not None:
                     break
 
-            if prnt_attr_doc is None:
+            if parent_attr_doc is None:
                 continue
 
-            doc = mcs.attr_doc_inherit(prnt_attr_doc, child_attr.__doc__)
+            doc = mcs.attr_doc_inherit(parent_attr_doc, child_attr.__doc__)
             try:
                 child_attr.__doc__ = doc
             # property.__doc__ is read-only in Python 2 (TypeError), 3.3 - 3.4 (AttributeError)

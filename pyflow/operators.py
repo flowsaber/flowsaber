@@ -59,7 +59,7 @@ class Select(BaseTask):
 
 
 class Mix(BaseTask):
-    """Data emited bu channels are mixed into a single channel.
+    """Data emitted bu channels are mixed into a single channel.
     """
 
     async def handle_consumer(self, consumer: Consumer, **kwargs):
@@ -144,7 +144,8 @@ class Sample(BaseTask):
             await self._output.put(data)
 
 
-########################################################## Map Task ###########################################3
+"""Map Task"""
+
 
 class Subscribe(BaseTask):
     """specify on_next or on_complete function as callbacks of these two event.
