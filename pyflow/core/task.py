@@ -16,7 +16,7 @@ from pyflow.core.env import Env, EnvCreator
 from pyflow.core.executor import get_executor, Executor
 from pyflow.core.target import File, Stdout, Stdin, END, Skip
 from pyflow.utility.logtool import get_logger
-from pyflow.utility.utils import change_cwd, class_deco, TaskOutput, Data
+from pyflow.utility.utils import change_cwd, class_deco, TaskOutput, Data, capture_local
 from .base import FlowComponent, TaskConfig
 from .channel import Channel, Consumer, ConstantChannel, Queue
 from .scheduler import Scheduler
@@ -453,19 +453,22 @@ class ShellTask(Task):
     async def update_run_info(self, data: BoundArguments):
         # run user defined function and get the true bash commands
         await super().update_run_info(data)
+        # find the real shell commands
         with pyflow():
-            cmd_output = self.command(**data.arguments)
+            with capture_local() as local_vars:
+                cmd_output = self.command(**data.arguments)
             cmd: str = pyflow.get(self.SCRIPT_CMD, None)
+            # two options: 1. use Shell('cmd') 2. use __doc__ = 'cmd'
             if cmd is None:
                 cmd = self.command.__doc__
                 if cmd is None:
                     raise ValueError("ShellTask must be registered with a shell script_cmd "
                                      "by calling `_(CMD) or Bash(CMD)` inside the function or add the "
                                      "script_cmd as the command() method's documentation by setting __doc__ ")
-                command_local_vars = {'self': self, **data.arguments}
-                cmd = cmd.format(**command_local_vars)
-        stdin = ''
+                local_vars.update({'self': self})
+                cmd = cmd.format(**local_vars)
         # check if there are _stdin
+        stdin = ''
         for arg in list(data.args) + list(data.kwargs.values()):
             if isinstance(arg, Stdin):
                 if stdin:

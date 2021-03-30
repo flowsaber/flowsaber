@@ -21,8 +21,9 @@ def bwa(self, fa: File, fastq: File):  # input will be automatically converted i
 
 @shell(conda="bwa=0.7.17 samtools=1.9")
 def sort(bam: File):  # self is optional in case you don't want to access the current task
-    """samtools sort -o {bam.stem}.sorted.bam {bam}"""
-    return "*.sorted.bam"
+    """samtools sort -o {sorted_bam} {bam}"""  # use local variable
+    sorted_bam = f"{bam.stem}.sorted.bam"
+    return sorted_bam
 
 @shell(conda="bcftools=1.9 samtools=1.9", pubdir="results/vcf")
 def call(fa: File, bams: list):  # In case you need to write some python codes

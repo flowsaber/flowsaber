@@ -213,3 +213,21 @@ def change_cwd(path: Union[str, Path]) -> Path:
         yield Path(path)
     finally:
         os.chdir(prev_cwd)
+
+
+@contextmanager
+def capture_local(event='return'):
+    import sys
+    local_vars = {}
+
+    def capture_tracer(frame, _event, arg=None):
+        if _event == event:
+            local_vars.update(frame.f_locals)
+        else:
+            return capture_tracer
+
+    sys.settrace(capture_tracer)
+
+    yield local_vars
+
+    sys.settrace(None)
