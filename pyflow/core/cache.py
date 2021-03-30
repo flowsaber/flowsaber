@@ -79,8 +79,7 @@ class LocalCache(Cache):
             'run_args': tuple(input_args.arguments.values()),
             **kwargs,
         }
-        hash_key = tokenize(hash_dict)
-        return hash_key
+        return tokenize(hash_dict)
 
     def remove(self, run_key):
         path = Path(run_key)

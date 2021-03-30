@@ -240,13 +240,12 @@ def join_fn(run: Run):
 @flow
 def check_inputs(files):
 
-    fastq_pairs = files \
+    return files \
                   | check_files | flatten | filter_(lambda x: x != False) \
                   | download | flatten \
                   | fastq_dump | flatten \
                   | rename \
                   | group(join_fn, 2) | select(1)
-    return fastq_pairs
 
 
 @flow

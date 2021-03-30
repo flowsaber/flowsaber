@@ -98,9 +98,8 @@ class EnvCreator(object):
                 assert len(packages) > 0 and '/' not in conda
                 src += str(packages)
         # image
-        if image:
-            if Path(image).is_file():
-                src += (Path(image).expanduser().resolve())
+        if image and Path(image).is_file():
+            src += (Path(image).expanduser().resolve())
 
         md5hash = hashlib.md5()
         md5hash.update(src.encode())

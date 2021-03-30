@@ -21,8 +21,7 @@ def test_flow():
     class MyFlow1(Flow):
         def run(self, fasta: Channel) -> Channel:
             bam = bwa(fasta)
-            bigwig = stat(bam)
-            return bigwig
+            return stat(bam)
 
     class MyFLow2(Flow):
         def run(self, bw1: Channel) -> Channel:

@@ -13,7 +13,7 @@ def test():
 
     @task
     def comput2(self, dic):
-        return '-'.join([str(k) for k in dic.keys()])
+        return '-'.join(str(k) for k in dic.keys())
 
     @shell(conda="bwa samtools")
     def shell1(f: str):

@@ -17,8 +17,7 @@ def test_flow():
     @flow
     def flow1(fasta):
         bam = bwa(fasta)
-        bigwig = stat(bam)
-        return bigwig
+        return stat(bam)
 
     @flow
     def flow2(bw1):

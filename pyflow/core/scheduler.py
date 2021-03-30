@@ -147,7 +147,6 @@ class Scheduler(object):
             )
             self.tasks[task].task_id = task_id
             process.start_task(task_id)
-            pass
         self.tasks[task].pending.add(job)
         self.tasks[task].wait_q.put_nowait(1)
         return job
