@@ -1,8 +1,14 @@
 # A dataflow based workflow framework.
 ### work in progress
 
-- Currently ShellTask only support conda and singularity environment.
-- The composing syntax is inspired from nextflow's DSL2.
+
+### Features
+
+- Dataflow-like task composing syntax inspired from [nextflow](https://github.com/nextflow-io/nextflow) 's DSL2.
+- Python based: Import/Compose/Modify Task/Flow objects at any time.
+- Local Cache.
+- Clustering support based on ray.
+- Conda and Container execution environment.
 
 ### Example
 
@@ -80,6 +86,12 @@ cd tests && python test_snakemake_tutorial.py
 ```
 
 
+### TODO
+- [ ] Web interface.
+- [ ] Pbs/Torque executor
+- [ ] More cache mode.
+- [ ] Support run in Cloud platform.
+- [ ] Run CWL script, Convert between CWL and pyflow script.
 
 ### Reference
 - [nextflow](https://github.com/nextflow-io/nextflow)
