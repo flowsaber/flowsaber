@@ -36,7 +36,7 @@
   </a>
 
   <a href="https://app.codecov.io/gh/zhqu1148980644/flowsaber">
-    <img src="https://codecov.io/gh/zhqu1148980644/flowsaber/branch/master/graph/badge.svg" alt="codecov">
+    <img src="https://codecov.io/gh/zhqu1148980644/flowsaber/branch/main/graph/badge.svg" alt="codecov">
   </a>
 
   <a href="https://github.com/zhqu1148980644/flowsaber/blob/master/LICENSE">
