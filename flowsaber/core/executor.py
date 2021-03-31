@@ -5,8 +5,6 @@ from functools import partial
 from io import StringIO
 from multiprocessing import cpu_count
 
-from loky import get_reusable_executor
-
 from flowsaber.utility.logtool import get_logger
 
 logger = get_logger(__name__)
@@ -64,18 +62,18 @@ class Local(Executor):
 
 class ProcessExecutor(Executor):
     # TODO ProcessExecutor will not work, need to find a way to use cloudpickle as pickler
-    def __init__(self, pool_cls=get_reusable_executor, **kwargs):
+    def __init__(self, pool_cls=None, **kwargs):
         super().__init__(**kwargs)
+        if pool_cls is None:
+            from loky import get_reusable_executor
+            pool_cls = get_reusable_executor
         self.pool = pool_cls()
-
 
     async def run(self, fn, *args, **kwargs):
         loop = asyncio.get_running_loop()
         _run = partial(fn, *args, **kwargs)
         res = await loop.run_in_executor(self.pool, _run)
         return res
-
-
 
 
 class RayExecutor(Executor):
