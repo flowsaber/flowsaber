@@ -1,11 +1,10 @@
 from flowsaber import *
-from flowsaber.utility import load
-
+import httpimport
 
 def test_remote_import():
     url = "https://gist.githubusercontent.com/zhqu1148980644/" \
           "2eafbe8d25883919ecf11a729f1fdb9a/raw/742c8ada5f70589dd6ec83641462f88aa36a6b27"
-    with load.remote_repo(['testtask'], url):
+    with httpimport.remote_repo(['testtask'], url):
         from testtask import task1, task2
 
     @flow

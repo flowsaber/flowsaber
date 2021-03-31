@@ -9,7 +9,7 @@
     }
    },
    "source": [
-    "# Executor\n",
+    "# Environment\n",
     "\n",
     "\n",
     "ShellTask support several options to enable the bash script run within specific environments.\n",

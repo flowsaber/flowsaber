@@ -70,6 +70,7 @@ setup(
           'matplotlib',
           'httpimport',
           'autodocsumm',
+          'loky'
       ]
     },
     python_requires='>=3.8, <4',

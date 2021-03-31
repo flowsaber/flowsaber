@@ -92,7 +92,7 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="quick_start.html">Quick Start</a></li>
 <li class="toctree-l1"><a class="reference internal" href="task.html">Task</a></li>
-<li class="toctree-l1"><a class="reference internal" href="environment.html">Executor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="environment.html">Environment</a></li>
 <li class="toctree-l1"><a class="reference internal" href="executor.html">Executor</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Internal</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
@@ -163,39 +163,39 @@
             
   <div class="section" id="internal">
 <h1>Internal<a class="headerlink" href="#internal" title="Permalink to this headline">¶</a></h1>
-<ol class="simple">
+<ul class="simple">
 <li><p>The second call will generate a new task instance depends on <code class="docutils literal notranslate"><span class="pre">(ch1,</span> <span class="pre">ch2,</span> <span class="pre">ch3)</span></code> and return a new <code class="docutils literal notranslate"><span class="pre">Channel</span></code>.</p></li>
-</ol>
+</ul>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">task</span> <span class="o">=</span> <span class="n">Task</span><span class="p">()</span>
 <span class="n">output_ch</span> <span class="o">=</span> <span class="n">task</span><span class="p">(</span><span class="n">ch1</span><span class="p">,</span> <span class="n">ch2</span><span class="p">,</span> <span class="n">ch3</span><span class="p">)</span>
 </pre></div>
 </div>
-<ol class="simple">
+<ul class="simple">
 <li><p>For each task instance, will get a unique <code class="docutils literal notranslate"><span class="pre">task_key</span></code> equals to it’s working directory, since a task
 object can be used multiple times, so there may be multiple tasks share the same <code class="docutils literal notranslate"><span class="pre">task_key</span></code>.</p></li>
-</ol>
+</ul>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">task</span><span class="o">.</span><span class="n">task_key</span> <span class="o">=</span> <span class="n">classname</span><span class="o">-</span><span class="nb">id</span><span class="p">(</span><span class="n">task</span><span class="p">)</span><span class="o">-</span><span class="nb">hash</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">run</span><span class="o">.</span><span class="vm">__code__</span> <span class="o">+</span> <span class="n">task</span><span class="o">.</span><span class="n">run</span><span class="o">.</span><span class="n">__annotation__</span> <span class="o">+</span> <span class="n">other_info</span><span class="p">)</span>
 <span class="n">task</span><span class="o">.</span><span class="n">workdir</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">workdir</span><span class="o">/</span><span class="n">task</span><span class="o">.</span><span class="n">task_key</span>
 </pre></div>
 </div>
-<ol class="simple">
+<ul class="simple">
 <li><p>For each input of <code class="docutils literal notranslate"><span class="pre">task.run</span></code>, the run will have a <code class="docutils literal notranslate"><span class="pre">run_key</span></code> equals to it’s working directory</p></li>
-</ol>
+</ul>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">run</span><span class="o">.</span><span class="n">workdir</span> <span class="o">=</span> <span class="n">run_key</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">workdir</span><span class="o">/</span><span class="nb">hash</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">other_info</span><span class="p">)</span>
 </pre></div>
 </div>
-<ol class="simple">
+<ul class="simple">
 <li><p>All task objects with the same <code class="docutils literal notranslate"><span class="pre">task_key</span></code> will share the same <code class="docutils literal notranslate"><span class="pre">lock</span> <span class="pre">pool</span></code> and <code class="docutils literal notranslate"><span class="pre">cache</span></code>, different
 runs will be scheduled in parallel but runs with the same <code class="docutils literal notranslate"><span class="pre">run_key</span></code> will compete for a sharing <code class="docutils literal notranslate"><span class="pre">run_key</span></code> lock
 to avoid conflictions.</p></li>
 <li><p>For task receives no input channels, the task’s will only be ran once</p></li>
-</ol>
+</ul>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">output_ch</span> <span class="o">=</span> <span class="n">task</span><span class="p">()</span>
 </pre></div>
 </div>
-<ol class="simple">
+<ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">EnvTask</span></code> is task with no input channels, it’s <code class="docutils literal notranslate"><span class="pre">output_channel</span></code> is a <code class="docutils literal notranslate"><span class="pre">ConstantChannel</span></code>, it’s implementation is like:</p></li>
-</ol>
+</ul>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@shell</span>
 <span class="k">class</span> <span class="nc">EnvTask</span><span class="p">():</span>
     <span class="k">def</span> <span class="nf">command</span><span class="p">():</span>
@@ -204,10 +204,10 @@ to avoid conflictions.</p></li>
         <span class="k">return</span> <span class="n">env</span>
 </pre></div>
 </div>
-<ol class="simple">
+<ul class="simple">
 <li><p>For any task with env-related options(conda, image..) settled, will be converted functionally like the
 below codes to build correct dependency graph.</p></li>
-</ol>
+</ul>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">task</span><span class="p">(</span><span class="n">ch1</span><span class="p">,</span> <span class="n">ch2</span><span class="p">,</span> <span class="n">ch3</span><span class="p">)</span>  <span class="c1"># converted to</span>
 <span class="n">env</span> <span class="o">=</span> <span class="n">EnvTask</span><span class="p">(</span><span class="n">conda</span><span class="o">=</span><span class="s1">&#39;test.yaml&#39;</span><span class="p">)</span>
 <span class="n">task</span><span class="p">(</span><span class="n">ch1</span><span class="p">,</span> <span class="n">ch2</span><span class="p">,</span> <span class="n">ch3</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="n">env</span><span class="p">)</span>

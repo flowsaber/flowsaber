@@ -10,3 +10,4 @@ flowsaber.egg-info
 /docs/build
 /docs/source/work
 /docs/source/results
+.pytest_cache*
