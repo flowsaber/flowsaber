@@ -82,11 +82,12 @@ runner.execute()
 ### Test
 
 ```bash
-cd tests && python test_snakemake_tutorial.py
+python -m pytest tests -s -o log_cli=True -vvvv
 ```
 
 
 ### TODO
+- [ ] Refactor DAG.
 - [ ] Web interface.
 - [ ] Pbs/Torque executor
 - [ ] More cache mode.

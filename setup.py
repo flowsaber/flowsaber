@@ -39,14 +39,14 @@ def get_install_requires():
 
 setup(
     name='flowsaber',
-    author='',
-    author_email='',
+    author='bakezq',
+    author_email='zhongquan789@gmail.com',
     version=get_version(),
     license='GPLv3',
     description=get_long_description(),
     long_description=get_long_description(),
     keywords=keywords,
-    # url='',
+    url='https://github.com/zhqu1148980644/flowsaber',
     packages=find_packages(),
     # scripts=[],
     include_package_data=True,

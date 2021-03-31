@@ -1,7 +1,12 @@
+import sys
+
+sys.path.insert(0, '../')
 from flowsaber import *
+import numpy as np
+import uuid
 
 
-def test_flow():
+def test_flow1():
     class Bwa(Task):
         def run(self, fasta):
             return str(fasta) + ".bam"
@@ -59,8 +64,99 @@ def test_flow():
     for res in results:
         print(res, type(res), len(res))
 
-    workflow.graph.render('/Users/bakezq/Desktop/dag', view=True, format='pdf', cleanup=True)
+    workflow.graph.render('class_dag1', view=False, format='pdf', cleanup=True)
+
+
+def test_flow2():
+    class Comput1(Task):
+        def run(self, a, b):
+            l = len(str(b))
+
+            ma = np.random.randn(l, l)
+            return {a: [1] * l, b: ma}
+
+    class Comput2(Task):
+        def run(self, dic):
+            return '-'.join(str(k) for k in dic.keys())
+
+    class Shell1(ShellTask):
+        def command(self, f: str):
+            Shell(f"echo  '{f}' > {f}")
+            return f
+
+    class Shell2(ShellTask):
+        def command(self, f: File):
+            f1 = "t1.txt"
+            f2 = "t2.txt"
+            Shell(f"""
+               cat  '{f}' >> {f1}
+               cat '{f1}' >> {f2}
+               cat '{f}' >> {f2}
+              """)
+            return f1, f2
+
+    class Shell3(ShellTask):
+        def command(self, f: File):
+            Shell(f"cat {f}")
+
+    comput1 = Comput1()
+    comput2 = Comput2()
+
+    shell1 = Shell1()
+    shell2 = Shell2()
+    shell3 = Shell3(workdir='/tmp')
+
+    class Flow1(Flow):
+        def run(self, ch1, ch2):
+            dict_ch = comput1(ch1, ch2)
+            return comput2(dict_ch)
+
+    class Flow2(Flow):
+        def run(self, ch):
+            fch = shell1(ch)
+            f12 = shell2(fch)
+            f1ch, f2ch = Split(num=2)(f12)
+            return concat(f1ch, f2ch) | shell3 | shell3
+
+    flow1 = Flow1()
+    flow2 = Flow2()
+
+    class Flow12(Flow):
+        def run(self, a, b):
+            ch = flow1(a, b)
+            return flow2(ch)
+
+    myflow = Flow12()
+
+    fasta1_list = [uuid.uuid4() for i in range(10)]
+    fasta2_list = [uuid.uuid4() for i in range(10)]
+
+    fasta1 = Channel.values(*fasta1_list)
+    fasta2 = Channel.values(*fasta2_list)
+    # fasta1 = Channel.values("1", "2", "4", "1")
+    # fasta2 = Channel.values("A", "B", "x", "A")
+
+    config.update({
+        'cpu': 7,
+        'memory': 100,
+        'time': 1000,
+        'io': 80
+    })
+
+    runner, workflow = FlowRunner(myflow).run(fasta1, fasta2)
+    consumer = Consumer.from_channels(workflow._output)
+    runner.execute()
+    results = []
+    for data in consumer:
+        results.append(data)
+    print("Results are: ")
+    for res in results:
+        print(res, type(res))
+
+    workflow.graph.render('class_dag2', view=False, format='pdf', cleanup=True)
 
 
 if __name__ == "__main__":
-    test_flow()
+    test_flow1()
+    print("-" * 40)
+    test_flow2()

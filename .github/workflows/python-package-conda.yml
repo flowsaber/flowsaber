@@ -34,7 +34,7 @@ jobs:
         export PATH=$CONDA/bin:$PATH
         $CONDA/bin/conda install --yes pytest
         $CONDA/bin/conda install -c conda-forge --yes pytest-tornasync
-        $CONDA/bin/pytest --cov=./ tests/ --cov-report=xml
+        $CONDA/bin/pytest --cov=./ -s -o log_cli=True -vvvv --cov-report=xml tests/
     - name: "Upload coverage to Codecov"
       uses: codecov/codecov-action@v1
       with:

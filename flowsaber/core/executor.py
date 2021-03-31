@@ -68,11 +68,14 @@ class ProcessExecutor(Executor):
         super().__init__(**kwargs)
         self.pool = pool_cls()
 
+
     async def run(self, fn, *args, **kwargs):
         loop = asyncio.get_running_loop()
         _run = partial(fn, *args, **kwargs)
         res = await loop.run_in_executor(self.pool, _run)
         return res
+
+
 
 
 class RayExecutor(Executor):

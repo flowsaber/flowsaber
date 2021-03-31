@@ -306,7 +306,7 @@ class Consumer(Fetcher):
                 return END
             else:
                 values.append(value)
-        self.num_emited += 1
+        self.num_emitted += 1
         # emit single input without tuple
         return tuple(values) if not self.single else values[0]
 
