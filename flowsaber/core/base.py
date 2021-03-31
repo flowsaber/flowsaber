@@ -12,8 +12,6 @@ from flowsaber.utility.utils import TaskOutput
 
 logger = get_logger(__name__)
 
-__all__ = ['FlowComponent', 'TaskConfig']
-
 
 class CopySigMeta(type):
     PAIR_ARG_NAME = 'FUNC_PAIRS'

@@ -9,8 +9,6 @@ from flowsaber.utility.logtool import get_logger
 
 logger = get_logger(__name__)
 
-__all__ = ['Env', 'EnvCreator']
-
 
 class Env(object):
     def __init__(self, module: str = None, conda_path: str = None, image_file: str = None):

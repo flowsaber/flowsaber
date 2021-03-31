@@ -1,6 +1,3 @@
-__all__ = ['DocInheritorBase']
-
-
 class DocInheritorBase(type):
     """
     Comes from https://github.com/GangCaoLab/CoolBox/blob/master/coolbox/utilities/doctool.py

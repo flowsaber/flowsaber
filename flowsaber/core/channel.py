@@ -8,8 +8,6 @@ from flowsaber.utility.logtool import get_logger
 
 logger = get_logger(__name__)
 
-__all__ = ['Fetcher', 'Queue', 'ConstantQueue', 'Channel', 'ConstantChannel', 'Consumer']
-
 
 # TODO theoretically, channel should always emit END after the first emission of EMD
 class DataObject(object):

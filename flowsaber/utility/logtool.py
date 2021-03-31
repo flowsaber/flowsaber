@@ -1,8 +1,6 @@
 import logging
 import sys
 
-__all__ = ['LOG_LEVEL', 'get_logger']
-
 LOG_LEVEL = logging.INFO
 
 

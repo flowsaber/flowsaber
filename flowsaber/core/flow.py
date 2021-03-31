@@ -12,8 +12,6 @@ from .channel import Channel
 
 logger = get_logger(__name__)
 
-__all__ = ['Flow', 'flow']
-
 
 class Flow(FlowComponent):
     def __init__(self, **kwargs):

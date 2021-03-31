@@ -8,7 +8,6 @@ Task
 .. automodule:: flowsaber.core.task
     :autosummary:
     :members:
-    :imported-members:
 
 Flow
 ========
@@ -16,7 +15,6 @@ Flow
 .. automodule:: flowsaber.core.flow
     :autosummary:
     :members:
-    :imported-members:
 
 Channel
 =======
