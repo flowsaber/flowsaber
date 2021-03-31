@@ -1,6 +1,3 @@
-from numpydoc.docscrape import NumpyDocString
-
-
 class DocInheritorBase(type):
     """
     Comes from https://github.com/GangCaoLab/CoolBox/blob/master/coolbox/utilities/doctool.py
@@ -73,11 +70,12 @@ class NumpyDocInheritor(DocInheritorBase):
 
     @classmethod
     def build(mcs, p_doc: str, c_doc: str) -> str:
+        raise NotImplementedError
         if not p_doc or not c_doc:
             return p_doc or c_doc
 
-        p_doc = NumpyDocString(p_doc)
-        c_doc = NumpyDocString(c_doc)
+        p_doc = p_doc
+        c_doc = c_doc
 
         # reuse parents' doc except for `Extended Summary`
         for section, content in c_doc.items():

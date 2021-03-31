@@ -6,13 +6,15 @@ classifiers = [
     "Operating System :: POSIX",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     "Intended Audience :: Science/Research",
 ]
 
 keywords = [
-    "dataflow"
+    "dataflow", "workflow", "asyncio"
 ]
 
 
@@ -26,7 +28,7 @@ def get_version():
 
 
 def get_long_description():
-    return "Dataflow based workflow framework"
+    return open('README.md').read()
 
 
 def get_install_requires():
@@ -40,7 +42,6 @@ def get_install_requires():
 requirements = [
     'makefun',
     'graphviz',
-    'numpydoc',
     'dask',
     'cloudpickle',
     'ray',
@@ -73,5 +74,5 @@ setup(
           'loky'
       ]
     },
-    python_requires='>=3.8, <4',
+    python_requires='>=3.6, <4',
 )

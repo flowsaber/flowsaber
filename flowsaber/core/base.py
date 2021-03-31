@@ -7,14 +7,13 @@ from makefun import with_signature
 
 from flowsaber.context import flowsaber
 from flowsaber.core.channel import Consumer, Channel
-from flowsaber.utility.doctool import NumpyDocInheritor
 from flowsaber.utility.logtool import get_logger
 from flowsaber.utility.utils import TaskOutput
 
 logger = get_logger(__name__)
 
 
-class CopySigMeta(NumpyDocInheritor):
+class CopySigMeta(type):
     PAIR_ARG_NAME = 'FUNC_PAIRS'
 
     def __new__(mcs, class_name, bases, class_dict):
