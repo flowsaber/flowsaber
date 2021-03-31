@@ -37,6 +37,16 @@ def get_install_requires():
     return requirements
 
 
+requirements = [
+    'makefun',
+    'graphviz',
+    'numpydoc',
+    'dask',
+    'cloudpickle',
+    'ray',
+    'rich'
+]
+
 setup(
     name='flowsaber',
     author='bakezq',
@@ -52,6 +62,15 @@ setup(
     include_package_data=True,
     zip_safe=False,
     classifiers=classifiers,
-    install_requires=get_install_requires(),
+    install_requires=requirements,
+    extras_require={
+      'dev': [
+          'pytest',
+          'pytest-cov',
+          'matplotlib',
+          'httpimport',
+          'autodocsumm',
+      ]
+    },
     python_requires='>=3.8, <4',
 )
