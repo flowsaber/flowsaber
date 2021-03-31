@@ -1,6 +1,52 @@
 # A dataflow based workflow framework.
 ### work in progress
 
+<p align="center">
+
+  
+
+  
+  <a href="https://pypi.python.org/pypi/flowsaber/">
+    <img src="https://img.shields.io/pypi/v/flowsaber.svg" alt="Install with PyPi" />
+  </a>
+  
+  
+  <a href="https://github.com/zhqu1148980644/flowsaber/releases">
+  	<img src="https://img.shields.io/github/v/release/zhqu1148980644/flowsaber?include_prereleases&label=github" alt="Github release">
+  </a>
+ 
+  <a href="https://zhqu1148980644.github.io/flowsaber/index.html">
+  	<img src="https://readthedocs.org/projects/ansicolortags/badge/?version=latest" alt="Documentation">
+  </a>
+  
+  <a href="https://pypi.python.org/pypi/flowsaber">
+    <img src="https://img.shields.io/pypi/pyversions/flowsaber.svg" alt="Version">
+  </a>
+  
+  <a href="https://pepy.tech/project/flowsaber">
+    <img src="https://pepy.tech/badge/flowsaber" alt="Downloads">
+  </a>
+
+  <a href="https://pepy.tech/project/flowsaber">
+    <img src="https://pepy.tech/badge/flowsaber/week" alt="Downloads per week">
+  </a>
+  
+  <a href="https://github.com/zhqu1148980644/flowsaber/actions/workflows/python-package-conda.yml">
+    <img src="https://github.com/zhqu1148980644/flowsaber/actions/workflows/python-package-conda.yml/badge.svg" alt="Build Status">
+  </a>
+
+  <a href="https://app.codecov.io/gh/zhqu1148980644/flowsaber">
+    <img src="https://codecov.io/gh/zhqu1148980644/flowsaber/branch/master/graph/badge.svg" alt="codecov">
+  </a>
+
+  <a href="https://github.com/zhqu1148980644/flowsaber/blob/master/LICENSE">
+    <img src="https://img.shields.io/github/license/zhqu1148980644/flowsaber" alt="license">
+  </a>
+
+</p>
+
+
+
 
 ### Features
 
@@ -9,6 +55,13 @@
 - Local Cache.
 - Clustering support based on ray.
 - Conda and Container execution environment.
+
+
+### Install
+
+```bash
+pip install flowsaber
+```
 
 ### Example
 
