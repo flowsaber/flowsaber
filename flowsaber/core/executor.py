@@ -97,7 +97,8 @@ class RayExecutor(Executor):
     async def run(self, fn, *args, **kwargs):
         import ray
         # assert self.inited, "Not inited, please use executor.init()"
-
+        # TODO why ray is not inited in github actions
+        self.init()
         # TODO why use closure doesn't work ?
         @ray.remote
         def _run(*args, **kwargs):
