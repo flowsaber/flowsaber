@@ -28,7 +28,7 @@ def get_version():
 
 
 def get_long_description():
-    return open('README.md').read()
+    return "A dataflow based workflow framework."
 
 
 def get_install_requires():
