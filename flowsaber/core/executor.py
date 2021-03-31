@@ -96,7 +96,7 @@ class RayExecutor(Executor):
 
     async def run(self, fn, *args, **kwargs):
         import ray
-        assert self.inited, "Not inited, please use executor.init()"
+        # assert self.inited, "Not inited, please use executor.init()"
 
         # TODO why use closure doesn't work ?
         @ray.remote
