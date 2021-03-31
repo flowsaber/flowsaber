@@ -1,5 +1,8 @@
-from flowsaber import *
 import httpimport
+
+import flowsaber
+from flowsaber import *
+
 
 def test_remote_import():
     url = "https://gist.githubusercontent.com/zhqu1148980644/" \
@@ -13,9 +16,10 @@ def test_remote_import():
 
     names = Channel.values("qwe", 'asd', 'zxcx', 'hhh')
 
-    runner, workflow = FlowRunner(myflow).run(names)
+    workflow = myflow(names)
     consumer = Consumer.from_channels(workflow._output)
-    runner.execute()
+    asyncio.run(flowsaber.run(workflow))
+
     results = []
     for data in consumer:
         results.append(data)

@@ -10,7 +10,7 @@ from typing import Optional, Callable, Sequence
 
 from dask.base import tokenize
 
-from flowsaber.context import flowsaber, config
+from flowsaber.context import context, config
 from flowsaber.core.cache import get_cache_cls, CacheInvalidError, Cache
 from flowsaber.core.env import Env, EnvCreator
 from flowsaber.core.executor import get_executor, Executor
@@ -22,6 +22,8 @@ from .channel import Channel, Consumer, ConstantChannel, Queue
 from .scheduler import Scheduler
 
 logger = get_logger(__name__)
+
+__all__ = ['BaseTask', 'Task', 'task', 'ShellTask', 'shell', 'EnvTask', 'Shell', 'Python', 'Rscript']
 
 
 class BaseTask(FlowComponent):
@@ -50,7 +52,7 @@ class BaseTask(FlowComponent):
         return self._output
 
     def register_graph(self, qv: Sequence[Queue]):
-        g = flowsaber.top_flow.graph
+        g = context.top_flow.graph
         kwargs = dict(
             style="filled",
             colorscheme="svg"
@@ -72,13 +74,14 @@ class BaseTask(FlowComponent):
 
     def __call__(self, *args, **kwargs) -> TaskOutput:
         task = self.copy_new(*args, **kwargs)
-        up_flow = flowsaber.up_flow
-        assert task not in up_flow.tasks
-        up_flow.tasks.setdefault(task, {})
+        up_flow = context.up_flow
+        assert task not in up_flow._tasks
+        up_flow._tasks.setdefault(task, {})
 
         return task._output
 
     async def execute(self, **kwargs):
+        await super().execute(**kwargs)
         try:
             # extract data using consumer
             res = await self.handle_consumer(self._input, **kwargs)
@@ -232,10 +235,10 @@ class Task(BaseTask):
                 await self.enqueue_output(enqueue_data)
             # or run
             else:
-                # run in scheduler
+                # submit to scheduler
                 if scheduler:
                     # create a clean task for ease of serialization
-                    job = scheduler.schedule(self, self.handle_input, run_args, run_info=run_info)
+                    job = scheduler.submit(self.handle_input(run_args, run_info=run_info), task=self)
                     job.add_async_done_callback(self.enqueue_output)
                     if self.config.fork <= 1:
                         await job
@@ -270,20 +273,20 @@ class Task(BaseTask):
     @property
     def cache(self) -> Cache:
         create_cache = partial(get_cache_cls, self.config.cache_type, task=self)
-        caches = flowsaber.setdefault('__caches__', defaultdict(create_cache))
+        caches = context.setdefault('__caches__', defaultdict(create_cache))
         return caches[self.task_key]
 
     @property
     def executor(self) -> Executor:
         executor_type = self.config.executor
-        executors = flowsaber.setdefault('__executors__', {})
+        executors = context.setdefault('__executors__', {})
         if executor_type not in executors:
             executors[executor_type] = get_executor(executor_type, config=self.config)
 
         return executors[executor_type]
 
     def run_key_lock(self, run_key: str):
-        locks = flowsaber.setdefault('__run_key_locks__', defaultdict(asyncio.Lock))
+        locks = context.setdefault('__run_key_locks__', defaultdict(asyncio.Lock))
         return locks[run_key]
 
     async def handle_input(self, run_args: BoundArguments, **kwargs):
@@ -416,7 +419,7 @@ class ShellTask(Task):
         def __init__(self, cmd: str):
             assert isinstance(cmd, str)
             self.cmd = cmd
-            flowsaber[ShellTask.SCRIPT_CMD] = self
+            context[ShellTask.SCRIPT_CMD] = self
 
         def __str__(self):
             return f"{self.cmd}"
@@ -446,9 +449,9 @@ class ShellTask(Task):
                 conda=config.conda,
                 image=config.image
             )
-            if env_creator not in flowsaber.env_tasks:
-                flowsaber.env_tasks[env_creator] = EnvTask(env_creator=env_creator)()
-            env_task_out_ch: Channel = flowsaber.env_tasks[env_creator]
+            if env_creator not in context.env_tasks:
+                context.env_tasks[env_creator] = EnvTask(env_creator=env_creator)()
+            env_task_out_ch: Channel = context.env_tasks[env_creator]
             new.add_dependency(name='env', channel=env_task_out_ch)
 
         return new
@@ -460,10 +463,10 @@ class ShellTask(Task):
         # run user defined function and get the true bash commands
         await super().update_run_info(data)
         # find the real shell commands
-        with flowsaber():
+        with context():
             with capture_local() as local_vars:
                 cmd_output = self.command(**data.arguments)
-            cmd: str = flowsaber.get(self.SCRIPT_CMD, None)
+            cmd: str = context.get(self.SCRIPT_CMD, None)
             # two options: 1. use Shell('cmd') 2. use __doc__ = 'cmd'
             if cmd is None:
                 cmd = self.command.__doc__

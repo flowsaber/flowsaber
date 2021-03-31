@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>API Reference &mdash; flowsaber 0.1 documentation</title>
+  <title>API Reference &mdash; context 0.1 documentation</title>
   
 
   
@@ -34,8 +34,6 @@
         <script src="_static/language_data.js"></script>
         <script src="_static/togglebutton.js"></script>
         <script >var togglebuttonSelector = '.toggle, .admonition.dropdown, .tag_hide_input div.cell_input, .tag_hide-input div.cell_input, .tag_hide_output div.cell_output, .tag_hide-output div.cell_output, .tag_hide_cell.cell, .tag_hide-cell.cell';</script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-        <script src="https://unpkg.com/@jupyter-widgets/html-manager@^0.18.0/dist/embed-amd.js"></script>
     
     <script type="text/javascript" src="_static/js/theme.js"></script>
 
@@ -56,7 +54,7 @@
           
 
           
-            <a href="index.html" class="icon icon-home" alt="Documentation Home"> flowsaber
+            <a href="index.html" class="icon icon-home" alt="Documentation Home"> context
           
 
           
@@ -122,7 +120,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">flowsaber</a>
+          <a href="index.html">context</a>
         
       </nav>
 
@@ -176,84 +174,6 @@
 <h1>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="module-flowsaber.core.task">
 <span id="task"></span><h2>Task<a class="headerlink" href="#module-flowsaber.core.task" title="Permalink to this headline">¶</a></h2>
-<p><strong>Classes:</strong></p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.BaseTask" title="flowsaber.core.task.BaseTask"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseTask</span></code></a>(num_out, **kwargs)</p></td>
-<td><p>The base class of the class hierarchy.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.task.BoundArguments" title="flowsaber.core.task.BoundArguments"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BoundArguments</span></code></a>(signature, arguments)</p></td>
-<td><p>Result of <cite>Signature.bind</cite> call.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.EnvTask" title="flowsaber.core.task.EnvTask"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EnvTask</span></code></a>(*args, **kwargs)</p></td>
-<td><p>The base class of the class hierarchy.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.task.File" title="flowsaber.core.task.File"><code class="xref py py-obj docutils literal notranslate"><span class="pre">File</span></code></a>(*args, **kwargs)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.FlowComponent" title="flowsaber.core.task.FlowComponent"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FlowComponent</span></code></a>(name, **kwargs)</p></td>
-<td><p>The base class of the class hierarchy.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.task.Parameter" title="flowsaber.core.task.Parameter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Parameter</span></code></a>(name, kind, *, default, annotation)</p></td>
-<td><p>Represents a parameter in a function signature.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.Path" title="flowsaber.core.task.Path"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a>(*args, **kwargs)</p></td>
-<td><p>PurePath subclass that can make system calls.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.task.ShellTask" title="flowsaber.core.task.ShellTask"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ShellTask</span></code></a>(*args, **kwargs)</p></td>
-<td><p>The base class of the class hierarchy.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.Skip" title="flowsaber.core.task.Skip"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Skip</span></code></a>(**kwargs)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.task.Stdin" title="flowsaber.core.task.Stdin"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Stdin</span></code></a>(src, flowsaber.core.target.File], **kwargs)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.Stdout" title="flowsaber.core.task.Stdout"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Stdout</span></code></a>(*args, **kwargs)</p></td>
-<td><p>Ugly way, use file to store stdout.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.task.Task" title="flowsaber.core.task.Task"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Task</span></code></a>(*args, **kwargs)</p></td>
-<td><p>The base class of the class hierarchy.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.TaskConfig" title="flowsaber.core.task.TaskConfig"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TaskConfig</span></code></a>(slug, tags, workdir, pubdir, …)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.task.defaultdict" title="flowsaber.core.task.defaultdict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">defaultdict</span></code></a></p></td>
-<td><p>defaultdict(default_factory[, …]) –&gt; dict with default factory</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.partial" title="flowsaber.core.task.partial"><code class="xref py py-obj docutils literal notranslate"><span class="pre">partial</span></code></a></p></td>
-<td><p>partial(func, <a href="#id1"><span class="problematic" id="id2">*</span></a>args, <a href="#id3"><span class="problematic" id="id4">**</span></a>keywords) - new function with partial application of the given arguments and keywords.</p></td>
-</tr>
-</tbody>
-</table>
-<p><strong>Exceptions:</strong></p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.CacheInvalidError" title="flowsaber.core.task.CacheInvalidError"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CacheInvalidError</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-</tbody>
-</table>
-<p><strong>Data:</strong></p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.Callable" title="flowsaber.core.task.Callable"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Callable</span></code></a></p></td>
-<td><p>Callable type; Callable[[int], str] is a function of (int) -&gt; str.</p></td>
-</tr>
-</tbody>
-</table>
 <p><strong>Functions:</strong></p>
 <table class="longtable docutils align-default">
 <colgroup>
@@ -261,773 +181,18 @@
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.change_cwd" title="flowsaber.core.task.change_cwd"><code class="xref py py-obj docutils literal notranslate"><span class="pre">change_cwd</span></code></a>(path)</p></td>
-<td><p>A context manager which changes the working directory to the given path, and then changes it back to its previous _output on exit.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.task.get_logger" title="flowsaber.core.task.get_logger"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_logger</span></code></a>(name[, file_, level])</p></td>
-<td><p>comes from <a class="reference external" href="https://github.com/GangCaoLab/CoolBox/blob/master/coolbox/utilities/logtools.py">https://github.com/GangCaoLab/CoolBox/blob/master/coolbox/utilities/logtools.py</a></p></td>
-</tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.shell" title="flowsaber.core.task.shell"><code class="xref py py-obj docutils literal notranslate"><span class="pre">shell</span></code></a>([fn])</p></td>
-<td><p>For base_cls is Task, method_name is run</p></td>
+<td><p>For base_cls is Task, method_name isrun</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.task.task" title="flowsaber.core.task.task"><code class="xref py py-obj docutils literal notranslate"><span class="pre">task</span></code></a>([fn])</p></td>
-<td><p>For base_cls is Task, method_name is run</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.tokenize" title="flowsaber.core.task.tokenize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tokenize</span></code></a>(*args, **kwargs)</p></td>
-<td><p>Deterministic token</p></td>
+<td><p>For base_cls is Task, method_name isrun</p></td>
 </tr>
 </tbody>
 </table>
-<dl class="py class">
-<dt id="flowsaber.core.task.BaseTask">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.core.task.</code><code class="sig-name descname">BaseTask</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">num_out</span><span class="p">:</span> <span class="n">int</span> <span class="o">=</span> <span class="default_value">1</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.BaseTask" title="Permalink to this definition">¶</a></dt>
-<dd><p>The base class of the class hierarchy.</p>
-<p>When called, it accepts no arguments and returns a new featureless
-instance that has no instance attributes and cannot be given any.</p>
-</dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.core.task.BoundArguments">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.core.task.</code><code class="sig-name descname">BoundArguments</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">signature</span></em>, <em class="sig-param"><span class="n">arguments</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.BoundArguments" title="Permalink to this definition">¶</a></dt>
-<dd><p>Result of <cite>Signature.bind</cite> call.  Holds the mapping of arguments
-to the function’s parameters.</p>
-<p>Has the following public attributes:</p>
-<ul class="simple">
-<li><dl class="simple">
-<dt>arguments<span class="classifier">OrderedDict</span></dt><dd><p>An ordered mutable mapping of parameters’ names to arguments’ values.
-Does not contain arguments’ default values.</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>signature<span class="classifier">Signature</span></dt><dd><p>The Signature object that created this instance.</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>args<span class="classifier">tuple</span></dt><dd><p>Tuple of positional arguments values.</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>kwargs<span class="classifier">dict</span></dt><dd><p>Dict of keyword arguments values.</p>
-</dd>
-</dl>
-</li>
-</ul>
-<p><strong>Methods:</strong></p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.BoundArguments.apply_defaults" title="flowsaber.core.task.BoundArguments.apply_defaults"><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply_defaults</span></code></a>()</p></td>
-<td><p>Set default values for missing arguments.</p></td>
-</tr>
-</tbody>
-</table>
-<dl class="py method">
-<dt id="flowsaber.core.task.BoundArguments.apply_defaults">
-<code class="sig-name descname">apply_defaults</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.BoundArguments.apply_defaults" title="Permalink to this definition">¶</a></dt>
-<dd><p>Set default values for missing arguments.</p>
-<p>For variable-positional arguments (<a href="#id5"><span class="problematic" id="id6">*</span></a>args) the default is an
-empty tuple.</p>
-<p>For variable-keyword arguments (<a href="#id7"><span class="problematic" id="id8">**</span></a>kwargs) the default is an
-empty dict.</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py exception">
-<dt id="flowsaber.core.task.CacheInvalidError">
-<em class="property">exception </em><code class="sig-prename descclassname">flowsaber.core.task.</code><code class="sig-name descname">CacheInvalidError</code><a class="headerlink" href="#flowsaber.core.task.CacheInvalidError" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py data">
-<dt id="flowsaber.core.task.Callable">
-<code class="sig-prename descclassname">flowsaber.core.task.</code><code class="sig-name descname">Callable</code><a class="headerlink" href="#flowsaber.core.task.Callable" title="Permalink to this definition">¶</a></dt>
-<dd><p>Callable type; Callable[[int], str] is a function of (int) -&gt; str.</p>
-<p>The subscription syntax must always be used with exactly two
-values: the argument list and the return type.  The argument list
-must be a list of types or ellipsis; the return type must be a single type.</p>
-<p>There is no syntax to indicate optional or keyword arguments,
-such function types are rarely used as callback types.</p>
-<p>alias of Callable</p>
-</dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.core.task.EnvTask">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.core.task.</code><code class="sig-name descname">EnvTask</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.EnvTask" title="Permalink to this definition">¶</a></dt>
-<dd><p>The base class of the class hierarchy.</p>
-<p>When called, it accepts no arguments and returns a new featureless
-instance that has no instance attributes and cannot be given any.</p>
-<p><strong>Methods:</strong></p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.EnvTask.run" title="flowsaber.core.task.EnvTask.run"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code></a>()</p></td>
-<td><p>This function should be stateless</p></td>
-</tr>
-</tbody>
-</table>
-<dl class="py method">
-<dt id="flowsaber.core.task.EnvTask.run">
-<code class="sig-name descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; flowsaber.core.env.Env<a class="headerlink" href="#flowsaber.core.task.EnvTask.run" title="Permalink to this definition">¶</a></dt>
-<dd><p>This function should be stateless</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.core.task.File">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.core.task.</code><code class="sig-name descname">File</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.File" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.core.task.FlowComponent">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.core.task.</code><code class="sig-name descname">FlowComponent</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span><span class="p">:</span> <span class="n">str</span> <span class="o">=</span> <span class="default_value">''</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.FlowComponent" title="Permalink to this definition">¶</a></dt>
-<dd><p>The base class of the class hierarchy.</p>
-<p>When called, it accepts no arguments and returns a new featureless
-instance that has no instance attributes and cannot be given any.</p>
-</dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.core.task.Parameter">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.core.task.</code><code class="sig-name descname">Parameter</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">kind</span></em>, <em class="sig-param"><span class="o">*</span></em>, <em class="sig-param"><span class="n">default</span></em>, <em class="sig-param"><span class="n">annotation</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Parameter" title="Permalink to this definition">¶</a></dt>
-<dd><p>Represents a parameter in a function signature.</p>
-<p>Has the following public attributes:</p>
-<ul class="simple">
-<li><dl class="simple">
-<dt>name<span class="classifier">str</span></dt><dd><p>The name of the parameter as a string.</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>default<span class="classifier">object</span></dt><dd><p>The default value for the parameter if specified.  If the
-parameter has no default value, this attribute is set to
-<cite>Parameter.empty</cite>.</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>annotation</dt><dd><p>The annotation for the parameter if specified.  If the
-parameter has no annotation, this attribute is set to
-<cite>Parameter.empty</cite>.</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>kind<span class="classifier">str</span></dt><dd><p>Describes how argument values are bound to the parameter.
-Possible values: <cite>Parameter.POSITIONAL_ONLY</cite>,
-<cite>Parameter.POSITIONAL_OR_KEYWORD</cite>, <cite>Parameter.VAR_POSITIONAL</cite>,
-<cite>Parameter.KEYWORD_ONLY</cite>, <cite>Parameter.VAR_KEYWORD</cite>.</p>
-</dd>
-</dl>
-</li>
-</ul>
-<p><strong>Classes:</strong></p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.Parameter.empty" title="flowsaber.core.task.Parameter.empty"><code class="xref py py-obj docutils literal notranslate"><span class="pre">empty</span></code></a></p></td>
-<td><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">_empty</span></code></p></td>
-</tr>
-</tbody>
-</table>
-<p><strong>Methods:</strong></p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.Parameter.replace" title="flowsaber.core.task.Parameter.replace"><code class="xref py py-obj docutils literal notranslate"><span class="pre">replace</span></code></a>(*[, name, kind, annotation, default])</p></td>
-<td><p>Creates a customized copy of the Parameter.</p></td>
-</tr>
-</tbody>
-</table>
-<dl class="py attribute">
-<dt id="flowsaber.core.task.Parameter.empty">
-<code class="sig-name descname">empty</code><a class="headerlink" href="#flowsaber.core.task.Parameter.empty" title="Permalink to this definition">¶</a></dt>
-<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">_empty</span></code></p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="flowsaber.core.task.Parameter.replace">
-<code class="sig-name descname">replace</code><span class="sig-paren">(</span><em class="sig-param">*</em>, <em class="sig-param">name=&lt;class 'inspect._void'&gt;</em>, <em class="sig-param">kind=&lt;class 'inspect._void'&gt;</em>, <em class="sig-param">annotation=&lt;class 'inspect._void'&gt;</em>, <em class="sig-param">default=&lt;class 'inspect._void'&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Parameter.replace" title="Permalink to this definition">¶</a></dt>
-<dd><p>Creates a customized copy of the Parameter.</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.core.task.Path">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.core.task.</code><code class="sig-name descname">Path</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Path" title="Permalink to this definition">¶</a></dt>
-<dd><p>PurePath subclass that can make system calls.</p>
-<p>Path represents a filesystem path but unlike PurePath, also offers
-methods to do system calls on path objects. Depending on your system,
-instantiating a Path will return either a PosixPath or a WindowsPath
-object. You can also instantiate a PosixPath or WindowsPath directly,
-but cannot instantiate a WindowsPath on a POSIX system or vice versa.</p>
-<p><strong>Methods:</strong></p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.Path.absolute" title="flowsaber.core.task.Path.absolute"><code class="xref py py-obj docutils literal notranslate"><span class="pre">absolute</span></code></a>()</p></td>
-<td><p>Return an absolute version of this path.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.task.Path.chmod" title="flowsaber.core.task.Path.chmod"><code class="xref py py-obj docutils literal notranslate"><span class="pre">chmod</span></code></a>(mode)</p></td>
-<td><p>Change the permissions of the path, like os.chmod().</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.Path.cwd" title="flowsaber.core.task.Path.cwd"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cwd</span></code></a>()</p></td>
-<td><p>Return a new path pointing to the current working directory (as returned by os.getcwd()).</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.task.Path.exists" title="flowsaber.core.task.Path.exists"><code class="xref py py-obj docutils literal notranslate"><span class="pre">exists</span></code></a>()</p></td>
-<td><p>Whether this path exists.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.Path.expanduser" title="flowsaber.core.task.Path.expanduser"><code class="xref py py-obj docutils literal notranslate"><span class="pre">expanduser</span></code></a>()</p></td>
-<td><p>Return a new path with expanded ~ and ~user constructs (as returned by os.path.expanduser)</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.task.Path.glob" title="flowsaber.core.task.Path.glob"><code class="xref py py-obj docutils literal notranslate"><span class="pre">glob</span></code></a>(pattern)</p></td>
-<td><p>Iterate over this subtree and yield all existing files (of any kind, including directories) matching the given relative pattern.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.Path.group" title="flowsaber.core.task.Path.group"><code class="xref py py-obj docutils literal notranslate"><span class="pre">group</span></code></a>()</p></td>
-<td><p>Return the group name of the file gid.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.task.Path.home" title="flowsaber.core.task.Path.home"><code class="xref py py-obj docutils literal notranslate"><span class="pre">home</span></code></a>()</p></td>
-<td><p>Return a new path pointing to the user’s home directory (as returned by os.path.expanduser(‘~’)).</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.Path.is_block_device" title="flowsaber.core.task.Path.is_block_device"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_block_device</span></code></a>()</p></td>
-<td><p>Whether this path is a block device.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.task.Path.is_char_device" title="flowsaber.core.task.Path.is_char_device"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_char_device</span></code></a>()</p></td>
-<td><p>Whether this path is a character device.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.Path.is_dir" title="flowsaber.core.task.Path.is_dir"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_dir</span></code></a>()</p></td>
-<td><p>Whether this path is a directory.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.task.Path.is_fifo" title="flowsaber.core.task.Path.is_fifo"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_fifo</span></code></a>()</p></td>
-<td><p>Whether this path is a FIFO.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.Path.is_file" title="flowsaber.core.task.Path.is_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_file</span></code></a>()</p></td>
-<td><p>Whether this path is a regular file (also True for symlinks pointing to regular files).</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.task.Path.is_mount" title="flowsaber.core.task.Path.is_mount"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_mount</span></code></a>()</p></td>
-<td><p>Check if this path is a POSIX mount point</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.Path.is_socket" title="flowsaber.core.task.Path.is_socket"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_socket</span></code></a>()</p></td>
-<td><p>Whether this path is a socket.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.task.Path.is_symlink" title="flowsaber.core.task.Path.is_symlink"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_symlink</span></code></a>()</p></td>
-<td><p>Whether this path is a symbolic link.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.Path.iterdir" title="flowsaber.core.task.Path.iterdir"><code class="xref py py-obj docutils literal notranslate"><span class="pre">iterdir</span></code></a>()</p></td>
-<td><p>Iterate over the files in this directory.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.task.Path.lchmod" title="flowsaber.core.task.Path.lchmod"><code class="xref py py-obj docutils literal notranslate"><span class="pre">lchmod</span></code></a>(mode)</p></td>
-<td><p>Like chmod(), except if the path points to a symlink, the symlink’s permissions are changed, rather than its target’s.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.Path.link_to" title="flowsaber.core.task.Path.link_to"><code class="xref py py-obj docutils literal notranslate"><span class="pre">link_to</span></code></a>(target)</p></td>
-<td><p>Create a hard link pointing to a path named target.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.task.Path.lstat" title="flowsaber.core.task.Path.lstat"><code class="xref py py-obj docutils literal notranslate"><span class="pre">lstat</span></code></a>()</p></td>
-<td><p>Like stat(), except if the path points to a symlink, the symlink’s status information is returned, rather than its target’s.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.Path.mkdir" title="flowsaber.core.task.Path.mkdir"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mkdir</span></code></a>([mode, parents, exist_ok])</p></td>
-<td><p>Create a new directory at this given path.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.task.Path.open" title="flowsaber.core.task.Path.open"><code class="xref py py-obj docutils literal notranslate"><span class="pre">open</span></code></a>([mode, buffering, encoding, errors, …])</p></td>
-<td><p>Open the file pointed by this path and return a file object, as the built-in open() function does.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.Path.owner" title="flowsaber.core.task.Path.owner"><code class="xref py py-obj docutils literal notranslate"><span class="pre">owner</span></code></a>()</p></td>
-<td><p>Return the login name of the file owner.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.task.Path.read_bytes" title="flowsaber.core.task.Path.read_bytes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">read_bytes</span></code></a>()</p></td>
-<td><p>Open the file in bytes mode, read it, and close the file.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.Path.read_text" title="flowsaber.core.task.Path.read_text"><code class="xref py py-obj docutils literal notranslate"><span class="pre">read_text</span></code></a>([encoding, errors])</p></td>
-<td><p>Open the file in text mode, read it, and close the file.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.task.Path.rename" title="flowsaber.core.task.Path.rename"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rename</span></code></a>(target)</p></td>
-<td><p>Rename this path to the given path, and return a new Path instance pointing to the given path.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.Path.replace" title="flowsaber.core.task.Path.replace"><code class="xref py py-obj docutils literal notranslate"><span class="pre">replace</span></code></a>(target)</p></td>
-<td><p>Rename this path to the given path, clobbering the existing destination if it exists, and return a new Path instance pointing to the given path.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.task.Path.resolve" title="flowsaber.core.task.Path.resolve"><code class="xref py py-obj docutils literal notranslate"><span class="pre">resolve</span></code></a>([strict])</p></td>
-<td><p>Make the path absolute, resolving all symlinks on the way and also normalizing it (for example turning slashes into backslashes under Windows).</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.Path.rglob" title="flowsaber.core.task.Path.rglob"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rglob</span></code></a>(pattern)</p></td>
-<td><p>Recursively yield all existing files (of any kind, including directories) matching the given relative pattern, anywhere in this subtree.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.task.Path.rmdir" title="flowsaber.core.task.Path.rmdir"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rmdir</span></code></a>()</p></td>
-<td><p>Remove this directory.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.Path.samefile" title="flowsaber.core.task.Path.samefile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">samefile</span></code></a>(other_path)</p></td>
-<td><p>Return whether other_path is the same or not as this file (as returned by os.path.samefile()).</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.task.Path.stat" title="flowsaber.core.task.Path.stat"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stat</span></code></a>()</p></td>
-<td><p>Return the result of the stat() system call on this path, like os.stat() does.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.Path.symlink_to" title="flowsaber.core.task.Path.symlink_to"><code class="xref py py-obj docutils literal notranslate"><span class="pre">symlink_to</span></code></a>(target[, target_is_directory])</p></td>
-<td><p>Make this path a symlink pointing to the given path.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.task.Path.touch" title="flowsaber.core.task.Path.touch"><code class="xref py py-obj docutils literal notranslate"><span class="pre">touch</span></code></a>([mode, exist_ok])</p></td>
-<td><p>Create this file with the given access mode, if it doesn’t exist.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.Path.unlink" title="flowsaber.core.task.Path.unlink"><code class="xref py py-obj docutils literal notranslate"><span class="pre">unlink</span></code></a>([missing_ok])</p></td>
-<td><p>Remove this file or link.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.task.Path.write_bytes" title="flowsaber.core.task.Path.write_bytes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">write_bytes</span></code></a>(data)</p></td>
-<td><p>Open the file in bytes mode, write to it, and close the file.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.Path.write_text" title="flowsaber.core.task.Path.write_text"><code class="xref py py-obj docutils literal notranslate"><span class="pre">write_text</span></code></a>(data[, encoding, errors])</p></td>
-<td><p>Open the file in text mode, write to it, and close the file.</p></td>
-</tr>
-</tbody>
-</table>
-<dl class="py method">
-<dt id="flowsaber.core.task.Path.absolute">
-<code class="sig-name descname">absolute</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Path.absolute" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return an absolute version of this path.  This function works
-even if the path doesn’t point to anything.</p>
-<p>No normalization is done, i.e. all ‘.’ and ‘..’ will be kept along.
-Use resolve() to get the canonical path to a file.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="flowsaber.core.task.Path.chmod">
-<code class="sig-name descname">chmod</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mode</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Path.chmod" title="Permalink to this definition">¶</a></dt>
-<dd><p>Change the permissions of the path, like os.chmod().</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="flowsaber.core.task.Path.cwd">
-<em class="property">classmethod </em><code class="sig-name descname">cwd</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Path.cwd" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return a new path pointing to the current working directory
-(as returned by os.getcwd()).</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="flowsaber.core.task.Path.exists">
-<code class="sig-name descname">exists</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Path.exists" title="Permalink to this definition">¶</a></dt>
-<dd><p>Whether this path exists.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="flowsaber.core.task.Path.expanduser">
-<code class="sig-name descname">expanduser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Path.expanduser" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return a new path with expanded ~ and ~user constructs
-(as returned by os.path.expanduser)</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="flowsaber.core.task.Path.glob">
-<code class="sig-name descname">glob</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">pattern</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Path.glob" title="Permalink to this definition">¶</a></dt>
-<dd><p>Iterate over this subtree and yield all existing files (of any
-kind, including directories) matching the given relative pattern.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="flowsaber.core.task.Path.group">
-<code class="sig-name descname">group</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Path.group" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return the group name of the file gid.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="flowsaber.core.task.Path.home">
-<em class="property">classmethod </em><code class="sig-name descname">home</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Path.home" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return a new path pointing to the user’s home directory (as
-returned by os.path.expanduser(‘~’)).</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="flowsaber.core.task.Path.is_block_device">
-<code class="sig-name descname">is_block_device</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Path.is_block_device" title="Permalink to this definition">¶</a></dt>
-<dd><p>Whether this path is a block device.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="flowsaber.core.task.Path.is_char_device">
-<code class="sig-name descname">is_char_device</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Path.is_char_device" title="Permalink to this definition">¶</a></dt>
-<dd><p>Whether this path is a character device.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="flowsaber.core.task.Path.is_dir">
-<code class="sig-name descname">is_dir</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Path.is_dir" title="Permalink to this definition">¶</a></dt>
-<dd><p>Whether this path is a directory.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="flowsaber.core.task.Path.is_fifo">
-<code class="sig-name descname">is_fifo</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Path.is_fifo" title="Permalink to this definition">¶</a></dt>
-<dd><p>Whether this path is a FIFO.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="flowsaber.core.task.Path.is_file">
-<code class="sig-name descname">is_file</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Path.is_file" title="Permalink to this definition">¶</a></dt>
-<dd><p>Whether this path is a regular file (also True for symlinks pointing
-to regular files).</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="flowsaber.core.task.Path.is_mount">
-<code class="sig-name descname">is_mount</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Path.is_mount" title="Permalink to this definition">¶</a></dt>
-<dd><p>Check if this path is a POSIX mount point</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="flowsaber.core.task.Path.is_socket">
-<code class="sig-name descname">is_socket</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Path.is_socket" title="Permalink to this definition">¶</a></dt>
-<dd><p>Whether this path is a socket.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="flowsaber.core.task.Path.is_symlink">
-<code class="sig-name descname">is_symlink</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Path.is_symlink" title="Permalink to this definition">¶</a></dt>
-<dd><p>Whether this path is a symbolic link.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="flowsaber.core.task.Path.iterdir">
-<code class="sig-name descname">iterdir</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Path.iterdir" title="Permalink to this definition">¶</a></dt>
-<dd><p>Iterate over the files in this directory.  Does not yield any
-result for the special paths ‘.’ and ‘..’.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="flowsaber.core.task.Path.lchmod">
-<code class="sig-name descname">lchmod</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mode</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Path.lchmod" title="Permalink to this definition">¶</a></dt>
-<dd><p>Like chmod(), except if the path points to a symlink, the symlink’s
-permissions are changed, rather than its target’s.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="flowsaber.core.task.Path.link_to">
-<code class="sig-name descname">link_to</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">target</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Path.link_to" title="Permalink to this definition">¶</a></dt>
-<dd><p>Create a hard link pointing to a path named target.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="flowsaber.core.task.Path.lstat">
-<code class="sig-name descname">lstat</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Path.lstat" title="Permalink to this definition">¶</a></dt>
-<dd><p>Like stat(), except if the path points to a symlink, the symlink’s
-status information is returned, rather than its target’s.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="flowsaber.core.task.Path.mkdir">
-<code class="sig-name descname">mkdir</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mode</span><span class="o">=</span><span class="default_value">511</span></em>, <em class="sig-param"><span class="n">parents</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">exist_ok</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Path.mkdir" title="Permalink to this definition">¶</a></dt>
-<dd><p>Create a new directory at this given path.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="flowsaber.core.task.Path.open">
-<code class="sig-name descname">open</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mode</span><span class="o">=</span><span class="default_value">'r'</span></em>, <em class="sig-param"><span class="n">buffering</span><span class="o">=</span><span class="default_value">- 1</span></em>, <em class="sig-param"><span class="n">encoding</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">errors</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">newline</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Path.open" title="Permalink to this definition">¶</a></dt>
-<dd><p>Open the file pointed by this path and return a file object, as
-the built-in open() function does.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="flowsaber.core.task.Path.owner">
-<code class="sig-name descname">owner</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Path.owner" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return the login name of the file owner.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="flowsaber.core.task.Path.read_bytes">
-<code class="sig-name descname">read_bytes</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Path.read_bytes" title="Permalink to this definition">¶</a></dt>
-<dd><p>Open the file in bytes mode, read it, and close the file.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="flowsaber.core.task.Path.read_text">
-<code class="sig-name descname">read_text</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">encoding</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">errors</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Path.read_text" title="Permalink to this definition">¶</a></dt>
-<dd><p>Open the file in text mode, read it, and close the file.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="flowsaber.core.task.Path.rename">
-<code class="sig-name descname">rename</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">target</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Path.rename" title="Permalink to this definition">¶</a></dt>
-<dd><p>Rename this path to the given path,
-and return a new Path instance pointing to the given path.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="flowsaber.core.task.Path.replace">
-<code class="sig-name descname">replace</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">target</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Path.replace" title="Permalink to this definition">¶</a></dt>
-<dd><p>Rename this path to the given path, clobbering the existing
-destination if it exists, and return a new Path instance
-pointing to the given path.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="flowsaber.core.task.Path.resolve">
-<code class="sig-name descname">resolve</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">strict</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Path.resolve" title="Permalink to this definition">¶</a></dt>
-<dd><p>Make the path absolute, resolving all symlinks on the way and also
-normalizing it (for example turning slashes into backslashes under
-Windows).</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="flowsaber.core.task.Path.rglob">
-<code class="sig-name descname">rglob</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">pattern</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Path.rglob" title="Permalink to this definition">¶</a></dt>
-<dd><p>Recursively yield all existing files (of any kind, including
-directories) matching the given relative pattern, anywhere in
-this subtree.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="flowsaber.core.task.Path.rmdir">
-<code class="sig-name descname">rmdir</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Path.rmdir" title="Permalink to this definition">¶</a></dt>
-<dd><p>Remove this directory.  The directory must be empty.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="flowsaber.core.task.Path.samefile">
-<code class="sig-name descname">samefile</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">other_path</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Path.samefile" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return whether other_path is the same or not as this file
-(as returned by os.path.samefile()).</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="flowsaber.core.task.Path.stat">
-<code class="sig-name descname">stat</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Path.stat" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return the result of the stat() system call on this path, like
-os.stat() does.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="flowsaber.core.task.Path.symlink_to">
-<code class="sig-name descname">symlink_to</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">target</span></em>, <em class="sig-param"><span class="n">target_is_directory</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Path.symlink_to" title="Permalink to this definition">¶</a></dt>
-<dd><p>Make this path a symlink pointing to the given path.
-Note the order of arguments (self, target) is the reverse of os.symlink’s.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="flowsaber.core.task.Path.touch">
-<code class="sig-name descname">touch</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mode</span><span class="o">=</span><span class="default_value">438</span></em>, <em class="sig-param"><span class="n">exist_ok</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Path.touch" title="Permalink to this definition">¶</a></dt>
-<dd><p>Create this file with the given access mode, if it doesn’t exist.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="flowsaber.core.task.Path.unlink">
-<code class="sig-name descname">unlink</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">missing_ok</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Path.unlink" title="Permalink to this definition">¶</a></dt>
-<dd><p>Remove this file or link.
-If the path is a directory, use rmdir() instead.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="flowsaber.core.task.Path.write_bytes">
-<code class="sig-name descname">write_bytes</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Path.write_bytes" title="Permalink to this definition">¶</a></dt>
-<dd><p>Open the file in bytes mode, write to it, and close the file.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="flowsaber.core.task.Path.write_text">
-<code class="sig-name descname">write_text</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data</span></em>, <em class="sig-param"><span class="n">encoding</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">errors</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Path.write_text" title="Permalink to this definition">¶</a></dt>
-<dd><p>Open the file in text mode, write to it, and close the file.</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.core.task.ShellTask">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.core.task.</code><code class="sig-name descname">ShellTask</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.ShellTask" title="Permalink to this definition">¶</a></dt>
-<dd><p>The base class of the class hierarchy.</p>
-<p>When called, it accepts no arguments and returns a new featureless
-instance that has no instance attributes and cannot be given any.</p>
-<p><strong>Methods:</strong></p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.ShellTask.run" title="flowsaber.core.task.ShellTask.run"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code></a>(*args, **kwargs)</p></td>
-<td><p>This function should be stateless</p></td>
-</tr>
-</tbody>
-</table>
-<dl class="py method">
-<dt id="flowsaber.core.task.ShellTask.run">
-<code class="sig-name descname">run</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#flowsaber.core.task.ShellTask.run" title="Permalink to this definition">¶</a></dt>
-<dd><p>This function should be stateless</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.core.task.Skip">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.core.task.</code><code class="sig-name descname">Skip</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Skip" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.core.task.Stdin">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.core.task.</code><code class="sig-name descname">Stdin</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">src</span><span class="p">:</span> <span class="n">Union<span class="p">[</span>str<span class="p">, </span><a class="reference internal" href="#flowsaber.core.target.File" title="flowsaber.core.target.File">flowsaber.core.target.File</a><span class="p">]</span></span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Stdin" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.core.task.Stdout">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.core.task.</code><code class="sig-name descname">Stdout</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Stdout" title="Permalink to this definition">¶</a></dt>
-<dd><p>Ugly way, use file to store stdout.
-In the idealist implementation, stdout and _stdin can be piped/linked across machines over network.</p>
-</dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.core.task.Task">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.core.task.</code><code class="sig-name descname">Task</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Task" title="Permalink to this definition">¶</a></dt>
-<dd><p>The base class of the class hierarchy.</p>
-<p>When called, it accepts no arguments and returns a new featureless
-instance that has no instance attributes and cannot be given any.</p>
-<p><strong>Methods:</strong></p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.Task.run" title="flowsaber.core.task.Task.run"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code></a>(*args, **kwargs)</p></td>
-<td><p>This function should be stateless</p></td>
-</tr>
-</tbody>
-</table>
-<dl class="py method">
-<dt id="flowsaber.core.task.Task.run">
-<code class="sig-name descname">run</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Task.run" title="Permalink to this definition">¶</a></dt>
-<dd><p>This function should be stateless</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.core.task.TaskConfig">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.core.task.</code><code class="sig-name descname">TaskConfig</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">slug</span><span class="p">:</span> <span class="n">str</span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">tags</span><span class="p">:</span> <span class="n">tuple</span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">workdir</span><span class="p">:</span> <span class="n">str</span> <span class="o">=</span> <span class="default_value">'work'</span></em>, <em class="sig-param"><span class="n">pubdir</span><span class="p">:</span> <span class="n">Union<span class="p">[</span>str<span class="p">, </span>Sequence<span class="p">[</span>str<span class="p">]</span><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">skip_error</span><span class="p">:</span> <span class="n">bool</span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="n">executor</span><span class="p">:</span> <span class="n">str</span> <span class="o">=</span> <span class="default_value">'ray'</span></em>, <em class="sig-param"><span class="n">cache</span><span class="p">:</span> <span class="n">bool</span> <span class="o">=</span> <span class="default_value">True</span></em>, <em class="sig-param"><span class="n">cache_type</span><span class="p">:</span> <span class="n">str</span> <span class="o">=</span> <span class="default_value">'local'</span></em>, <em class="sig-param"><span class="n">retry</span><span class="p">:</span> <span class="n">int</span> <span class="o">=</span> <span class="default_value">0</span></em>, <em class="sig-param"><span class="n">fork</span><span class="p">:</span> <span class="n">int</span> <span class="o">=</span> <span class="default_value">7</span></em>, <em class="sig-param"><span class="n">cpu</span><span class="p">:</span> <span class="n">int</span> <span class="o">=</span> <span class="default_value">1</span></em>, <em class="sig-param"><span class="n">memory</span><span class="p">:</span> <span class="n">int</span> <span class="o">=</span> <span class="default_value">4</span></em>, <em class="sig-param"><span class="n">time</span><span class="p">:</span> <span class="n">int</span> <span class="o">=</span> <span class="default_value">1</span></em>, <em class="sig-param"><span class="n">io</span><span class="p">:</span> <span class="n">int</span> <span class="o">=</span> <span class="default_value">3</span></em>, <em class="sig-param"><span class="n">module</span><span class="p">:</span> <span class="n">str</span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">conda</span><span class="p">:</span> <span class="n">str</span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">image</span><span class="p">:</span> <span class="n">str</span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">runtime</span><span class="p">:</span> <span class="n">str</span> <span class="o">=</span> <span class="default_value">'singularity'</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.TaskConfig" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt id="flowsaber.core.task.change_cwd">
-<code class="sig-prename descclassname">flowsaber.core.task.</code><code class="sig-name descname">change_cwd</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">path</span><span class="p">:</span> <span class="n">Union<span class="p">[</span>str<span class="p">, </span>pathlib.Path<span class="p">]</span></span></em><span class="sig-paren">)</span> &#x2192; pathlib.Path<a class="headerlink" href="#flowsaber.core.task.change_cwd" title="Permalink to this definition">¶</a></dt>
-<dd><p>A context manager which changes the working directory to the given
-path, and then changes it back to its previous _output on exit.
-Usage:
-&gt; # Do something in original directory
-&gt; with working_directory(‘/my/new/path’):
-&gt;     # Do something in new directory
-&gt; # Back to old directory</p>
-</dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.core.task.defaultdict">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.core.task.</code><code class="sig-name descname">defaultdict</code><a class="headerlink" href="#flowsaber.core.task.defaultdict" title="Permalink to this definition">¶</a></dt>
-<dd><p>defaultdict(default_factory[, …]) –&gt; dict with default factory</p>
-<p>The default factory is called without arguments to produce
-a new value when a key is not present, in __getitem__ only.
-A defaultdict compares equal to a dict with the same items.
-All remaining arguments are treated the same as if they were
-passed to the dict constructor, including keyword arguments.</p>
-<p><strong>Methods:</strong></p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.defaultdict.copy" title="flowsaber.core.task.defaultdict.copy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">copy</span></code></a>()</p></td>
-<td><p></p></td>
-</tr>
-</tbody>
-</table>
-<p><strong>Attributes:</strong></p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.defaultdict.default_factory" title="flowsaber.core.task.defaultdict.default_factory"><code class="xref py py-obj docutils literal notranslate"><span class="pre">default_factory</span></code></a></p></td>
-<td><p>Factory for default value called by __missing__().</p></td>
-</tr>
-</tbody>
-</table>
-<dl class="py method">
-<dt id="flowsaber.core.task.defaultdict.copy">
-<code class="sig-name descname">copy</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; a shallow copy of D.<a class="headerlink" href="#flowsaber.core.task.defaultdict.copy" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt id="flowsaber.core.task.defaultdict.default_factory">
-<code class="sig-name descname">default_factory</code><a class="headerlink" href="#flowsaber.core.task.defaultdict.default_factory" title="Permalink to this definition">¶</a></dt>
-<dd><p>Factory for default value called by __missing__().</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py function">
-<dt id="flowsaber.core.task.get_logger">
-<code class="sig-prename descclassname">flowsaber.core.task.</code><code class="sig-name descname">get_logger</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">file_=&lt;_io.TextIOWrapper name='&lt;stderr&gt;' mode='w' encoding='utf-8'&gt;</em>, <em class="sig-param">level=20</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.get_logger" title="Permalink to this definition">¶</a></dt>
-<dd><p>comes from <a class="reference external" href="https://github.com/GangCaoLab/CoolBox/blob/master/coolbox/utilities/logtools.py">https://github.com/GangCaoLab/CoolBox/blob/master/coolbox/utilities/logtools.py</a></p>
-</dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.core.task.partial">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.core.task.</code><code class="sig-name descname">partial</code><a class="headerlink" href="#flowsaber.core.task.partial" title="Permalink to this definition">¶</a></dt>
-<dd><p>partial(func, <a href="#id9"><span class="problematic" id="id10">*</span></a>args, <a href="#id11"><span class="problematic" id="id12">**</span></a>keywords) - new function with partial application
-of the given arguments and keywords.</p>
-<p><strong>Attributes:</strong></p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.partial.args" title="flowsaber.core.task.partial.args"><code class="xref py py-obj docutils literal notranslate"><span class="pre">args</span></code></a></p></td>
-<td><p>tuple of arguments to future partial calls</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.task.partial.func" title="flowsaber.core.task.partial.func"><code class="xref py py-obj docutils literal notranslate"><span class="pre">func</span></code></a></p></td>
-<td><p>function object to use in future partial calls</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.partial.keywords" title="flowsaber.core.task.partial.keywords"><code class="xref py py-obj docutils literal notranslate"><span class="pre">keywords</span></code></a></p></td>
-<td><p>dictionary of keyword arguments to future partial calls</p></td>
-</tr>
-</tbody>
-</table>
-<dl class="py attribute">
-<dt id="flowsaber.core.task.partial.args">
-<code class="sig-name descname">args</code><a class="headerlink" href="#flowsaber.core.task.partial.args" title="Permalink to this definition">¶</a></dt>
-<dd><p>tuple of arguments to future partial calls</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt id="flowsaber.core.task.partial.func">
-<code class="sig-name descname">func</code><a class="headerlink" href="#flowsaber.core.task.partial.func" title="Permalink to this definition">¶</a></dt>
-<dd><p>function object to use in future partial calls</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt id="flowsaber.core.task.partial.keywords">
-<code class="sig-name descname">keywords</code><a class="headerlink" href="#flowsaber.core.task.partial.keywords" title="Permalink to this definition">¶</a></dt>
-<dd><p>dictionary of keyword arguments to future partial calls</p>
-</dd></dl>
-
-</dd></dl>
-
 <dl class="py function">
 <dt id="flowsaber.core.task.shell">
-<code class="sig-prename descclassname">flowsaber.core.task.</code><code class="sig-name descname">shell</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">fn</span><span class="p">:</span> <span class="n"><a class="reference internal" href="#flowsaber.core.task.Callable" title="flowsaber.core.task.Callable">Callable</a></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.shell" title="Permalink to this definition">¶</a></dt>
-<dd><p>For base_cls is Task, method_name is run</p>
+<code class="sig-prename descclassname">flowsaber.core.task.</code><code class="sig-name descname">shell</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.shell" title="Permalink to this definition">¶</a></dt>
+<dd><p>For base_cls is Task, method_name isrun</p>
 <dl>
 <dt>wrap  no-self argument function</dt><dd><p>&#64;deco
 def test(a, b, c) -&gt; d:</p>
@@ -1038,7 +203,7 @@ pass</p>
 </dd>
 <dt>into a Class:</dt><dd><dl class="simple">
 <dt>class Test(Task):</dt><dd><dl class="simple">
-<dt>def run(self, a, b, c) -&gt; d:</dt><dd><p>“doc”
+<dt>defrun(self, a, b, c) -&gt; d:</dt><dd><p>“doc”
 return test(a, b, c)</p>
 </dd>
 </dl>
@@ -1056,7 +221,7 @@ pass</p>
 </dd>
 <dt>into a Class:</dt><dd><dl class="simple">
 <dt>class Test(Task):</dt><dd><dl class="simple">
-<dt>def run(self, a, b, c) -&gt; d:</dt><dd><p>“doc”
+<dt>defrun(self, a, b, c) -&gt; d:</dt><dd><p>“doc”
 return test(self, a, b, c)</p>
 </dd>
 </dl>
@@ -1070,8 +235,8 @@ return test(self, a, b, c)</p>
 
 <dl class="py function">
 <dt id="flowsaber.core.task.task">
-<code class="sig-prename descclassname">flowsaber.core.task.</code><code class="sig-name descname">task</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">fn</span><span class="p">:</span> <span class="n"><a class="reference internal" href="#flowsaber.core.task.Callable" title="flowsaber.core.task.Callable">Callable</a></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.task" title="Permalink to this definition">¶</a></dt>
-<dd><p>For base_cls is Task, method_name is run</p>
+<code class="sig-prename descclassname">flowsaber.core.task.</code><code class="sig-name descname">task</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.task" title="Permalink to this definition">¶</a></dt>
+<dd><p>For base_cls is Task, method_name isrun</p>
 <dl>
 <dt>wrap  no-self argument function</dt><dd><p>&#64;deco
 def test(a, b, c) -&gt; d:</p>
@@ -1082,7 +247,7 @@ pass</p>
 </dd>
 <dt>into a Class:</dt><dd><dl class="simple">
 <dt>class Test(Task):</dt><dd><dl class="simple">
-<dt>def run(self, a, b, c) -&gt; d:</dt><dd><p>“doc”
+<dt>defrun(self, a, b, c) -&gt; d:</dt><dd><p>“doc”
 return test(a, b, c)</p>
 </dd>
 </dl>
@@ -1100,7 +265,7 @@ pass</p>
 </dd>
 <dt>into a Class:</dt><dd><dl class="simple">
 <dt>class Test(Task):</dt><dd><dl class="simple">
-<dt>def run(self, a, b, c) -&gt; d:</dt><dd><p>“doc”
+<dt>defrun(self, a, b, c) -&gt; d:</dt><dd><p>“doc”
 return test(self, a, b, c)</p>
 </dd>
 </dl>
@@ -1112,44 +277,9 @@ return test(self, a, b, c)</p>
 </dl>
 </dd></dl>
 
-<dl class="py function">
-<dt id="flowsaber.core.task.tokenize">
-<code class="sig-prename descclassname">flowsaber.core.task.</code><code class="sig-name descname">tokenize</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.tokenize" title="Permalink to this definition">¶</a></dt>
-<dd><p>Deterministic token</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">tokenize</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;3&#39;</span><span class="p">])</span>
-<span class="go">&#39;7d6a880cd9ec03506eee6973ff551339&#39;</span>
-</pre></div>
-</div>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">tokenize</span><span class="p">(</span><span class="s1">&#39;Hello&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="n">tokenize</span><span class="p">(</span><span class="s1">&#39;Hello&#39;</span><span class="p">)</span>
-<span class="go">True</span>
-</pre></div>
-</div>
-</dd></dl>
-
 </div>
 <div class="section" id="module-flowsaber.core.flow">
 <span id="flow"></span><h2>Flow<a class="headerlink" href="#module-flowsaber.core.flow" title="Permalink to this headline">¶</a></h2>
-<p><strong>Classes:</strong></p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.flow.Digraph" title="flowsaber.core.flow.Digraph"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Digraph</span></code></a>([name, comment, filename, …])</p></td>
-<td><p>Directed graph source code in the DOT language.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.flow.Flow" title="flowsaber.core.flow.Flow"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Flow</span></code></a>(**kwargs)</p></td>
-<td><p>The base class of the class hierarchy.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.flow.FlowComponent" title="flowsaber.core.flow.FlowComponent"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FlowComponent</span></code></a>(name, **kwargs)</p></td>
-<td><p>The base class of the class hierarchy.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.flow.defaultdict" title="flowsaber.core.flow.defaultdict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">defaultdict</span></code></a></p></td>
-<td><p>defaultdict(default_factory[, …]) –&gt; dict with default factory</p></td>
-</tr>
-</tbody>
-</table>
 <p><strong>Functions:</strong></p>
 <table class="longtable docutils align-default">
 <colgroup>
@@ -1158,118 +288,14 @@ return test(self, a, b, c)</p>
 </colgroup>
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.flow.flow" title="flowsaber.core.flow.flow"><code class="xref py py-obj docutils literal notranslate"><span class="pre">flow</span></code></a>([fn])</p></td>
-<td><p>For base_cls is Task, method_name is run</p></td>
+<td><p>For base_cls is Task, method_name isrun</p></td>
 </tr>
 </tbody>
 </table>
-<dl class="py class">
-<dt id="flowsaber.core.flow.Digraph">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.core.flow.</code><code class="sig-name descname">Digraph</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">comment</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">filename</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">directory</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">format</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">engine</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">encoding</span><span class="o">=</span><span class="default_value">'utf-8'</span></em>, <em class="sig-param"><span class="n">graph_attr</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">node_attr</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">edge_attr</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">body</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">strict</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.flow.Digraph" title="Permalink to this definition">¶</a></dt>
-<dd><p>Directed graph source code in the DOT language.</p>
-<dl class="simple">
-<dt>Args:</dt><dd><p>name: Graph name used in the source code.
-comment: Comment added to the first line of the source.
-filename: Filename for saving the source (defaults to <code class="docutils literal notranslate"><span class="pre">name</span></code> + <code class="docutils literal notranslate"><span class="pre">'.gv'</span></code>).
-directory: (Sub)directory for source saving and rendering.
-format: Rendering output format (<code class="docutils literal notranslate"><span class="pre">'pdf'</span></code>, <code class="docutils literal notranslate"><span class="pre">'png'</span></code>, …).
-engine: Layout command used (<code class="docutils literal notranslate"><span class="pre">'dot'</span></code>, <code class="docutils literal notranslate"><span class="pre">'neato'</span></code>, …).
-encoding: Encoding for saving the source.
-graph_attr: Mapping of <code class="docutils literal notranslate"><span class="pre">(attribute,</span> <span class="pre">value)</span></code> pairs for the graph.
-node_attr: Mapping of <code class="docutils literal notranslate"><span class="pre">(attribute,</span> <span class="pre">value)</span></code> pairs set for all nodes.
-edge_attr: Mapping of <code class="docutils literal notranslate"><span class="pre">(attribute,</span> <span class="pre">value)</span></code> pairs set for all edges.
-body: Iterable of verbatim lines to add to the graph <code class="docutils literal notranslate"><span class="pre">body</span></code>.
-strict (bool): Rendering should merge multi-edges.</p>
-</dd>
-<dt>Note:</dt><dd><p>All parameters are <cite>optional</cite> and can be changed under their
-corresponding attribute name after instance creation.</p>
-</dd>
-</dl>
-<p><strong>Attributes:</strong></p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.flow.Digraph.directed" title="flowsaber.core.flow.Digraph.directed"><code class="xref py py-obj docutils literal notranslate"><span class="pre">directed</span></code></a></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">True</span></code></p></td>
-</tr>
-</tbody>
-</table>
-<dl class="py method">
-<dt id="flowsaber.core.flow.Digraph.directed">
-<em class="property">property </em><code class="sig-name descname">directed</code><a class="headerlink" href="#flowsaber.core.flow.Digraph.directed" title="Permalink to this definition">¶</a></dt>
-<dd><p><code class="docutils literal notranslate"><span class="pre">True</span></code></p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.core.flow.Flow">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.core.flow.</code><code class="sig-name descname">Flow</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.flow.Flow" title="Permalink to this definition">¶</a></dt>
-<dd><p>The base class of the class hierarchy.</p>
-<p>When called, it accepts no arguments and returns a new featureless
-instance that has no instance attributes and cannot be given any.</p>
-</dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.core.flow.FlowComponent">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.core.flow.</code><code class="sig-name descname">FlowComponent</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span><span class="p">:</span> <span class="n">str</span> <span class="o">=</span> <span class="default_value">''</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.flow.FlowComponent" title="Permalink to this definition">¶</a></dt>
-<dd><p>The base class of the class hierarchy.</p>
-<p>When called, it accepts no arguments and returns a new featureless
-instance that has no instance attributes and cannot be given any.</p>
-</dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.core.flow.defaultdict">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.core.flow.</code><code class="sig-name descname">defaultdict</code><a class="headerlink" href="#flowsaber.core.flow.defaultdict" title="Permalink to this definition">¶</a></dt>
-<dd><p>defaultdict(default_factory[, …]) –&gt; dict with default factory</p>
-<p>The default factory is called without arguments to produce
-a new value when a key is not present, in __getitem__ only.
-A defaultdict compares equal to a dict with the same items.
-All remaining arguments are treated the same as if they were
-passed to the dict constructor, including keyword arguments.</p>
-<p><strong>Methods:</strong></p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.flow.defaultdict.copy" title="flowsaber.core.flow.defaultdict.copy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">copy</span></code></a>()</p></td>
-<td><p></p></td>
-</tr>
-</tbody>
-</table>
-<p><strong>Attributes:</strong></p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.flow.defaultdict.default_factory" title="flowsaber.core.flow.defaultdict.default_factory"><code class="xref py py-obj docutils literal notranslate"><span class="pre">default_factory</span></code></a></p></td>
-<td><p>Factory for default value called by __missing__().</p></td>
-</tr>
-</tbody>
-</table>
-<dl class="py method">
-<dt id="flowsaber.core.flow.defaultdict.copy">
-<code class="sig-name descname">copy</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; a shallow copy of D.<a class="headerlink" href="#flowsaber.core.flow.defaultdict.copy" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt id="flowsaber.core.flow.defaultdict.default_factory">
-<code class="sig-name descname">default_factory</code><a class="headerlink" href="#flowsaber.core.flow.defaultdict.default_factory" title="Permalink to this definition">¶</a></dt>
-<dd><p>Factory for default value called by __missing__().</p>
-</dd></dl>
-
-</dd></dl>
-
 <dl class="py function">
 <dt id="flowsaber.core.flow.flow">
 <code class="sig-prename descclassname">flowsaber.core.flow.</code><code class="sig-name descname">flow</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.flow.flow" title="Permalink to this definition">¶</a></dt>
-<dd><p>For base_cls is Task, method_name is run</p>
+<dd><p>For base_cls is Task, method_name isrun</p>
 <dl>
 <dt>wrap  no-self argument function</dt><dd><p>&#64;deco
 def test(a, b, c) -&gt; d:</p>
@@ -1280,7 +306,7 @@ pass</p>
 </dd>
 <dt>into a Class:</dt><dd><dl class="simple">
 <dt>class Test(Task):</dt><dd><dl class="simple">
-<dt>def run(self, a, b, c) -&gt; d:</dt><dd><p>“doc”
+<dt>defrun(self, a, b, c) -&gt; d:</dt><dd><p>“doc”
 return test(a, b, c)</p>
 </dd>
 </dl>
@@ -1298,7 +324,7 @@ pass</p>
 </dd>
 <dt>into a Class:</dt><dd><dl class="simple">
 <dt>class Test(Task):</dt><dd><dl class="simple">
-<dt>def run(self, a, b, c) -&gt; d:</dt><dd><p>“doc”
+<dt>defrun(self, a, b, c) -&gt; d:</dt><dd><p>“doc”
 return test(self, a, b, c)</p>
 </dd>
 </dl>
@@ -1351,7 +377,7 @@ return test(self, a, b, c)</p>
 <td><p>Data in channels are concatenated in the order of _input channels.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.operators.Count" title="flowsaber.operators.Count"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Count</span></code></a>(**kwargs)</p></td>
-<td><p>Similar to normal reduce.</p></td>
+<td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.operators.Distinct" title="flowsaber.operators.Distinct"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Distinct</span></code></a>(**kwargs)</p></td>
 <td><p>Remove continuously duplicated item.</p></td>
@@ -1366,7 +392,7 @@ return test(self, a, b, c)</p>
 <td><p>Flatten the _output of channel.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.operators.Group" title="flowsaber.operators.Group"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Group</span></code></a>(by, num, keep, **kwargs)</p></td>
-<td><p>return a new channel with item of Tuple(key_fn(_input), grouped_data_tuple),</p></td>
+<td><p>return a new channel with item of Tuple(key_fn(_input), grouped_data_tuple), the group size can be specified.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.operators.Last" title="flowsaber.operators.Last"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Last</span></code></a>(**kwargs)</p></td>
 <td><p>Take the last item</p></td>
@@ -1375,13 +401,13 @@ return test(self, a, b, c)</p>
 <td><p>Map each item to another item return by the specified map function into a new channel.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.operators.Max" title="flowsaber.operators.Max"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Max</span></code></a>(result, **kwargs)</p></td>
-<td><p>Similar to normal reduce.</p></td>
+<td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.operators.Merge" title="flowsaber.operators.Merge"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Merge</span></code></a>(num_out, **kwargs)</p></td>
 <td><p>Merge channels into a channel with _output of tuple.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.operators.Min" title="flowsaber.operators.Min"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Min</span></code></a>(result, **kwargs)</p></td>
-<td><p>Similar to normal reduce.</p></td>
+<td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.operators.Mix" title="flowsaber.operators.Mix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Mix</span></code></a>(num_out, **kwargs)</p></td>
 <td><p>Data emitted bu channels are mixed into a single channel.</p></td>
@@ -1390,7 +416,7 @@ return test(self, a, b, c)</p>
 <td><p>Similar to normal reduce.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.operators.Sample" title="flowsaber.operators.Sample"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Sample</span></code></a>(num, **kwargs)</p></td>
-<td><p>Randomly sample at most <cite>num</cite> number of _input emitted by the channel</p></td>
+<td><p>Randomly sample at most <cite>num</cite> number of _input emitted by the channel using reservoir algorithm(should visit all elements.).</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.operators.Select" title="flowsaber.operators.Select"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Select</span></code></a>(index, **kwargs)</p></td>
 <td><p>Similar to split, used for tuple/list _output, select will only _output one channel, with the selected index</p></td>
@@ -1402,7 +428,7 @@ return test(self, a, b, c)</p>
 <td><p>specify on_next or on_complete function as callbacks of these two event.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.operators.Sum" title="flowsaber.operators.Sum"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Sum</span></code></a>(**kwargs)</p></td>
-<td><p>Similar to normal reduce.</p></td>
+<td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.operators.Take" title="flowsaber.operators.Take"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Take</span></code></a>(num, **kwargs)</p></td>
 <td><p>Only take the first <cite>num</cite> number of items</p></td>
@@ -1442,9 +468,7 @@ return test(self, a, b, c)</p>
 <dl class="py class">
 <dt id="flowsaber.operators.Count">
 <em class="property">class </em><code class="sig-prename descclassname">flowsaber.operators.</code><code class="sig-name descname">Count</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.operators.Count" title="Permalink to this definition">¶</a></dt>
-<dd><p>Similar to normal reduce. results = f(n, f(n - 1))</p>
-<p>The base class of the class hierarchy.</p>
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="py class">
 <dt id="flowsaber.operators.Distinct">
@@ -1473,10 +497,8 @@ return test(self, a, b, c)</p>
 <dl class="py class">
 <dt id="flowsaber.operators.Group">
 <em class="property">class </em><code class="sig-prename descclassname">flowsaber.operators.</code><code class="sig-name descname">Group</code><span class="sig-paren">(</span><em class="sig-param">by: Callable = &lt;function Group.&lt;lambda&gt;&gt;</em>, <em class="sig-param">num: int = 9999999999999999999999999999999999999999999999999999999999</em>, <em class="sig-param">keep: bool = True</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.operators.Group" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="simple">
-<dt>return a new channel with item of Tuple(key_fn(_input), grouped_data_tuple),</dt><dd><p>the group size can be specified.</p>
-</dd>
-</dl>
+<dd><p>return a new channel with item of Tuple(key_fn(_input), grouped_data_tuple),
+the group size can be specified.</p>
 </dd></dl>
 
 <dl class="py class">
@@ -1494,25 +516,19 @@ return test(self, a, b, c)</p>
 <dl class="py class">
 <dt id="flowsaber.operators.Max">
 <em class="property">class </em><code class="sig-prename descclassname">flowsaber.operators.</code><code class="sig-name descname">Max</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">result</span><span class="p">:</span> <span class="n">float</span> <span class="o">=</span> <span class="default_value">- 999999999999999999999999999999999999999999999999999999999</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.operators.Max" title="Permalink to this definition">¶</a></dt>
-<dd><p>Similar to normal reduce. results = f(n, f(n - 1))</p>
-<p>The base class of the class hierarchy.</p>
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="py class">
 <dt id="flowsaber.operators.Merge">
 <em class="property">class </em><code class="sig-prename descclassname">flowsaber.operators.</code><code class="sig-name descname">Merge</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">num_out</span><span class="p">:</span> <span class="n">int</span> <span class="o">=</span> <span class="default_value">1</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.operators.Merge" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="simple">
-<dt>Merge channels into a channel with _output of tuple.</dt><dd><p>Even if there is only one channel _input, always _output a tuple</p>
-</dd>
-</dl>
+<dd><p>Merge channels into a channel with _output of tuple.
+Even if there is only one channel _input, always _output a tuple</p>
 </dd></dl>
 
 <dl class="py class">
 <dt id="flowsaber.operators.Min">
 <em class="property">class </em><code class="sig-prename descclassname">flowsaber.operators.</code><code class="sig-name descname">Min</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">result</span><span class="p">:</span> <span class="n">float</span> <span class="o">=</span> <span class="default_value">9999999999999999999999999999999999999999999999999999999999</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.operators.Min" title="Permalink to this definition">¶</a></dt>
-<dd><p>Similar to normal reduce. results = f(n, f(n - 1))</p>
-<p>The base class of the class hierarchy.</p>
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="py class">
 <dt id="flowsaber.operators.Mix">
@@ -1524,16 +540,13 @@ return test(self, a, b, c)</p>
 <dt id="flowsaber.operators.Reduce">
 <em class="property">class </em><code class="sig-prename descclassname">flowsaber.operators.</code><code class="sig-name descname">Reduce</code><span class="sig-paren">(</span><em class="sig-param">by: Callable[[Any, Any], Any], result=&lt;object object&gt;, **kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.operators.Reduce" title="Permalink to this definition">¶</a></dt>
 <dd><p>Similar to normal reduce. results = f(n, f(n - 1))</p>
-<p>The base class of the class hierarchy.</p>
 </dd></dl>
 
 <dl class="py class">
 <dt id="flowsaber.operators.Sample">
 <em class="property">class </em><code class="sig-prename descclassname">flowsaber.operators.</code><code class="sig-name descname">Sample</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">num</span><span class="p">:</span> <span class="n">int</span> <span class="o">=</span> <span class="default_value">1</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.operators.Sample" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="simple">
-<dt>Randomly sample at most <cite>num</cite> number of _input emitted by the channel</dt><dd><p>using reservoir algorithm(should visit all elements.).</p>
-</dd>
-</dl>
+<dd><p>Randomly sample at most <cite>num</cite> number of _input emitted by the channel
+using reservoir algorithm(should visit all elements.).</p>
 </dd></dl>
 
 <dl class="py class">
@@ -1557,9 +570,7 @@ return test(self, a, b, c)</p>
 <dl class="py class">
 <dt id="flowsaber.operators.Sum">
 <em class="property">class </em><code class="sig-prename descclassname">flowsaber.operators.</code><code class="sig-name descname">Sum</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.operators.Sum" title="Permalink to this definition">¶</a></dt>
-<dd><p>Similar to normal reduce. results = f(n, f(n - 1))</p>
-<p>The base class of the class hierarchy.</p>
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="py class">
 <dt id="flowsaber.operators.Take">
@@ -1594,160 +605,6 @@ return test(self, a, b, c)</p>
 </div>
 <div class="section" id="module-flowsaber.tasks">
 <span id="tasks"></span><h2>Tasks<a class="headerlink" href="#module-flowsaber.tasks" title="Permalink to this headline">¶</a></h2>
-<p><strong>Classes:</strong></p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.tasks.CWLTask" title="flowsaber.tasks.CWLTask"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CWLTask</span></code></a>(*args, **kwargs)</p></td>
-<td><p>The base class of the class hierarchy.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.tasks.CollectFile" title="flowsaber.tasks.CollectFile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CollectFile</span></code></a>(*args, **kwargs)</p></td>
-<td><p>The base class of the class hierarchy.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.tasks.SplitFasta" title="flowsaber.tasks.SplitFasta"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SplitFasta</span></code></a>(*args, **kwargs)</p></td>
-<td><p>The base class of the class hierarchy.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.tasks.SplitFastq" title="flowsaber.tasks.SplitFastq"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SplitFastq</span></code></a>(*args, **kwargs)</p></td>
-<td><p>The base class of the class hierarchy.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.tasks.SplitText" title="flowsaber.tasks.SplitText"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SplitText</span></code></a>(*args, **kwargs)</p></td>
-<td><p>The base class of the class hierarchy.</p></td>
-</tr>
-</tbody>
-</table>
-<dl class="py class">
-<dt id="flowsaber.tasks.CWLTask">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.tasks.</code><code class="sig-name descname">CWLTask</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.tasks.CWLTask" title="Permalink to this definition">¶</a></dt>
-<dd><p>The base class of the class hierarchy.</p>
-<p>When called, it accepts no arguments and returns a new featureless
-instance that has no instance attributes and cannot be given any.</p>
-<p><strong>Methods:</strong></p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.tasks.CWLTask.run" title="flowsaber.tasks.CWLTask.run"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code></a>(*args, **kwargs)</p></td>
-<td><p>This function should be stateless</p></td>
-</tr>
-</tbody>
-</table>
-<dl class="py method">
-<dt id="flowsaber.tasks.CWLTask.run">
-<code class="sig-name descname">run</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#flowsaber.tasks.CWLTask.run" title="Permalink to this definition">¶</a></dt>
-<dd><p>This function should be stateless</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.tasks.CollectFile">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.tasks.</code><code class="sig-name descname">CollectFile</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.tasks.CollectFile" title="Permalink to this definition">¶</a></dt>
-<dd><p>The base class of the class hierarchy.</p>
-<p>When called, it accepts no arguments and returns a new featureless
-instance that has no instance attributes and cannot be given any.</p>
-<p><strong>Methods:</strong></p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.tasks.CollectFile.run" title="flowsaber.tasks.CollectFile.run"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code></a>(*args, **kwargs)</p></td>
-<td><p>This function should be stateless</p></td>
-</tr>
-</tbody>
-</table>
-<dl class="py method">
-<dt id="flowsaber.tasks.CollectFile.run">
-<code class="sig-name descname">run</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#flowsaber.tasks.CollectFile.run" title="Permalink to this definition">¶</a></dt>
-<dd><p>This function should be stateless</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.tasks.SplitFasta">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.tasks.</code><code class="sig-name descname">SplitFasta</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.tasks.SplitFasta" title="Permalink to this definition">¶</a></dt>
-<dd><p>The base class of the class hierarchy.</p>
-<p>When called, it accepts no arguments and returns a new featureless
-instance that has no instance attributes and cannot be given any.</p>
-<p><strong>Methods:</strong></p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.tasks.SplitFasta.run" title="flowsaber.tasks.SplitFasta.run"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code></a>(*args, **kwargs)</p></td>
-<td><p>This function should be stateless</p></td>
-</tr>
-</tbody>
-</table>
-<dl class="py method">
-<dt id="flowsaber.tasks.SplitFasta.run">
-<code class="sig-name descname">run</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#flowsaber.tasks.SplitFasta.run" title="Permalink to this definition">¶</a></dt>
-<dd><p>This function should be stateless</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.tasks.SplitFastq">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.tasks.</code><code class="sig-name descname">SplitFastq</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.tasks.SplitFastq" title="Permalink to this definition">¶</a></dt>
-<dd><p>The base class of the class hierarchy.</p>
-<p>When called, it accepts no arguments and returns a new featureless
-instance that has no instance attributes and cannot be given any.</p>
-<p><strong>Methods:</strong></p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.tasks.SplitFastq.run" title="flowsaber.tasks.SplitFastq.run"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code></a>(*args, **kwargs)</p></td>
-<td><p>This function should be stateless</p></td>
-</tr>
-</tbody>
-</table>
-<dl class="py method">
-<dt id="flowsaber.tasks.SplitFastq.run">
-<code class="sig-name descname">run</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#flowsaber.tasks.SplitFastq.run" title="Permalink to this definition">¶</a></dt>
-<dd><p>This function should be stateless</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.tasks.SplitText">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.tasks.</code><code class="sig-name descname">SplitText</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.tasks.SplitText" title="Permalink to this definition">¶</a></dt>
-<dd><p>The base class of the class hierarchy.</p>
-<p>When called, it accepts no arguments and returns a new featureless
-instance that has no instance attributes and cannot be given any.</p>
-<p><strong>Methods:</strong></p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.tasks.SplitText.run" title="flowsaber.tasks.SplitText.run"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code></a>(*args, **kwargs)</p></td>
-<td><p>This function should be stateless</p></td>
-</tr>
-</tbody>
-</table>
-<dl class="py method">
-<dt id="flowsaber.tasks.SplitText.run">
-<code class="sig-name descname">run</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#flowsaber.tasks.SplitText.run" title="Permalink to this definition">¶</a></dt>
-<dd><p>This function should be stateless</p>
-</dd></dl>
-
-</dd></dl>
-
 </div>
 <div class="section" id="module-flowsaber.context">
 <span id="context"></span><h2>Context<a class="headerlink" href="#module-flowsaber.context" title="Permalink to this headline">¶</a></h2>
@@ -1762,24 +619,6 @@ instance that has no instance attributes and cannot be given any.</p>
 <tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.context.Context" title="flowsaber.context.Context"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Context</span></code></a>(*args, **kwargs)</p></td>
 <td><p>A thread safe context store for Prefect _input.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.context.DotDict" title="flowsaber.context.DotDict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DotDict</span></code></a>(init_dict, DotDict] = None, **kwargs)</p></td>
-<td><p>A <cite>dict</cite> that also supports attribute (“dot”) access.</p></td>
-</tr>
-</tbody>
-</table>
-<p><strong>Functions:</strong></p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.context.as_nested_dict" title="flowsaber.context.as_nested_dict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">as_nested_dict</span></code></a>(obj[, dct_class])</p></td>
-<td><p>Given a obj formatted as a dictionary, transforms it (and any nested dictionaries) into the provided dct_class</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.context.merge_dicts" title="flowsaber.context.merge_dicts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merge_dicts</span></code></a>(d1, d2)</p></td>
-<td><p>Updates <cite>d1</cite> from <cite>d2</cite> by replacing each <cite>(k, v1)</cite> pair in <cite>d1</cite> with the corresponding <cite>(k, v2)</cite> pair in <cite>d2</cite>.</p></td>
-</tr>
 </tbody>
 </table>
 <dl class="py class">
@@ -1790,124 +629,11 @@ instance that has no instance attributes and cannot be given any.</p>
 <dl class="simple">
 <dt>Args:</dt><dd><ul class="simple">
 <li><dl class="simple">
-<dt><a href="#id13"><span class="problematic" id="id14">*</span></a>run_args (Any): arguments to provide to the <cite>DotDict</cite> constructor (e.g.,</dt><dd><p>an initial dictionary)</p>
+<dt><a href="#id1"><span class="problematic" id="id2">*</span></a>run_args (Any): arguments to provide to the <cite>DotDict</cite> constructor (e.g.,</dt><dd><p>an initial dictionary)</p>
 </dd>
 </dl>
 </li>
-<li><p><a href="#id15"><span class="problematic" id="id16">**</span></a>kwargs (Any): any task_hash / _output pairs to initialize this context with</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.context.DotDict">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.context.</code><code class="sig-name descname">DotDict</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">init_dict</span><span class="p">:</span> <span class="n">Union<span class="p">[</span>dict<span class="p">, </span><a class="reference internal" href="#flowsaber.context.DotDict" title="flowsaber.context.DotDict">DotDict</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.context.DotDict" title="Permalink to this definition">¶</a></dt>
-<dd><p>A <cite>dict</cite> that also supports attribute (“dot”) access. Think of this as an extension
-to the standard python <cite>dict</cite> object.  <strong>Note</strong>: while any hashable object can be added to
-a <cite>DotDict</cite>, _only_ valid Python identifiers can be accessed with the dot syntax; this excludes
-strings which begin in numbers, special characters, or double underscores.</p>
-<dl>
-<dt>Args:</dt><dd><ul class="simple">
-<li><p>init_dict (dict, optional): dictionary to initialize the <cite>DotDict</cite></p></li>
-</ul>
-<p>with
-- <a href="#id17"><span class="problematic" id="id18">**</span></a>kwargs (optional): task_hash, _output pairs with which to initialize the
-<cite>DotDict</cite></p>
-</dd>
-<dt>Example:</dt><dd><p><code class="docutils literal notranslate"><span class="pre">`python</span>
-<span class="pre">dotdict</span> <span class="pre">=</span> <span class="pre">DotDict({'a':</span> <span class="pre">34},</span> <span class="pre">b=56,</span> <span class="pre">c=set())</span>
-<span class="pre">dotdict.a</span> <span class="pre">#</span> <span class="pre">34</span>
-<span class="pre">dotdict['b']</span> <span class="pre">#</span> <span class="pre">56</span>
-<span class="pre">dotdict.c</span> <span class="pre">#</span> <span class="pre">set()</span>
-<span class="pre">`</span></code></p>
-</dd>
-</dl>
-<p><strong>Methods:</strong></p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.context.DotDict.copy" title="flowsaber.context.DotDict.copy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">copy</span></code></a>()</p></td>
-<td><p>Creates and returns a shallow copy of the current DotDict</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.context.DotDict.get" title="flowsaber.context.DotDict.get"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get</span></code></a>(key[, default])</p></td>
-<td><p>This method is defined for MyPy, which otherwise tries to type the inherited <cite>.get()</cite> method incorrectly.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.context.DotDict.to_dict" title="flowsaber.context.DotDict.to_dict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_dict</span></code></a>()</p></td>
-<td><p>Converts current <cite>DotDict</cite> (and any <a href="#id19"><span class="problematic" id="id20">`</span></a>DotDict`s contained within) to an appropriate nested dictionary.</p></td>
-</tr>
-</tbody>
-</table>
-<dl class="py method">
-<dt id="flowsaber.context.DotDict.copy">
-<code class="sig-name descname">copy</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#flowsaber.context.DotDict" title="flowsaber.context.DotDict">flowsaber.context.DotDict</a><a class="headerlink" href="#flowsaber.context.DotDict.copy" title="Permalink to this definition">¶</a></dt>
-<dd><p>Creates and returns a shallow copy of the current DotDict</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="flowsaber.context.DotDict.get">
-<code class="sig-name descname">get</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span><span class="p">:</span> <span class="n">str</span></em>, <em class="sig-param"><span class="n">default</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span> &#x2192; Any<a class="headerlink" href="#flowsaber.context.DotDict.get" title="Permalink to this definition">¶</a></dt>
-<dd><p>This method is defined for MyPy, which otherwise tries to type
-the inherited <cite>.get()</cite> method incorrectly.</p>
-<dl class="simple">
-<dt>Args:</dt><dd><ul class="simple">
-<li><p>task_hash (str): the task_hash to retrieve</p></li>
-<li><p>default (Any): a default _output to return if the task_hash is not found</p></li>
-</ul>
-</dd>
-<dt>Returns:</dt><dd><ul class="simple">
-<li><p>Any: the _output of the task_hash, or the default _output if the task_hash is not found</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt id="flowsaber.context.DotDict.to_dict">
-<code class="sig-name descname">to_dict</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; dict<a class="headerlink" href="#flowsaber.context.DotDict.to_dict" title="Permalink to this definition">¶</a></dt>
-<dd><p>Converts current <cite>DotDict</cite> (and any <a href="#id21"><span class="problematic" id="id22">`</span></a>DotDict`s contained within)
-to an appropriate nested dictionary.</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py function">
-<dt id="flowsaber.context.as_nested_dict">
-<code class="sig-prename descclassname">flowsaber.context.</code><code class="sig-name descname">as_nested_dict</code><span class="sig-paren">(</span><em class="sig-param">obj: Union[dict, DotDict, Iterable[Union[dict, DotDict]]], dct_class: type = &lt;class 'flowsaber.context.DotDict'&gt;</em><span class="sig-paren">)</span> &#x2192; Union<span class="p">[</span>dict<span class="p">, </span><a class="reference internal" href="#flowsaber.context.DotDict" title="flowsaber.context.DotDict">flowsaber.context.DotDict</a><span class="p">, </span>Iterable<span class="p">[</span>Union<span class="p">[</span>dict<span class="p">, </span><a class="reference internal" href="#flowsaber.context.DotDict" title="flowsaber.context.DotDict">flowsaber.context.DotDict</a><span class="p">]</span><span class="p">]</span><span class="p">]</span><a class="headerlink" href="#flowsaber.context.as_nested_dict" title="Permalink to this definition">¶</a></dt>
-<dd><p>Given a obj formatted as a dictionary, transforms it (and any nested dictionaries)
-into the provided dct_class</p>
-<dl class="simple">
-<dt>Args:</dt><dd><ul class="simple">
-<li><p>obj (Any): An object that is formatted as a <cite>dict</cite></p></li>
-<li><p>dct_class (type): the <cite>dict</cite> class to use (defaults to DotDict)</p></li>
-</ul>
-</dd>
-<dt>Returns:</dt><dd><ul class="simple">
-<li><p>A <cite>dict_class</cite> representation of the object passed in</p></li>
-</ul>
-</dd>
-</dl>
-<p><a href="#id23"><span class="problematic" id="id24">``</span></a><a href="#id25"><span class="problematic" id="id26">`</span></a></p>
-</dd></dl>
-
-<dl class="py function">
-<dt id="flowsaber.context.merge_dicts">
-<code class="sig-prename descclassname">flowsaber.context.</code><code class="sig-name descname">merge_dicts</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">d1</span><span class="p">:</span> <span class="n">Union<span class="p">[</span>dict<span class="p">, </span><a class="reference internal" href="#flowsaber.context.DotDict" title="flowsaber.context.DotDict">DotDict</a><span class="p">]</span></span></em>, <em class="sig-param"><span class="n">d2</span><span class="p">:</span> <span class="n">Union<span class="p">[</span>dict<span class="p">, </span><a class="reference internal" href="#flowsaber.context.DotDict" title="flowsaber.context.DotDict">DotDict</a><span class="p">]</span></span></em><span class="sig-paren">)</span> &#x2192; Union<span class="p">[</span>dict<span class="p">, </span><a class="reference internal" href="#flowsaber.context.DotDict" title="flowsaber.context.DotDict">flowsaber.context.DotDict</a><span class="p">]</span><a class="headerlink" href="#flowsaber.context.merge_dicts" title="Permalink to this definition">¶</a></dt>
-<dd><p>Updates <cite>d1</cite> from <cite>d2</cite> by replacing each <cite>(k, v1)</cite> pair in <cite>d1</cite> with the
-corresponding <cite>(k, v2)</cite> pair in <cite>d2</cite>.</p>
-<p>If the _output of each pair is itself a dict, then the _output is updated
-recursively.</p>
-<dl class="simple">
-<dt>Args:</dt><dd><ul class="simple">
-<li><p>d1 (MutableMapping): A dictionary to be replaced</p></li>
-<li><p>d2 (MutableMapping): A dictionary used for replacement</p></li>
-</ul>
-</dd>
-<dt>Returns:</dt><dd><ul class="simple">
-<li><p>A <cite>MutableMapping</cite> with the two dictionary contents merged</p></li>
+<li><p><a href="#id3"><span class="problematic" id="id4">**</span></a>kwargs (Any): any task_hash / _output pairs to initialize this context with</p></li>
 </ul>
 </dd>
 </dl>
@@ -1986,7 +712,7 @@ In the idealist implementation, stdout and _stdin can be piped/linked across mac
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.scheduler.Job" title="flowsaber.core.scheduler.Job"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Job</span></code></a>(runner, args, kwargs, task)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.scheduler.Job" title="flowsaber.core.scheduler.Job"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Job</span></code></a>(coro, owner, NoneType] = None, task, …)</p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.scheduler.TaskState" title="flowsaber.core.scheduler.TaskState"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TaskState</span></code></a>(pending, running, done, wait_q, …)</p></td>
@@ -1996,12 +722,33 @@ In the idealist implementation, stdout and _stdin can be piped/linked across mac
 </table>
 <dl class="py class">
 <dt id="flowsaber.core.scheduler.Job">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.core.scheduler.</code><code class="sig-name descname">Job</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">runner</span><span class="p">:</span> <span class="n">Callable</span></em>, <em class="sig-param"><span class="n">args</span><span class="p">:</span> <span class="n">tuple</span></em>, <em class="sig-param"><span class="n">kwargs</span><span class="p">:</span> <span class="n">dict</span></em>, <em class="sig-param"><span class="n">task</span><span class="p">:</span> <span class="n">Task</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.scheduler.Job" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<em class="property">class </em><code class="sig-prename descclassname">flowsaber.core.scheduler.</code><code class="sig-name descname">Job</code><span class="sig-paren">(</span><em class="sig-param">coro: Coroutine</em>, <em class="sig-param">owner: Union[~Task</em>, <em class="sig-param">NoneType] = None</em>, <em class="sig-param">task: Union[_asyncio.Task</em>, <em class="sig-param">NoneType] = None</em>, <em class="sig-param">async_done_callbacks: list = &lt;factory&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.scheduler.Job" title="Permalink to this definition">¶</a></dt>
+<dd><p><strong>Methods:</strong></p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.scheduler.Job.cancel" title="flowsaber.core.scheduler.Job.cancel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cancel</span></code></a>([msg])</p></td>
+<td><p>Cancel the future and schedule callbacks.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt id="flowsaber.core.scheduler.Job.cancel">
+<code class="sig-name descname">cancel</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">msg</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>str<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">Ellipsis</span></em><span class="sig-paren">)</span> &#x2192; bool<a class="headerlink" href="#flowsaber.core.scheduler.Job.cancel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Cancel the future and schedule callbacks.</p>
+<p>If the future is already done or cancelled, return False.  Otherwise,
+change the future’s state to cancelled, schedule the callbacks and
+return True.</p>
+</dd></dl>
+
+</dd></dl>
 
 <dl class="py class">
 <dt id="flowsaber.core.scheduler.TaskState">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.core.scheduler.</code><code class="sig-name descname">TaskState</code><span class="sig-paren">(</span><em class="sig-param">pending: Set[flowsaber.core.scheduler.Job] = &lt;factory&gt;</em>, <em class="sig-param">running: Set[flowsaber.core.scheduler.Job] = &lt;factory&gt;</em>, <em class="sig-param">done: Set[flowsaber.core.scheduler.Job] = &lt;factory&gt;</em>, <em class="sig-param">wait_q: asyncio.queues.Queue = &lt;factory&gt;</em>, <em class="sig-param">all_submitted: asyncio.locks.Event = &lt;factory&gt;</em>, <em class="sig-param">task_id: int = 0</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.scheduler.TaskState" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">flowsaber.core.scheduler.</code><code class="sig-name descname">TaskState</code><span class="sig-paren">(</span><em class="sig-param">pending: Set[flowsaber.core.scheduler.Job] = &lt;factory&gt;</em>, <em class="sig-param">running: Set[flowsaber.core.scheduler.Job] = &lt;factory&gt;</em>, <em class="sig-param">done: Set[flowsaber.core.scheduler.Job] = &lt;factory&gt;</em>, <em class="sig-param">wait_q: asyncio.queues.Queue = &lt;factory&gt;</em>, <em class="sig-param">all_submitted: asyncio.locks.Event = &lt;factory&gt;</em>, <em class="sig-param">task_id: int = 0</em>, <em class="sig-param">task: ~Task = None</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.scheduler.TaskState" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </div>

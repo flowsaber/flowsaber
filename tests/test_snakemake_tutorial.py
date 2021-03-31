@@ -1,3 +1,7 @@
+import sys
+
+sys.path.insert(0, '../')
+import flowsaber
 from flowsaber import *
 
 
@@ -55,11 +59,12 @@ def test_snakemake_workflow():
     fa = Channel.value(f'{prefix}/genome.fa')
     fastq = Channel.values(*[f'{prefix}/samples/{sample}' for sample in ['A.fastq', 'B.fastq', 'C.fastq']])
 
-    runner, workflow = FlowRunner(call_vcf_flow).run(fa, fastq)
+    # resolve dependency
+    workflow = call_vcf_flow(fa, fastq)
     # generate dag
     workflow.graph.render('snakemake_dag', view=False, format='png', cleanup=True)
     # run the flow
-    runner.execute()
+    asyncio.run(flowsaber.run(workflow))
 
 
 if __name__ == "__main__":

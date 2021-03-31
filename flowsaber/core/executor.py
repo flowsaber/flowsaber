@@ -9,8 +9,10 @@ from flowsaber.utility.logtool import get_logger
 
 logger = get_logger(__name__)
 
+__all__ = ['Executor', 'Local', 'ProcessExecutor', 'RayExecutor', 'get_executor']
 
-class Capture(object):
+
+class CaptureTerminal(object):
     def __init__(self, stdout=None, stderr=None):
         if isinstance(stdout, str):
             stdout = open(stdout, 'a')
@@ -84,7 +86,7 @@ class RayExecutor(Executor):
     def init(self):
         if not self.inited:
             import ray
-            with Capture('/tmp/.flowsaber.ray_stdout.log', '/tmp/.flowsaber.ray_stderr.log'):
+            with CaptureTerminal('/tmp/.context.ray_stdout.log', '/tmp/.context.ray_stderr.log'):
                 ray.init(num_cpus=max(cpu_count() - 2, 1))
             self.inited = True
 
@@ -99,6 +101,7 @@ class RayExecutor(Executor):
         # assert self.inited, "Not inited, please use executor.init()"
         # TODO why ray is not inited in github actions
         self.init()
+
         # TODO why use closure doesn't work ?
         @ray.remote
         def _run(*args, **kwargs):

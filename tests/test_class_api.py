@@ -1,9 +1,12 @@
 import sys
 
 sys.path.insert(0, '../')
+import flowsaber
 from flowsaber import *
 import numpy as np
 import uuid
+
+EnvTask.DEFAULT_CONFIG = {'workdir': '/tmp/Env'}  # make the EnvTask cache at a global place
 
 
 def test_flow1():
@@ -54,15 +57,16 @@ def test_flow1():
     fasta1 = Channel.values("1", "2", "4")
     fasta2 = Channel.values("A", "B", "x", "a")
 
-    runner, workflow = FlowRunner(myflow).run(fasta1, fasta2)
+    workflow = myflow(fasta1, fasta2)
     consumer = Consumer.from_channels(workflow._output)
-    runner.execute()
+    asyncio.run(flowsaber.run(workflow))
+
     results = []
     for data in consumer:
         results.append(data)
     print("Results are: ")
     for res in results:
-        print(res, type(res), len(res))
+        print(res, type(res))
 
     workflow.graph.render('class_dag1', view=False, format='pdf', cleanup=True)
 
@@ -133,8 +137,6 @@ def test_flow2():
 
     fasta1 = Channel.values(*fasta1_list)
     fasta2 = Channel.values(*fasta2_list)
-    # fasta1 = Channel.values("1", "2", "4", "1")
-    # fasta2 = Channel.values("A", "B", "x", "A")
 
     config.update({
         'cpu': 7,
@@ -143,9 +145,11 @@ def test_flow2():
         'io': 80
     })
 
-    runner, workflow = FlowRunner(myflow).run(fasta1, fasta2)
+    workflow = myflow(fasta1, fasta2)
     consumer = Consumer.from_channels(workflow._output)
-    runner.execute()
+
+    asyncio.run(flowsaber.run(workflow))
+
     results = []
     for data in consumer:
         results.append(data)

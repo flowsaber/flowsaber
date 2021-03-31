@@ -2,10 +2,12 @@ import sys
 
 sys.path.insert(0, '../')
 
+import flowsaber
 from flowsaber import *
-from flowsaber.context import config
 import uuid
 import numpy as np
+
+EnvTask.DEFAULT_CONFIG = {'workdir': '/tmp/Env'}  # make the EnvTask cache at a global place
 
 
 def test_flow1():
@@ -47,9 +49,10 @@ def test_flow1():
     fasta1 = Channel.values("1", "2", "4")
     fasta2 = Channel.values("A", "B", "x", "a")
 
-    runner, workflow = FlowRunner(myflow).run(fasta1, fasta2)
+    workflow = myflow(fasta1, fasta2)
     consumer = Consumer.from_channels(workflow._output)
-    runner.execute()
+    asyncio.run(flowsaber.run(workflow))
+
     results = []
     for data in consumer:
         results.append(data)
@@ -57,9 +60,7 @@ def test_flow1():
     for res in results:
         print(res, type(res))
 
-    workflow.graph.render('func_dag1', view=False, format='pdf', cleanup=True)
-    import time
-    time.sleep(3)
+    workflow.graph.render('class_dag1', view=False, format='pdf', cleanup=True)
 
 
 def test_flow2():
@@ -125,18 +126,18 @@ def test_flow2():
         'io': 80
     })
 
-    runner, workflow = FlowRunner(myflow).run(fasta1, fasta2)
+    workflow = myflow(fasta1, fasta2)
     consumer = Consumer.from_channels(workflow._output)
-    runner.execute()
+    asyncio.run(flowsaber.run(workflow))
+
     results = []
     for data in consumer:
-        print(data)
         results.append(data)
     print("Results are: ")
     for res in results:
         print(res, type(res))
 
-    workflow.graph.render('func_dag2', view=False, format='pdf', cleanup=True)
+    workflow.graph.render('class_dag2', view=False, format='pdf', cleanup=True)
 
 
 if __name__ == "__main__":

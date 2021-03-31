@@ -128,7 +128,7 @@ def extend_method(cls):
 def class_deco(base_cls: type, method_name: str):
     def deco(fn: Callable = None, **kwargs):
         """
-        For base_cls is Task, method_name is run
+        For base_cls is Task, method_name isrun
 
         wrap  no-self argument function
             @deco
@@ -138,7 +138,7 @@ def class_deco(base_cls: type, method_name: str):
 
         into a Class:
             class Test(Task):
-                def run(self, a, b, c) -> d:
+                defrun(self, a, b, c) -> d:
                     "doc"
                     return test(a, b, c)
         and return:
@@ -152,7 +152,7 @@ def class_deco(base_cls: type, method_name: str):
 
         into a Class:
             class Test(Task):
-                def run(self, a, b, c) -> d:
+                defrun(self, a, b, c) -> d:
                     "doc"
                     return test(self, a, b, c)
         and return:

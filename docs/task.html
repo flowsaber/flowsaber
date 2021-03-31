@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Task &mdash; flowsaber 0.1 documentation</title>
+  <title>Task &mdash; context 0.1 documentation</title>
   
 
   
@@ -34,15 +34,13 @@
         <script src="_static/language_data.js"></script>
         <script src="_static/togglebutton.js"></script>
         <script >var togglebuttonSelector = '.toggle, .admonition.dropdown, .tag_hide_input div.cell_input, .tag_hide-input div.cell_input, .tag_hide_output div.cell_output, .tag_hide-output div.cell_output, .tag_hide_cell.cell, .tag_hide-cell.cell';</script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-        <script src="https://unpkg.com/@jupyter-widgets/html-manager@^0.18.0/dist/embed-amd.js"></script>
     
     <script type="text/javascript" src="_static/js/theme.js"></script>
 
     
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Executor" href="environment.html" />
+    <link rel="next" title="Environment" href="environment.html" />
     <link rel="prev" title="Quick Start" href="quick_start.html" /> 
 </head>
 
@@ -57,7 +55,7 @@
           
 
           
-            <a href="index.html" class="icon icon-home" alt="Documentation Home"> flowsaber
+            <a href="index.html" class="icon icon-home" alt="Documentation Home"> context
           
 
           
@@ -99,7 +97,7 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="environment.html">Executor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="environment.html">Environment</a></li>
 <li class="toctree-l1"><a class="reference internal" href="executor.html">Executor</a></li>
 <li class="toctree-l1"><a class="reference internal" href="internal.html">Internal</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
@@ -118,7 +116,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">flowsaber</a>
+          <a href="index.html">context</a>
         
       </nav>
 
@@ -173,12 +171,12 @@
 <p>There are four types of <code class="docutils literal notranslate"><span class="pre">Task</span></code> in total:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">BaseTask</span></code> is base class for all tasks, and all operators are subclassed from it. Codes in
-<code class="docutils literal notranslate"><span class="pre">BaseTask</span></code> will always be run in the main thread and event loop. Due to this limitation, you should not
+<code class="docutils literal notranslate"><span class="pre">BaseTask</span></code> will always berun in the main thread and event loop. Due to this limitation, you should not
 put computation-cost logic in it, otherwise the whole eventloop will be blocked and hinder other task’s execution.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">Task</span></code> for running python functions. Execution of <code class="docutils literal notranslate"><span class="pre">run()</span></code> method will be scheduled and further executed by executor
+<li><p><code class="docutils literal notranslate"><span class="pre">Task</span></code> for running python functions. Execution of <code class="docutils literal notranslate"><span class="pre">run_job()</span></code> method will be scheduled and further executed by executor
 configured.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">ShellTask</span></code> for executing bash script. Support <code class="docutils literal notranslate"><span class="pre">conda</span></code> and <code class="docutils literal notranslate"><span class="pre">image</span></code> option compared to <code class="docutils literal notranslate"><span class="pre">Task</span></code>. When these options are
-specified, additional bash command for handling enviroment creation, activation will be run before the
+specified, additional bash command for handling enviroment creation, activation will berun before the
 execution of user defined bash commnd.</p></li>
 </ul>
 <div class="section" id="envtask">
@@ -220,7 +218,7 @@ it as a <code class="docutils literal notranslate"><span class="pre">Channel</sp
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="environment.html" class="btn btn-neutral float-right" title="Executor" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="environment.html" class="btn btn-neutral float-right" title="Environment" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="quick_start.html" class="btn btn-neutral float-left" title="Quick Start" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>

@@ -1,7 +1,6 @@
-import re
-from functools import partial
-from typing import Tuple
 from dataclasses import dataclass
+from typing import Tuple
+
 from flowsaber import *
 
 
@@ -228,24 +227,26 @@ def mcool_to_features(mcool: File):
 
     return "*"
 
+
 @shell
 def rename(run: Run):
     newname = f"{run.group}-{run.url.name}"
     Shell(f"ln -s {run.url} {newname}")
     return newname
 
+
 def join_fn(run: Run):
     pass
 
+
 @flow
 def check_inputs(files):
-
     return files \
-                  | check_files | flatten | filter_(lambda x: x != False) \
-                  | download | flatten \
-                  | fastq_dump | flatten \
-                  | rename \
-                  | group(join_fn, 2) | select(1)
+           | check_files | flatten | filter_(lambda x: x != False) \
+           | download | flatten \
+           | fastq_dump | flatten \
+           | rename \
+           | group(join_fn, 2) | select(1)
 
 
 @flow
@@ -272,7 +273,6 @@ def hic_flow(inputs, assembly, enzyme):
     pair_stats = [exp_pairs, sample_pairs] >> stat_pair | mix
 
 
-
 config.raw_reads = {
     'sample1': [
         ['asdasd_1.fq', 'asdasd_2.fq'],
@@ -289,5 +289,5 @@ assemly = Channel.values('hg19')
 enzyme = Channel.values('dnpIII')
 
 runner, workflow = FlowRunner(hic_flow).run(inputs, assemly, enzyme)
-# runner.execute()
+# runner.start()
 workflow.graph.render('/store/qzhong/dag.test', view=True, format='pdf', cleanup=True)

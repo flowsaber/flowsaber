@@ -5,12 +5,14 @@ from typing import Optional, Union, List, Sequence
 
 from makefun import with_signature
 
-from flowsaber.context import flowsaber
+from flowsaber.context import context
 from flowsaber.core.channel import Consumer, Channel
 from flowsaber.utility.logtool import get_logger
 from flowsaber.utility.utils import TaskOutput
 
 logger = get_logger(__name__)
+
+__all__ = ['FlowComponent', 'TaskConfig']
 
 
 class CopySigMeta(type):
@@ -45,6 +47,7 @@ class CopySigMeta(type):
 
 class FlowComponent(object, metaclass=CopySigMeta):
     def __init__(self, name: str = "", **kwargs):
+        self._initialized: bool = False
         self._input_args: Optional[tuple] = None
         self._input_kwargs: Optional[dict] = None
         self._input_len: Optional[int] = None
@@ -79,15 +82,20 @@ class FlowComponent(object, metaclass=CopySigMeta):
 
         return new
 
+    @property
+    def initialized(self):
+        return hasattr(self, '_initialized') and self._initialized
+
     def copy_new(self, *args, **kwargs):
         from copy import copy
         new = copy(self)
+        new._initialized = True
         new.initialize_name()
         new.initialize_input(*args, **kwargs)
         return new
 
     def initialize_name(self):
-        up_flow = flowsaber.up_flow
+        up_flow = context.up_flow
         up_flow_name = str(up_flow.name) if up_flow else ""
         self.identity_name = f"{up_flow_name}-{self}".lstrip('-')
 
@@ -98,6 +106,14 @@ class FlowComponent(object, metaclass=CopySigMeta):
 
     def clean(self):
         pass
+
+    async def execute(self, **kwargs):
+        if not self.initialized:
+            raise ValueError("The Task/Flow object is not initialized, "
+                             "please use task()/flow() to initialize it.")
+
+    def run(self, *args, **kwargs):
+        return NotImplementedError
 
 
 @dataclass

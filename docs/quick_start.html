@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Quick Start &mdash; flowsaber 0.1 documentation</title>
+  <title>Quick Start &mdash; context 0.1 documentation</title>
   
 
   
@@ -34,8 +34,6 @@
         <script src="_static/language_data.js"></script>
         <script src="_static/togglebutton.js"></script>
         <script >var togglebuttonSelector = '.toggle, .admonition.dropdown, .tag_hide_input div.cell_input, .tag_hide-input div.cell_input, .tag_hide_output div.cell_output, .tag_hide-output div.cell_output, .tag_hide_cell.cell, .tag_hide-cell.cell';</script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-        <script src="https://unpkg.com/@jupyter-widgets/html-manager@^0.18.0/dist/embed-amd.js"></script>
     
     <script type="text/javascript" src="_static/js/theme.js"></script>
 
@@ -57,7 +55,7 @@
           
 
           
-            <a href="index.html" class="icon icon-home" alt="Documentation Home"> flowsaber
+            <a href="index.html" class="icon icon-home" alt="Documentation Home"> context
           
 
           
@@ -100,6 +98,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#a-typical-workflow">A Typical workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#example-for-real-work">Example for real work</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="task.html">Task</a></li>
@@ -122,7 +121,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">flowsaber</a>
+          <a href="index.html">context</a>
         
       </nav>
 
@@ -201,7 +200,7 @@ section of the nextflow documentation.</p>
 <div class="section" id="flow">
 <h3>Flow<a class="headerlink" href="#flow" title="Permalink to this headline">¶</a></h3>
 <p><code class="docutils literal notranslate"><span class="pre">Flow</span></code> is the object that combines and records dependencies of all tasks you have put in. After it’s been
-defined, it should be passed to <code class="docutils literal notranslate"><span class="pre">FlowRunner</span></code> for the actual dependency building and flow execution.</p>
+instantiated, it should be called for the actual dependency building and then can be executed by call <code class="docutils literal notranslate"><span class="pre">flow.execute()</span></code>.</p>
 </div>
 <div class="section" id="channel">
 <h3>Channel<a class="headerlink" href="#channel" title="Permalink to this headline">¶</a></h3>
@@ -225,40 +224,37 @@ due to the parallelism of task’s executions for different inputs.</p></li>
 </ul>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">sys</span>
+<div class="highlight-ipython2 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">sys</span>
 
 <span class="kn">import</span> <span class="nn">matplotlib.image</span> <span class="k">as</span> <span class="nn">mpimg</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 
 <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;../../&#39;</span><span class="p">)</span>
+<span class="kn">import</span> <span class="nn">flowsaber</span>
 <span class="kn">from</span> <span class="nn">flowsaber</span> <span class="kn">import</span> <span class="o">*</span>
 
+<span class="n">EnvTask</span><span class="o">.</span><span class="n">DEFAULT_CONFIG</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;workdir&#39;</span><span class="p">:</span> <span class="s1">&#39;/tmp/Env&#39;</span><span class="p">}</span>  <span class="c1"># make the EnvTask cache at a global place</span>
 
 <span class="nd">@task</span>
 <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num</span><span class="p">):</span>  <span class="c1"># self is optional</span>
     <span class="k">return</span> <span class="n">num</span> <span class="o">+</span> <span class="mi">1</span>
 
-
 <span class="nd">@task</span>
 <span class="k">def</span> <span class="nf">multiply</span><span class="p">(</span><span class="n">num1</span><span class="p">,</span> <span class="n">num2</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">num1</span> <span class="o">*</span> <span class="n">num2</span>
-
 
 <span class="nd">@shell</span>
 <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="n">num</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;echo {num} &gt; 1.txt&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="s1">&#39;*.txt&#39;</span>
 
-
 <span class="nd">@task</span>
 <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="n">f</span><span class="p">:</span> <span class="n">File</span><span class="p">):</span>
     <span class="k">return</span> <span class="nb">open</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">f</span><span class="p">))</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
 
-
 <span class="nd">@flow</span>
 <span class="k">def</span> <span class="nf">sub_flow</span><span class="p">(</span><span class="n">num</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">add</span><span class="p">(</span><span class="n">num</span><span class="p">)</span> <span class="o">|</span> <span class="n">map_</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">|</span> <span class="n">add</span>
-
 
 <span class="nd">@flow</span>
 <span class="k">def</span> <span class="nf">my_flow</span><span class="p">(</span><span class="n">num</span><span class="p">):</span>
@@ -267,59 +263,125 @@ due to the parallelism of task’s executions for different inputs.</p></li>
     <span class="o">|</span> <span class="n">map_</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">strip</span><span class="p">()))</span> \
     <span class="o">|</span> <span class="n">view</span>
 
-
 <span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
     <span class="s1">&#39;cpu&#39;</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span>
     <span class="n">Task</span><span class="p">:</span> <span class="p">{</span>
-        <span class="s1">&#39;executor&#39;</span><span class="p">:</span> <span class="s1">&#39;local&#39;</span>  <span class="c1"># for test, use simple one</span>
+        <span class="s1">&#39;executor&#39;</span><span class="p">:</span> <span class="s1">&#39;ray&#39;</span>
     <span class="p">}</span>
 <span class="p">})</span>
 
 <span class="c1"># set input</span>
-<span class="n">num_ch</span> <span class="o">=</span> <span class="n">Channel</span><span class="o">.</span><span class="n">values</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+<span class="n">num_ch</span> <span class="o">=</span> <span class="n">Channel</span><span class="o">.</span><span class="n">values</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span>
 <span class="c1"># resolve dependencies</span>
-<span class="n">runner</span><span class="p">,</span> <span class="n">workflow</span> <span class="o">=</span> <span class="n">FlowRunner</span><span class="p">(</span><span class="n">my_flow</span><span class="p">)</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">num</span><span class="o">=</span><span class="n">num_ch</span><span class="p">)</span>
+<span class="n">workflow</span> <span class="o">=</span> <span class="n">my_flow</span><span class="p">(</span><span class="n">num</span><span class="o">=</span><span class="n">num_ch</span><span class="p">)</span>
 <span class="c1"># now can generate dag</span>
-<span class="n">workflow</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="s1">&#39;workflow&#39;</span><span class="p">,</span> <span class="n">view</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;png&#39;</span><span class="p">,</span> <span class="n">cleanup</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="c1"># truly run the flow</span>
-<span class="k">await</span> <span class="n">runner</span><span class="o">.</span><span class="n">aexecute</span><span class="p">()</span>
+<span class="n">workflow</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="s1">&#39;quick_start_dag&#39;</span><span class="p">,</span> <span class="n">view</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;png&#39;</span><span class="p">,</span> <span class="n">cleanup</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="c1"># try run the flow</span>
+<span class="c1"># Note: this is specific for ipython environment, in normal cases, use `asyncio.run`</span>
+<span class="k">await</span> <span class="n">flowsaber</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">workflow</span><span class="p">)</span>
 
 <span class="c1"># visualize the flow</span>
-
-<span class="n">img</span> <span class="o">=</span> <span class="n">mpimg</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="s1">&#39;workflow.png&#39;</span><span class="p">)</span>
+<span class="n">img</span> <span class="o">=</span> <span class="n">mpimg</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="s1">&#39;quick_start_dag.png&#39;</span><span class="p">)</span>
 <span class="n">imgplot</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="n">block</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output text_html"><pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">Your config is: 
+<div class="output text_html"><pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">Config is: 
 <span style="font-weight: bold">{</span>
     <span style="color: #008000; text-decoration-color: #008000">'_Context__flow_stack'</span>: <span style="font-weight: bold">[]</span>,
     <span style="color: #008000; text-decoration-color: #008000">'_Context__env_tasks'</span>: <span style="font-weight: bold">{}</span>,
     <span style="color: #008000; text-decoration-color: #008000">'_flow_stack'</span>: <span style="font-weight: bold">[]</span>,
     <span style="color: #008000; text-decoration-color: #008000">'cpu'</span>: <span style="color: #008080; text-decoration-color: #008080; font-weight: bold">8</span>,
-    <span style="font-weight: bold">&lt;</span><span style="color: #ff00ff; text-decoration-color: #ff00ff; font-weight: bold">class</span><span style="color: #000000; text-decoration-color: #000000"> </span><span style="color: #008000; text-decoration-color: #008000">'flowsaber.core.task.Task'</span><span style="font-weight: bold">&gt;</span>: <span style="font-weight: bold">{</span><span style="color: #008000; text-decoration-color: #008000">'executor'</span>: <span style="color: #008000; text-decoration-color: #008000">'local'</span><span style="font-weight: bold">}</span>
+    <span style="font-weight: bold">&lt;</span><span style="color: #ff00ff; text-decoration-color: #ff00ff; font-weight: bold">class</span><span style="color: #000000; text-decoration-color: #000000"> </span><span style="color: #008000; text-decoration-color: #008000">'flowsaber.core.task.Task'</span><span style="font-weight: bold">&gt;</span>: <span style="font-weight: bold">{</span><span style="color: #008000; text-decoration-color: #008000">'executor'</span>: <span style="color: #008000; text-decoration-color: #008000">'ray'</span><span style="font-weight: bold">}</span>
 <span style="font-weight: bold">}</span>
 </pre>
 </div><script type="application/vnd.jupyter.widget-view+json">
-{"version_major": 2, "version_minor": 0, "model_id": "c1b32f468cad464e9e594ea40080db96"}
-</script><div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>170
-170
-25
+{"version_major": 2, "version_minor": 0, "model_id": "3aee1469e0694cc2a20659d33202a8ab"}
+</script><div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>25
+4100
+1300
+4225
 </pre></div>
 </div>
 <img alt="_images/quick_start_2_3.png" src="_images/quick_start_2_3.png" />
 </div>
 </div>
 </div>
+<div class="section" id="example-for-real-work">
+<h2>Example for real work<a class="headerlink" href="#example-for-real-work" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>This is a rewrite version of <a class="reference external" href="https://snakemake.readthedocs.io/en/stable/tutorial/short.html">snakemake tutorial</a></p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">flowsaber</span>
+<span class="kn">from</span> <span class="nn">flowsaber</span> <span class="kn">import</span> <span class="o">*</span>
+
+
+<span class="c1"># EnvTask is the real dependent task when using conda/image option</span>
+<span class="n">EnvTask</span><span class="o">.</span><span class="n">DEFAULT_CONFIG</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;workdir&#39;</span><span class="p">:</span> <span class="s1">&#39;/tmp/Env&#39;</span><span class="p">}</span>  <span class="c1"># make the EnvTask cache at a global place</span>
+
+<span class="nd">@shell</span><span class="p">(</span><span class="n">conda</span><span class="o">=</span><span class="s2">&quot;bwa=0.7.17 samtools=1.9&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">bwa</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fa</span><span class="p">:</span> <span class="n">File</span><span class="p">,</span> <span class="n">fastq</span><span class="p">:</span> <span class="n">File</span><span class="p">):</span>  <span class="c1"># input will be automatically converted if has type annotation</span>
+    <span class="sd">&quot;&quot;&quot;bwa mem -t {self.cpu} {fa} {fastq} | samtools view -Sb - &gt; {fastq.stem}.bam&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="s2">&quot;*.bam&quot;</span>  <span class="c1"># for ShellTask, str variable in the return will be treated as File and globed</span>
+
+<span class="nd">@shell</span><span class="p">(</span><span class="n">conda</span><span class="o">=</span><span class="s2">&quot;bwa=0.7.17 samtools=1.9&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">sort</span><span class="p">(</span><span class="n">bam</span><span class="p">:</span> <span class="n">File</span><span class="p">):</span>  <span class="c1"># self is optional in case you don&#39;t want to access the current task</span>
+    <span class="sd">&quot;&quot;&quot;samtools sort -o {sorted_bam} {bam}&quot;&quot;&quot;</span>  <span class="c1"># use local variable</span>
+    <span class="n">sorted_bam</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">bam</span><span class="o">.</span><span class="n">stem</span><span class="si">}</span><span class="s2">.sorted.bam&quot;</span>
+    <span class="k">return</span> <span class="n">sorted_bam</span>
+
+<span class="nd">@shell</span><span class="p">(</span><span class="n">conda</span><span class="o">=</span><span class="s2">&quot;bcftools=1.9 samtools=1.9&quot;</span><span class="p">,</span> <span class="n">pubdir</span><span class="o">=</span><span class="s2">&quot;results/vcf&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="n">fa</span><span class="p">:</span> <span class="n">File</span><span class="p">,</span> <span class="n">bams</span><span class="p">:</span> <span class="nb">list</span><span class="p">):</span>  <span class="c1"># In case you need to write some python codes</span>
+    <span class="n">bams</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">bam</span><span class="p">)</span> <span class="k">for</span> <span class="n">bam</span> <span class="ow">in</span> <span class="n">bams</span><span class="p">)</span>
+    <span class="n">Shell</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;samtools mpileup -g -f </span><span class="si">{</span><span class="n">fa</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">bams</span><span class="si">}</span><span class="s2"> | bcftools call -mv - &gt; all.vcf&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s2">&quot;all.vcf&quot;</span>
+
+<span class="nd">@task</span><span class="p">(</span><span class="n">pubdir</span><span class="o">=</span><span class="s2">&quot;results/stats&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">stats</span><span class="p">(</span><span class="n">vcf</span><span class="p">:</span> <span class="n">File</span><span class="p">):</span>
+    <span class="kn">import</span> <span class="nn">matplotlib</span>
+    <span class="n">matplotlib</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s2">&quot;Agg&quot;</span><span class="p">)</span>
+    <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+    <span class="kn">from</span> <span class="nn">pysam</span> <span class="kn">import</span> <span class="n">VariantFile</span>
+
+    <span class="n">quals</span> <span class="o">=</span> <span class="p">[</span><span class="n">record</span><span class="o">.</span><span class="n">qual</span> <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">VariantFile</span><span class="p">(</span><span class="n">vcf</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">&#39;rb&#39;</span><span class="p">))]</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">quals</span><span class="p">)</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;report.svg&quot;</span><span class="p">)</span>
+
+<span class="nd">@flow</span>
+<span class="k">def</span> <span class="nf">call_vcf_flow</span><span class="p">(</span><span class="n">fa</span><span class="p">,</span> <span class="n">fastq</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_call</span><span class="p">(</span><span class="n">bams</span><span class="p">):</span>  <span class="c1"># task is normal function, use python as wish</span>
+        <span class="k">return</span> <span class="n">call</span><span class="p">(</span><span class="n">fa</span><span class="p">,</span> <span class="n">bams</span><span class="p">)</span>
+
+    <span class="n">bam1</span> <span class="o">=</span> <span class="n">bwa</span><span class="p">(</span><span class="n">fa</span><span class="p">,</span> <span class="n">fastq</span><span class="p">)</span>  <span class="c1"># automatically clone channel</span>
+    <span class="n">bam2</span> <span class="o">=</span> <span class="n">bwa</span><span class="p">(</span><span class="n">fa</span><span class="p">,</span> <span class="n">fastq</span><span class="p">)</span>
+    <span class="n">mix</span><span class="p">(</span><span class="n">bam1</span><span class="p">,</span> <span class="n">bam2</span><span class="p">)</span> <span class="o">|</span> <span class="n">sort</span> <span class="o">|</span> <span class="n">collect</span> <span class="o">|</span> <span class="n">_call</span> <span class="o">|</span> <span class="n">stats</span>
+
+<span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+    <span class="s1">&#39;cpu&#39;</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span>
+    <span class="s1">&#39;memory&#39;</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span>
+    <span class="n">Task</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;executor&#39;</span><span class="p">:</span> <span class="s1">&#39;process&#39;</span>
+    <span class="p">}</span>
+<span class="p">})</span>
+
+<span class="n">prefix</span> <span class="o">=</span> <span class="s1">&#39;../../tests/snamke-demo.nosync/data&#39;</span>
+<span class="n">fa</span> <span class="o">=</span> <span class="n">Channel</span><span class="o">.</span><span class="n">value</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s1">/genome.fa&#39;</span><span class="p">)</span>
+<span class="n">fastq</span> <span class="o">=</span> <span class="n">Channel</span><span class="o">.</span><span class="n">values</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s1">/samples/</span><span class="si">{</span><span class="n">sample</span><span class="si">}</span><span class="s1">&#39;</span> <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;A.fastq&#39;</span><span class="p">,</span> <span class="s1">&#39;B.fastq&#39;</span><span class="p">,</span> <span class="s1">&#39;C.fastq&#39;</span><span class="p">]])</span>
+
+<span class="c1"># resolve dependency</span>
+<span class="n">workflow</span> <span class="o">=</span> <span class="n">call_vcf_flow</span><span class="p">(</span><span class="n">fa</span><span class="p">,</span> <span class="n">fastq</span><span class="p">)</span>
+<span class="c1"># generate dag</span>
+<span class="n">workflow</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="s1">&#39;snakemake_dag&#39;</span><span class="p">,</span> <span class="n">view</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;png&#39;</span><span class="p">,</span> <span class="n">cleanup</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="c1"># run the flow</span>
+<span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">flowsaber</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">workflow</span><span class="p">))</span>
+
+</pre></div>
 </div>
-
-
-<script type="application/vnd.jupyter.widget-state+json">
-{"state": {"888a34299a3f449cab889bfb1957f01b": {"model_name": "LayoutModel", "model_module": "@jupyter-widgets/base", "model_module_version": "1.2.0", "state": {"_model_module": "@jupyter-widgets/base", "_model_module_version": "1.2.0", "_model_name": "LayoutModel", "_view_count": null, "_view_module": "@jupyter-widgets/base", "_view_module_version": "1.2.0", "_view_name": "LayoutView", "align_content": null, "align_items": null, "align_self": null, "border": null, "bottom": null, "display": null, "flex": null, "flex_flow": null, "grid_area": null, "grid_auto_columns": null, "grid_auto_flow": null, "grid_auto_rows": null, "grid_column": null, "grid_gap": null, "grid_row": null, "grid_template_areas": null, "grid_template_columns": null, "grid_template_rows": null, "height": null, "justify_content": null, "justify_items": null, "left": null, "margin": null, "max_height": null, "max_width": null, "min_height": null, "min_width": null, "object_fit": null, "object_position": null, "order": null, "overflow": null, "overflow_x": null, "overflow_y": null, "padding": null, "right": null, "top": null, "visibility": null, "width": null}}, "c1b32f468cad464e9e594ea40080db96": {"model_name": "OutputModel", "model_module": "@jupyter-widgets/output", "model_module_version": "1.0.0", "state": {"_dom_classes": [], "_model_module": "@jupyter-widgets/output", "_model_module_version": "1.0.0", "_model_name": "OutputModel", "_view_count": null, "_view_module": "@jupyter-widgets/output", "_view_module_version": "1.0.0", "_view_name": "OutputView", "layout": "IPY_MODEL_888a34299a3f449cab889bfb1957f01b", "msg_id": "", "outputs": [{"output_type": "display_data", "metadata": {}, "data": {"text/plain": "<rich.jupyter.JupyterRenderable at 0x7ff0a67952e0>", "text/html": "<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\">       <span style=\"color: #000080; text-decoration-color: #000080; font-weight: bold\">Add(Task)[140671517905728]</span> <span style=\"color: #729c1f; text-decoration-color: #729c1f\">\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501</span> <span style=\"color: #800080; text-decoration-color: #800080\">100.0%</span> \u2022 0 \u231b \u2022 0   \u2022 3 \u2713 | <span style=\"color: #808000; text-decoration-color: #808000\">0:00:02</span>\n       <span style=\"color: #000080; text-decoration-color: #000080; font-weight: bold\">Add(Task)[140671517907744]</span> <span style=\"color: #729c1f; text-decoration-color: #729c1f\">\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501</span> <span style=\"color: #800080; text-decoration-color: #800080\">100.0%</span> \u2022 0 \u231b \u2022 0   \u2022 3 \u2713 | <span style=\"color: #808000; text-decoration-color: #808000\">0:00:02</span>\n       <span style=\"color: #000080; text-decoration-color: #000080; font-weight: bold\">Add(Task)[140671517906448]</span> <span style=\"color: #729c1f; text-decoration-color: #729c1f\">\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501</span> <span style=\"color: #800080; text-decoration-color: #800080\">100.0%</span> \u2022 0 \u231b \u2022 0   \u2022 3 \u2713 | <span style=\"color: #808000; text-decoration-color: #808000\">0:00:02</span>\n       <span style=\"color: #000080; text-decoration-color: #000080; font-weight: bold\">Add(Task)[140671517908464]</span> <span style=\"color: #729c1f; text-decoration-color: #729c1f\">\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501</span> <span style=\"color: #800080; text-decoration-color: #800080\">100.0%</span> \u2022 0 \u231b \u2022 0   \u2022 3 \u2713 | <span style=\"color: #808000; text-decoration-color: #808000\">0:00:02</span>\n  <span style=\"color: #000080; text-decoration-color: #000080; font-weight: bold\">Multiply(Task)[140671517906256]</span> <span style=\"color: #729c1f; text-decoration-color: #729c1f\">\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501</span> <span style=\"color: #800080; text-decoration-color: #800080\">100.0%</span> \u2022 0 \u231b \u2022 0   \u2022 3 \u2713 | <span style=\"color: #808000; text-decoration-color: #808000\">0:00:02</span>\n<span style=\"color: #000080; text-decoration-color: #000080; font-weight: bold\">Write(ShellTask)[140671517951168]</span> <span style=\"color: #729c1f; text-decoration-color: #729c1f\">\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501</span> <span style=\"color: #800080; text-decoration-color: #800080\">100.0%</span> \u2022 0 \u231b \u2022 0   \u2022 3 \u2713 | <span style=\"color: #808000; text-decoration-color: #808000\">0:00:02</span>\n      <span style=\"color: #000080; text-decoration-color: #000080; font-weight: bold\">Read(Task)[140671517951936]</span> <span style=\"color: #3a3a3a; text-decoration-color: #3a3a3a\">\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501</span> <span style=\"color: #800080; text-decoration-color: #800080\">0.0%</span>   \u2022 0 \u231b \u2022 3 <span style=\"color: #008000; text-decoration-color: #008000\">\u2826</span> \u2022 0 \u2713 | <span style=\"color: #808000; text-decoration-color: #808000\">0:00:01</span>\n</pre>\n"}}]}}}, "version_major": 2, "version_minor": 0}
-</script>
-
+</div>
+</div>
 
 
            </div>

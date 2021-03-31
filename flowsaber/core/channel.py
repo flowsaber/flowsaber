@@ -8,9 +8,12 @@ from flowsaber.utility.logtool import get_logger
 
 logger = get_logger(__name__)
 
+__all__ = ['Fetcher', 'Queue', 'ConstantQueue', 'Channel', 'ConstantChannel', 'Consumer']
 
+
+# TODO theoretically, channel should always emit END after the first emission of EMD
 class DataObject(object):
-    def __init__(self, task = None, **kwargs):
+    def __init__(self, task=None, **kwargs):
         self.task = task
         for k, v in kwargs.items():
             if not hasattr(self, k):
@@ -18,7 +21,6 @@ class DataObject(object):
 
 
 class Fetcher(DataObject):
-
     def __aiter__(self):
         return self
 
@@ -92,6 +94,7 @@ class Channel(DataObject):
         self.async_activated = False
         self.queues: Dict[str, Queue] = {}
         self.queue_factory = queue_factory
+        self.end = False
 
     def __repr__(self):
         name = f"{self.name}|{type(self).__name__}({type(self).__bases__[0].__name__})"
@@ -139,7 +142,7 @@ class Channel(DataObject):
     def __rshift__(self, tasks) -> Union['Channel', Sequence['Channel']]:
         """
         ch >> task                   -> task(ch)
-        ch >> [task1, tasks, task3]  -> [task1(ch), task2(ch), task3(ch)]
+        ch >> [task1, _tasks, task3]  -> [task1(ch), task2(ch), task3(ch)]
         """
         if not isinstance(tasks, abc.Sequence):
             return tasks(self)
@@ -320,6 +323,10 @@ class Consumer(Fetcher):
                                      f"please unwrap it before pass into a Task/Flow")
                 else:
                     channels[i] = Channel.values(ch)
+            else:
+                if ch.async_activated:
+                    raise ValueError("Can not create consumer from activated Channel, try to create"
+                                     " the consumer before running the flow.")
         queues = [ch.create_queue(consumer=consumer) for ch in channels]
         return cls(queues, **kwargs)
 

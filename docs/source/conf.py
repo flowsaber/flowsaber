@@ -17,7 +17,7 @@
 
 # -- Project information -----------------------------------------------------
 
-project = 'flowsaber'
+project = 'context'
 copyright = '2021, bakezq'
 author = 'bakezq'
 

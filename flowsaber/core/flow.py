@@ -1,28 +1,43 @@
 import asyncio
 from collections import defaultdict
-from typing import Union
+from typing import Union, Dict, Optional
 
 from graphviz import Digraph
 
-from flowsaber.context import flowsaber, config
+from flowsaber.context import context
+from flowsaber.utility.logtool import get_logger
 from flowsaber.utility.utils import class_deco, TaskOutput
 from .base import FlowComponent
 from .channel import Channel
-from .scheduler import Scheduler, process
+
+logger = get_logger(__name__)
+
+__all__ = ['Flow', 'flow']
 
 
 class Flow(FlowComponent):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.tasks = defaultdict(dict)
+        self._tasks: Optional[Dict[FlowComponent, {}]] = None
         self._graph = None
 
+    def tasks(self):
+        if getattr(self, '_tasks') is None:
+            raise ValueError("You are using a copied or fresh new flow, please initialize")
+        return self._tasks
+
+    @property
+    def graph(self):
+        if not getattr(self, '_graph', None):
+            self._graph = Digraph()
+        return self._graph
+
     def __enter__(self):
-        flowsaber.flow_stack.append(self)
+        context.flow_stack.append(self)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        flowsaber.flow_stack.pop(-1)
+        context.flow_stack.pop(-1)
 
     def __call__(self, *args, **kwargs) -> Union[TaskOutput, 'Flow']:
         flow = self.copy_new()
@@ -33,19 +48,25 @@ class Flow(FlowComponent):
             if flow._output is None:
                 flow._output = Channel.end()
 
-        if flowsaber.up_flow:
-            flowsaber.up_flow.tasks.setdefault(flow, {})
+        if context.up_flow:
+            context.up_flow._tasks.setdefault(flow, {})
             return flow._output
         # in the top level flow, just return the flow itself
         else:
             return flow
 
-    def run(self, *args, **kwargs) -> Channel:
-        raise NotImplementedError
+    def copy_new(self, *args, **kwargs):
+        new = super().copy_new(*args, **kwargs)
+        new._tasks = defaultdict(dict)
+        return new
 
-    async def execute(self, **kwargs):
+    def run(self, *args, **kwargs) -> Channel:
+        raise NotImplementedError("Not implemented. Users are supposed to compose flow/task in this method.")
+
+    async def execute(self, **kwargs) -> asyncio.Future:
+        await super().execute(**kwargs)
         task_futures = []
-        for task, task_info in self.tasks.items():
+        for task, task_info in self._tasks.items():
             future = task_info['future'] = asyncio.ensure_future(task.execute(**kwargs))
             task_futures.append(future)
 
@@ -55,60 +76,9 @@ class Flow(FlowComponent):
                 loop._task_futures = []
             loop._task_futures.append((task, future))
 
-        res_list = await asyncio.gather(*task_futures)
+        fut = await asyncio.gather(*task_futures)
 
-        return res_list
-
-    @property
-    def graph(self):
-        if not getattr(self, '_graph', None):
-            self._graph = Digraph()
-        return self._graph
-
-
-class FlowRunner(object):
-    def __init__(self, flow):
-        self.src_flow = flow
-        self.flow = None
-        self.scheduler = Scheduler()
-
-    def run(self, *args, **kwargs):
-        self.flow = self.src_flow(*args, **kwargs)
-
-        return self, self.flow
-
-    async def _execute(self):
-        assert self.flow is not None, "Please call run() method before running the flow."
-        # print config
-        from rich import print
-        print("Your config is: ", config.__dict__)
-
-        # TODO carefully handle ctrl + C signal caused exception
-        loop = asyncio.get_running_loop()
-        loop._scheduler = self.scheduler
-        asyncio.ensure_future(self.scheduler.execute())
-        flow_exec_res = await self.flow.execute(scheduler=self.scheduler)
-        await asyncio.sleep(0.5)
-        process.stop()
-        # stop executors
-        for executor in flowsaber.get('__executors__', {}).values():
-            executor.shutdown()
-
-        return flow_exec_res
-
-    def execute(self):
-        try:
-            res = asyncio.run(self._execute())
-        except Exception as e:
-            raise e
-        return res
-
-    async def aexecute(self):
-        try:
-            res = await self._execute()
-        except Exception as e:
-            raise e
-        return res
+        return fut
 
 
 flow = class_deco(Flow, 'run')

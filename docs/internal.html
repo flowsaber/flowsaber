@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Internal &mdash; flowsaber 0.1 documentation</title>
+  <title>Internal &mdash; context 0.1 documentation</title>
   
 
   
@@ -34,8 +34,6 @@
         <script src="_static/language_data.js"></script>
         <script src="_static/togglebutton.js"></script>
         <script >var togglebuttonSelector = '.toggle, .admonition.dropdown, .tag_hide_input div.cell_input, .tag_hide-input div.cell_input, .tag_hide_output div.cell_output, .tag_hide-output div.cell_output, .tag_hide_cell.cell, .tag_hide-cell.cell';</script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-        <script src="https://unpkg.com/@jupyter-widgets/html-manager@^0.18.0/dist/embed-amd.js"></script>
     
     <script type="text/javascript" src="_static/js/theme.js"></script>
 
@@ -57,7 +55,7 @@
           
 
           
-            <a href="index.html" class="icon icon-home" alt="Documentation Home"> flowsaber
+            <a href="index.html" class="icon icon-home" alt="Documentation Home"> context
           
 
           
@@ -111,7 +109,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">flowsaber</a>
+          <a href="index.html">context</a>
         
       </nav>
 
@@ -174,14 +172,14 @@
 <li><p>For each task instance, will get a unique <code class="docutils literal notranslate"><span class="pre">task_key</span></code> equals to it’s working directory, since a task
 object can be used multiple times, so there may be multiple tasks share the same <code class="docutils literal notranslate"><span class="pre">task_key</span></code>.</p></li>
 </ul>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">task</span><span class="o">.</span><span class="n">task_key</span> <span class="o">=</span> <span class="n">classname</span><span class="o">-</span><span class="nb">id</span><span class="p">(</span><span class="n">task</span><span class="p">)</span><span class="o">-</span><span class="nb">hash</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">run</span><span class="o">.</span><span class="vm">__code__</span> <span class="o">+</span> <span class="n">task</span><span class="o">.</span><span class="n">run</span><span class="o">.</span><span class="n">__annotation__</span> <span class="o">+</span> <span class="n">other_info</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">task</span><span class="o">.</span><span class="n">task_key</span> <span class="o">=</span> <span class="n">classname</span><span class="o">-</span><span class="nb">id</span><span class="p">(</span><span class="n">task</span><span class="p">)</span><span class="o">-</span><span class="nb">hash</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">run_job</span><span class="o">.</span><span class="vm">__code__</span> <span class="o">+</span> <span class="n">task</span><span class="o">.</span><span class="n">run_job</span><span class="o">.</span><span class="n">__annotation__</span> <span class="o">+</span> <span class="n">other_info</span><span class="p">)</span>
 <span class="n">task</span><span class="o">.</span><span class="n">workdir</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">workdir</span><span class="o">/</span><span class="n">task</span><span class="o">.</span><span class="n">task_key</span>
 </pre></div>
 </div>
 <ul class="simple">
-<li><p>For each input of <code class="docutils literal notranslate"><span class="pre">task.run</span></code>, the run will have a <code class="docutils literal notranslate"><span class="pre">run_key</span></code> equals to it’s working directory</p></li>
+<li><p>For each input of <code class="docutils literal notranslate"><span class="pre">task.run_job</span></code>, therun will have a <code class="docutils literal notranslate"><span class="pre">run_key</span></code> equals to it’s working directory</p></li>
 </ul>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">run</span><span class="o">.</span><span class="n">workdir</span> <span class="o">=</span> <span class="n">run_key</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">workdir</span><span class="o">/</span><span class="nb">hash</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">other_info</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">run_job</span><span class="o">.</span><span class="n">workdir</span> <span class="o">=</span> <span class="n">run_key</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">workdir</span><span class="o">/</span><span class="nb">hash</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">other_info</span><span class="p">)</span>
 </pre></div>
 </div>
 <ul class="simple">
