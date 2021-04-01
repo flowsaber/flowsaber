@@ -172,14 +172,14 @@
 <li><p>For each task instance, will get a unique <code class="docutils literal notranslate"><span class="pre">task_key</span></code> equals to it’s working directory, since a task
 object can be used multiple times, so there may be multiple tasks share the same <code class="docutils literal notranslate"><span class="pre">task_key</span></code>.</p></li>
 </ul>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">task</span><span class="o">.</span><span class="n">task_key</span> <span class="o">=</span> <span class="n">classname</span><span class="o">-</span><span class="nb">id</span><span class="p">(</span><span class="n">task</span><span class="p">)</span><span class="o">-</span><span class="nb">hash</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">run_job</span><span class="o">.</span><span class="vm">__code__</span> <span class="o">+</span> <span class="n">task</span><span class="o">.</span><span class="n">run_job</span><span class="o">.</span><span class="n">__annotation__</span> <span class="o">+</span> <span class="n">other_info</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">task</span><span class="o">.</span><span class="n">task_key</span> <span class="o">=</span> <span class="n">classname</span><span class="o">-</span><span class="nb">hash</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">run_job</span><span class="o">.</span><span class="vm">__code__</span> <span class="o">+</span> <span class="n">task</span><span class="o">.</span><span class="n">run</span><span class="o">.</span><span class="n">__annotation__</span> <span class="o">+</span> <span class="n">other_info</span><span class="p">)</span>
 <span class="n">task</span><span class="o">.</span><span class="n">workdir</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">workdir</span><span class="o">/</span><span class="n">task</span><span class="o">.</span><span class="n">task_key</span>
 </pre></div>
 </div>
 <ul class="simple">
-<li><p>For each input of <code class="docutils literal notranslate"><span class="pre">task.run_job</span></code>, therun will have a <code class="docutils literal notranslate"><span class="pre">run_key</span></code> equals to it’s working directory</p></li>
+<li><p>For each input of <code class="docutils literal notranslate"><span class="pre">task.run</span></code>, the run will have a <code class="docutils literal notranslate"><span class="pre">run_key</span></code> equals to it’s working directory</p></li>
 </ul>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">run_job</span><span class="o">.</span><span class="n">workdir</span> <span class="o">=</span> <span class="n">run_key</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">workdir</span><span class="o">/</span><span class="nb">hash</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">other_info</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">run</span><span class="o">.</span><span class="n">workdir</span> <span class="o">=</span> <span class="n">run_key</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">workdir</span><span class="o">/</span><span class="nb">hash</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">other_info</span><span class="p">)</span>
 </pre></div>
 </div>
 <ul class="simple">
@@ -206,7 +206,10 @@ to avoid conflictions.</p></li>
 <li><p>For any task with env-related options(conda, image..) settled, will be converted functionally like the
 below codes to build correct dependency graph.</p></li>
 </ul>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">task</span><span class="p">(</span><span class="n">ch1</span><span class="p">,</span> <span class="n">ch2</span><span class="p">,</span> <span class="n">ch3</span><span class="p">)</span>  <span class="c1"># converted to</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@shell</span><span class="p">(</span><span class="n">conda</span><span class="o">=</span><span class="s1">&#39;test.yaml&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">task</span><span class="p">():</span>
+    <span class="k">pass</span>
+<span class="n">task</span><span class="p">(</span><span class="n">ch1</span><span class="p">,</span> <span class="n">ch2</span><span class="p">,</span> <span class="n">ch3</span><span class="p">)</span>  <span class="c1"># converted to</span>
 <span class="n">env</span> <span class="o">=</span> <span class="n">EnvTask</span><span class="p">(</span><span class="n">conda</span><span class="o">=</span><span class="s1">&#39;test.yaml&#39;</span><span class="p">)</span>
 <span class="n">task</span><span class="p">(</span><span class="n">ch1</span><span class="p">,</span> <span class="n">ch2</span><span class="p">,</span> <span class="n">ch3</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="n">env</span><span class="p">)</span>
 </pre></div>

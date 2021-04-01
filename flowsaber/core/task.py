@@ -30,18 +30,26 @@ class BaseTask(FlowComponent):
         self.num_out = num_out
         self._dependencies: Optional[dict] = None
 
+    def __call__(self, *args, **kwargs) -> TaskOutput:
+        task = self.copy_new(*args, **kwargs)
+        up_flow = context.up_flow
+        assert task not in up_flow._tasks
+        up_flow._tasks.setdefault(task, {})
+
+        return task._output
+
+    def copy_new(self, *args, **kwargs):
+        new = super().copy_new(*args, **kwargs)
+        new.initialize_output()
+        new.register_graph(new._input.queues)
+        return new
+
     def initialize_input(self, *args, **kwargs) -> Consumer:
         super().initialize_input(*args, **kwargs)
         channels = list(args) + list(kwargs.values())
         self._input = Consumer.from_channels(channels, consumer=self, task=self)
         self._dependencies = {}
         return self._input
-
-    def add_dependency(self, name: str, channel: Channel):
-        assert name not in self._dependencies
-        self._dependencies[name] = channel
-        self._input.add_channel(channel, consumer=self)
-        self.register_graph([self._input.queues[-1]])
 
     def initialize_output(self) -> TaskOutput:
         self._output = tuple(Channel(task=self) for i in range(self.num_out))
@@ -64,19 +72,11 @@ class BaseTask(FlowComponent):
                 g.node(src_name, shape=shape, **kwargs)
             g.edge(src_name, self.identity_name)
 
-    def copy_new(self, *args, **kwargs):
-        new = super().copy_new(*args, **kwargs)
-        new.initialize_output()
-        new.register_graph(new._input.queues)
-        return new
-
-    def __call__(self, *args, **kwargs) -> TaskOutput:
-        task = self.copy_new(*args, **kwargs)
-        up_flow = context.up_flow
-        assert task not in up_flow._tasks
-        up_flow._tasks.setdefault(task, {})
-
-        return task._output
+    def add_dependency(self, name: str, channel: Channel):
+        assert name not in self._dependencies
+        self._dependencies[name] = channel
+        self._input.add_channel(channel, consumer=self)
+        self.register_graph([self._input.queues[-1]])
 
     async def execute(self, **kwargs):
         await super().execute(**kwargs)
@@ -161,34 +161,6 @@ class Task(BaseTask):
     def __getattr__(self, item):
         return getattr(self.config, item)
 
-    def skip(self, skip_fn: Callable):
-        assert callable(skip_fn)
-        self.skip_fn = skip_fn
-
-    def clean(self):
-        if hasattr(self, 'cache'):
-            self.cache.persist()
-
-    @property
-    def task_hash(self):
-        # get the task_hash of this task defined by the real source code of self.run
-        fn = self.run
-        # for wrapped func, use __source_func__ as a link
-        while hasattr(fn, '__source_func__'):
-            fn = fn.__source_func__
-        code = fn.__code__.co_code
-        annotations = getattr(fn, '__annotations__', None)
-
-        return tokenize(code, annotations)
-
-    @property
-    def input_hash_source(self) -> dict:
-        return {}
-
-    @property
-    def task_key(self):
-        return f"{self.__class__.__name__}-{self.task_hash}"
-
     def copy_new(self, *args, **kwargs):
         new: Task = super().copy_new(*args, **kwargs)
         # 4. update user defined config
@@ -249,13 +221,6 @@ class Task(BaseTask):
             task_state = scheduler.get_state(self)
             await task_state
 
-    async def enqueue_output(self, res):
-        if not isinstance(res, Skip):
-            logger.debug(f"{self} send {res} to output channel.")
-            await self._output.put(res)
-        else:
-            logger.debug(f"{self} skipped put output by SKIP")
-
     def create_run_args(self, data: Data) -> BoundArguments:
         # 1. build BoundArgument
         len_args = len(self._input_args)
@@ -268,24 +233,21 @@ class Task(BaseTask):
         run_args.apply_defaults()
         return run_args
 
-    @property
-    def cache(self) -> Cache:
-        create_cache = partial(get_cache_cls, self.config.cache_type, task=self)
-        caches = context.setdefault('__caches__', defaultdict(create_cache))
-        return caches[self.task_key]
+    async def need_skip(self, bound_args: BoundArguments) -> bool:
+        if self.skip_fn:
+            if inspect.iscoroutine(self.skip_fn):
+                return await self.skip_fn(**bound_args.arguments)
+            else:
+                return self.skip_fn(**bound_args.arguments)
+        else:
+            return False
 
-    @property
-    def executor(self) -> Executor:
-        executor_type = self.config.executor
-        executors = context.setdefault('__executors__', {})
-        if executor_type not in executors:
-            executors[executor_type] = get_executor(executor_type, config=self.config)
-
-        return executors[executor_type]
-
-    def run_key_lock(self, run_key: str):
-        locks = context.setdefault('__run_key_locks__', defaultdict(asyncio.Lock))
-        return locks[run_key]
+    async def enqueue_output(self, res):
+        if not isinstance(res, Skip):
+            logger.debug(f"{self} send {res} to output channel.")
+            await self._output.put(res)
+        else:
+            logger.debug(f"{self} skipped put output by SKIP")
 
     async def handle_input(self, run_args: BoundArguments, **kwargs):
         logger.debug(f"{self} start handle_input()")
@@ -373,6 +335,15 @@ class Task(BaseTask):
                     f.hash = new_hash
         return run_args
 
+    async def update_run_info(self, data: BoundArguments):
+        pass
+
+    def run(self, *args, **kwargs):
+        """
+        This function should be stateless
+        """
+        raise NotImplementedError
+
     async def check_run_output(self, res, is_cache: bool = False):
         # make sure each File's checksum didn't change
         if is_cache:
@@ -386,27 +357,56 @@ class Task(BaseTask):
                         raise CacheInvalidError(msg)
         return res
 
-    async def update_run_info(self, data: BoundArguments):
-        pass
+    @property
+    def task_key(self):
+        return f"{self.__class__.__name__}-{self.task_hash}"
 
-    async def need_skip(self, bound_args: BoundArguments) -> bool:
-        if self.skip_fn:
-            if inspect.iscoroutine(self.skip_fn):
-                return await self.skip_fn(**bound_args.arguments)
-            else:
-                return self.skip_fn(**bound_args.arguments)
-        else:
-            return False
+    @property
+    def task_hash(self):
+        # get the task_hash of this task defined by the real source code of self.run
+        fn = self.run
+        # for wrapped func, use __source_func__ as a link
+        while hasattr(fn, '__source_func__'):
+            fn = fn.__source_func__
+        code = fn.__code__.co_code
+        annotations = getattr(fn, '__annotations__', None)
 
-    def run(self, *args, **kwargs):
-        """
-        This function should be stateless
-        """
-        raise NotImplementedError
+        return tokenize(code, annotations)
+
+    @property
+    def cache(self) -> Cache:
+        create_cache = partial(get_cache_cls, self.config.cache_type, task=self)
+        caches = context.setdefault('__caches__', defaultdict(create_cache))
+        return caches[self.task_key]
+
+    @property
+    def executor(self) -> Executor:
+        executor_type = self.config.executor
+        executors = context.setdefault('__executors__', {})
+        if executor_type not in executors:
+            executors[executor_type] = get_executor(executor_type, config=self.config)
+
+        return executors[executor_type]
+
+    @property
+    def input_hash_source(self) -> dict:
+        return {}
 
     def run_key(self, input_hash):
         assert self.task_key is not None and Path(self.workdir).is_dir()
         return str(Path(self.workdir, input_hash))
+
+    def run_key_lock(self, run_key: str):
+        locks = context.setdefault('__run_key_locks__', defaultdict(asyncio.Lock))
+        return locks[run_key]
+
+    def skip(self, skip_fn: Callable):
+        assert callable(skip_fn)
+        self.skip_fn = skip_fn
+
+    def clean(self):
+        if hasattr(self, 'cache'):
+            self.cache.persist()
 
 
 class ShellTask(Task):
@@ -454,9 +454,6 @@ class ShellTask(Task):
 
         return new
 
-    def command(self, *args, **kwargs) -> str:
-        raise NotImplementedError
-
     async def update_run_info(self, data: BoundArguments):
         # run user defined function and get the true bash commands
         await super().update_run_info(data)
@@ -487,6 +484,9 @@ class ShellTask(Task):
             'cmd': cmd,
             'stdin': stdin
         })
+
+    def command(self, *args, **kwargs) -> str:
+        raise NotImplementedError
 
     def run(self, *args, **kwargs):
         """
@@ -588,12 +588,6 @@ class EnvTask(ShellTask):
             )
         return new
 
-    @property
-    def input_hash_source(self) -> dict:
-        return {
-            'env_hash': self.env_creator.hash
-        }
-
     def initialize_output(self) -> TaskOutput:
         self._output = ConstantChannel(task=self)
         return self._output
@@ -605,6 +599,12 @@ class EnvTask(ShellTask):
         Shell(cmd)
         self.env = env
         return env
+
+    @property
+    def input_hash_source(self) -> dict:
+        return {
+            'env_hash': self.env_creator.hash
+        }
 
 
 # decorator to make Task
