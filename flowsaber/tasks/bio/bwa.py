@@ -1,4 +1,4 @@
-from flowsaber.core import *
+from flowsaber import ShellTask, File
 
 
 class Bwa(ShellTask):
@@ -20,21 +20,6 @@ class Bwa(ShellTask):
         params_str = ' '.join(params) if params else ''
         bam = f"{fastq.stem}.bam"
         return bam
-
-
-class CWL(ShellTask):
-    def command(self, *args, **kwargs) -> str:
-        raise NotImplementedError
-
-
-class CollectFile(ShellTask):
-    def command(self, *args, **kwargs) -> str:
-        raise NotImplementedError
-
-
-class SplitFasta(ShellTask):
-    def command(self, *args, **kwargs) -> str:
-        raise NotImplementedError
 
 
 bwa = Bwa()
