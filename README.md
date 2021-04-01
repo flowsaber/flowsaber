@@ -66,7 +66,7 @@ pip install flowsaber
 
 ### Example
 
-- A minimum working example consists most features and usages of `flowsaber`.
+- A minimal working example consists most features and usages of `flowsaber`.
 
 ```python
 import matplotlib.image as mpimg
