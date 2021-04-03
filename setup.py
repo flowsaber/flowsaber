@@ -65,10 +65,9 @@ setup(
     classifiers=classifiers,
     install_requires=requirements,
     extras_require={
-      'dev': [
+      'test': [
           'pytest',
           'pytest-cov',
-          'matplotlib',
           'httpimport',
           'autodocsumm',
           'pysam',

@@ -17,3 +17,5 @@ flowsaber.egg-info
 results/
 work/
 dask-worker-space/
+/*png
+/*svg

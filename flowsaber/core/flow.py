@@ -4,7 +4,7 @@ from typing import Union, Dict, Optional
 
 from graphviz import Digraph
 
-from flowsaber.context import context
+from flowsaber.core.context import context
 from flowsaber.utility.logtool import get_logger
 from flowsaber.utility.utils import class_deco, TaskOutput
 from .base import FlowComponent

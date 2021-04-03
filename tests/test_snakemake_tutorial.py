@@ -7,7 +7,7 @@ from flowsaber import *
 
 def test_snakemake_workflow():
     # EnvTask is the real dependent task when using conda/image option
-    EnvTask.DEFAULT_CONFIG = {'workdir': '/tmp/Env'}  # make the EnvTask cache at a global place
+    EnvTask.DEFAULT_CONFIG = {'workdir': '/tmp/Env', 'retry': 3}  # make the EnvTask cache at a global place
 
     @shell(conda="bwa=0.7.17 samtools=1.9")
     def bwa(self, fa: File, fastq: File):  # input will be automatically converted if has type annotation

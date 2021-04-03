@@ -2,7 +2,7 @@ import hashlib
 from pathlib import Path
 from typing import Union
 
-from flowsaber.context import context
+from flowsaber.core.context import context
 from flowsaber.utility.logtool import get_logger
 
 logger = get_logger(__name__)
