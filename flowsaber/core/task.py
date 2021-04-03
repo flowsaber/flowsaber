@@ -10,7 +10,7 @@ from typing import Optional, Callable, Sequence
 
 from dask.base import tokenize
 
-from flowsaber.context import context, config as flow_config
+from flowsaber.core.context import context, config as flow_config
 from flowsaber.core.cache import get_cache_cls, CacheInvalidError, Cache
 from flowsaber.core.env import Env, EnvCreator
 from flowsaber.core.executor import Executor

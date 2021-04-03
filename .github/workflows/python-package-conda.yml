@@ -20,7 +20,7 @@ jobs:
         echo $CONDA/bin >> $GITHUB_PATH
     - name: Install dependencies
       run: |
-        $CONDA/bin/pip install -e .[dev]
+        $CONDA/bin/pip install -e .[test]
     - name: Lint with flake8
       run: |
         conda install flake8
@@ -32,7 +32,7 @@ jobs:
       run: |
         export PATH=$CONDA/bin:$PATH
         $CONDA/bin/conda install --yes pytest
-        $CONDA/bin/conda install -c anaconda graphviz --yes
+        $CONDA/bin/conda install -c anaconda graphviz pysam matplotlib --yes
         $CONDA/bin/conda install -c conda-forge --yes pytest-tornasync
         $CONDA/bin/pytest --cov=./ -s -o log_cli=True -vvvv --cov-report=xml tests/
     - name: "Upload coverage to Codecov"

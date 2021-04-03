@@ -1,7 +1,7 @@
 __version__ = '0.1.3.3'
 
 from flowsaber.tasks.operators import *
-from .context import *
+from flowsaber.core.context import *
 from .core import *
 from .utility.logtool import *
 from .utility.utils import *

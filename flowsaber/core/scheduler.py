@@ -13,7 +13,7 @@ from rich.progress import (
     TimeElapsedColumn
 )
 
-from flowsaber.context import config
+from flowsaber.core.context import config
 from flowsaber.core.base import TaskConfig
 from flowsaber.utility.logtool import get_logger
 

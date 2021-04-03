@@ -174,168 +174,9 @@
 <h1>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="module-flowsaber.core.task">
 <span id="task"></span><h2>Task<a class="headerlink" href="#module-flowsaber.core.task" title="Permalink to this headline">¶</a></h2>
-<p><strong>Functions:</strong></p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.task.shell" title="flowsaber.core.task.shell"><code class="xref py py-obj docutils literal notranslate"><span class="pre">shell</span></code></a>([fn])</p></td>
-<td><p>For base_cls is Task, method_name isrun</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.task.task" title="flowsaber.core.task.task"><code class="xref py py-obj docutils literal notranslate"><span class="pre">task</span></code></a>([fn])</p></td>
-<td><p>For base_cls is Task, method_name isrun</p></td>
-</tr>
-</tbody>
-</table>
-<dl class="py function">
-<dt id="flowsaber.core.task.shell">
-<code class="sig-prename descclassname">flowsaber.core.task.</code><code class="sig-name descname">shell</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.shell" title="Permalink to this definition">¶</a></dt>
-<dd><p>For base_cls is Task, method_name isrun</p>
-<dl>
-<dt>wrap  no-self argument function</dt><dd><p>&#64;deco
-def test(a, b, c) -&gt; d:</p>
-<blockquote>
-<div><p>“doc”
-pass</p>
-</div></blockquote>
-</dd>
-<dt>into a Class:</dt><dd><dl class="simple">
-<dt>class Test(Task):</dt><dd><dl class="simple">
-<dt>defrun(self, a, b, c) -&gt; d:</dt><dd><p>“doc”
-return test(a, b, c)</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd>
-<dt>and return:</dt><dd><p>Test()</p>
-</dd>
-<dt>wrap with-self argument function</dt><dd><p>&#64;deco
-def test(self, a, b, c) -&gt; d:</p>
-<blockquote>
-<div><p>“doc”
-pass</p>
-</div></blockquote>
-</dd>
-<dt>into a Class:</dt><dd><dl class="simple">
-<dt>class Test(Task):</dt><dd><dl class="simple">
-<dt>defrun(self, a, b, c) -&gt; d:</dt><dd><p>“doc”
-return test(self, a, b, c)</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd>
-<dt>and return:</dt><dd><p>Test()</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt id="flowsaber.core.task.task">
-<code class="sig-prename descclassname">flowsaber.core.task.</code><code class="sig-name descname">task</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.task" title="Permalink to this definition">¶</a></dt>
-<dd><p>For base_cls is Task, method_name isrun</p>
-<dl>
-<dt>wrap  no-self argument function</dt><dd><p>&#64;deco
-def test(a, b, c) -&gt; d:</p>
-<blockquote>
-<div><p>“doc”
-pass</p>
-</div></blockquote>
-</dd>
-<dt>into a Class:</dt><dd><dl class="simple">
-<dt>class Test(Task):</dt><dd><dl class="simple">
-<dt>defrun(self, a, b, c) -&gt; d:</dt><dd><p>“doc”
-return test(a, b, c)</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd>
-<dt>and return:</dt><dd><p>Test()</p>
-</dd>
-<dt>wrap with-self argument function</dt><dd><p>&#64;deco
-def test(self, a, b, c) -&gt; d:</p>
-<blockquote>
-<div><p>“doc”
-pass</p>
-</div></blockquote>
-</dd>
-<dt>into a Class:</dt><dd><dl class="simple">
-<dt>class Test(Task):</dt><dd><dl class="simple">
-<dt>defrun(self, a, b, c) -&gt; d:</dt><dd><p>“doc”
-return test(self, a, b, c)</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd>
-<dt>and return:</dt><dd><p>Test()</p>
-</dd>
-</dl>
-</dd></dl>
-
 </div>
 <div class="section" id="module-flowsaber.core.flow">
 <span id="flow"></span><h2>Flow<a class="headerlink" href="#module-flowsaber.core.flow" title="Permalink to this headline">¶</a></h2>
-<p><strong>Functions:</strong></p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.flow.flow" title="flowsaber.core.flow.flow"><code class="xref py py-obj docutils literal notranslate"><span class="pre">flow</span></code></a>([fn])</p></td>
-<td><p>For base_cls is Task, method_name isrun</p></td>
-</tr>
-</tbody>
-</table>
-<dl class="py function">
-<dt id="flowsaber.core.flow.flow">
-<code class="sig-prename descclassname">flowsaber.core.flow.</code><code class="sig-name descname">flow</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.flow.flow" title="Permalink to this definition">¶</a></dt>
-<dd><p>For base_cls is Task, method_name isrun</p>
-<dl>
-<dt>wrap  no-self argument function</dt><dd><p>&#64;deco
-def test(a, b, c) -&gt; d:</p>
-<blockquote>
-<div><p>“doc”
-pass</p>
-</div></blockquote>
-</dd>
-<dt>into a Class:</dt><dd><dl class="simple">
-<dt>class Test(Task):</dt><dd><dl class="simple">
-<dt>defrun(self, a, b, c) -&gt; d:</dt><dd><p>“doc”
-return test(a, b, c)</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd>
-<dt>and return:</dt><dd><p>Test()</p>
-</dd>
-<dt>wrap with-self argument function</dt><dd><p>&#64;deco
-def test(self, a, b, c) -&gt; d:</p>
-<blockquote>
-<div><p>“doc”
-pass</p>
-</div></blockquote>
-</dd>
-<dt>into a Class:</dt><dd><dl class="simple">
-<dt>class Test(Task):</dt><dd><dl class="simple">
-<dt>defrun(self, a, b, c) -&gt; d:</dt><dd><p>“doc”
-return test(self, a, b, c)</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd>
-<dt>and return:</dt><dd><p>Test()</p>
-</dd>
-</dl>
-</dd></dl>
-
 </div>
 <div class="section" id="module-flowsaber.core.channel">
 <span id="channel"></span><h2>Channel<a class="headerlink" href="#module-flowsaber.core.channel" title="Permalink to this headline">¶</a></h2>
@@ -360,271 +201,13 @@ return test(self, a, b, c)</p>
 </div>
 <div class="section" id="operators">
 <h2>Operators<a class="headerlink" href="#operators" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-flowsaber.operators"></span><p><strong>Classes:</strong></p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.operators.Branch" title="flowsaber.operators.Branch"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Branch</span></code></a>(num, by, **kwargs)</p></td>
-<td><p>Dispatch _input into specified number of channels base on the returned index of the predicate function.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.operators.Collect" title="flowsaber.operators.Collect"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Collect</span></code></a>(num_out, **kwargs)</p></td>
-<td><p>Opposite to flatten, turns a channel into a tuple</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.operators.Concat" title="flowsaber.operators.Concat"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Concat</span></code></a>(num_out, **kwargs)</p></td>
-<td><p>Data in channels are concatenated in the order of _input channels.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.operators.Count" title="flowsaber.operators.Count"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Count</span></code></a>(**kwargs)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.operators.Distinct" title="flowsaber.operators.Distinct"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Distinct</span></code></a>(**kwargs)</p></td>
-<td><p>Remove continuously duplicated item.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.operators.Filter" title="flowsaber.operators.Filter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Filter</span></code></a>(by, bool], object] = &gt;, **kwargs)</p></td>
-<td><p>Filter item by the predicate function or the comparing identity.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.operators.First" title="flowsaber.operators.First"><code class="xref py py-obj docutils literal notranslate"><span class="pre">First</span></code></a>(**kwargs)</p></td>
-<td><p>Take the first item</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.operators.Flatten" title="flowsaber.operators.Flatten"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Flatten</span></code></a>(max_level, **kwargs)</p></td>
-<td><p>Flatten the _output of channel.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.operators.Group" title="flowsaber.operators.Group"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Group</span></code></a>(by, num, keep, **kwargs)</p></td>
-<td><p>return a new channel with item of Tuple(key_fn(_input), grouped_data_tuple), the group size can be specified.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.operators.Last" title="flowsaber.operators.Last"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Last</span></code></a>(**kwargs)</p></td>
-<td><p>Take the last item</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.operators.Map" title="flowsaber.operators.Map"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Map</span></code></a>(by, **kwargs)</p></td>
-<td><p>Map each item to another item return by the specified map function into a new channel.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.operators.Max" title="flowsaber.operators.Max"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Max</span></code></a>(result, **kwargs)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.operators.Merge" title="flowsaber.operators.Merge"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Merge</span></code></a>(num_out, **kwargs)</p></td>
-<td><p>Merge channels into a channel with _output of tuple.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.operators.Min" title="flowsaber.operators.Min"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Min</span></code></a>(result, **kwargs)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.operators.Mix" title="flowsaber.operators.Mix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Mix</span></code></a>(num_out, **kwargs)</p></td>
-<td><p>Data emitted bu channels are mixed into a single channel.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.operators.Reduce" title="flowsaber.operators.Reduce"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Reduce</span></code></a>(by, Any], Any][, result])</p></td>
-<td><p>Similar to normal reduce.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.operators.Sample" title="flowsaber.operators.Sample"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Sample</span></code></a>(num, **kwargs)</p></td>
-<td><p>Randomly sample at most <cite>num</cite> number of _input emitted by the channel using reservoir algorithm(should visit all elements.).</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.operators.Select" title="flowsaber.operators.Select"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Select</span></code></a>(index, **kwargs)</p></td>
-<td><p>Similar to split, used for tuple/list _output, select will only _output one channel, with the selected index</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.operators.Split" title="flowsaber.operators.Split"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Split</span></code></a>(num, **kwargs)</p></td>
-<td><p>Used when _output is tuple/list, use split to split each item of the tuple into a unique channel.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.operators.Subscribe" title="flowsaber.operators.Subscribe"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Subscribe</span></code></a>(on_next, on_complete, **kwargs)</p></td>
-<td><p>specify on_next or on_complete function as callbacks of these two event.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.operators.Sum" title="flowsaber.operators.Sum"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Sum</span></code></a>(**kwargs)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.operators.Take" title="flowsaber.operators.Take"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Take</span></code></a>(num, **kwargs)</p></td>
-<td><p>Only take the first <cite>num</cite> number of items</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.operators.Unique" title="flowsaber.operators.Unique"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Unique</span></code></a>(**kwargs)</p></td>
-<td><p>Emit items at most once(no duplicate).</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.operators.Until" title="flowsaber.operators.Until"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Until</span></code></a>(by, bool], object], **kwargs)</p></td>
-<td><p>“Take items until meet a stop marker.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.operators.View" title="flowsaber.operators.View"><code class="xref py py-obj docutils literal notranslate"><span class="pre">View</span></code></a>(**kwargs)</p></td>
-<td><p>Print each item emitted by the channel, Equals to call Subscribe(on_next=print)</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.operators.var" title="flowsaber.operators.var"><code class="xref py py-obj docutils literal notranslate"><span class="pre">var</span></code></a></p></td>
-<td><p>alias of <a class="reference internal" href="#flowsaber.operators.Count" title="flowsaber.operators.Count"><code class="xref py py-class docutils literal notranslate"><span class="pre">flowsaber.operators.Count</span></code></a></p></td>
-</tr>
-</tbody>
-</table>
-<dl class="py class">
-<dt id="flowsaber.operators.Branch">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.operators.</code><code class="sig-name descname">Branch</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">num</span><span class="p">:</span> <span class="n">int</span></em>, <em class="sig-param"><span class="n">by</span><span class="p">:</span> <span class="n">Callable</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.operators.Branch" title="Permalink to this definition">¶</a></dt>
-<dd><p>Dispatch _input into specified number of channels base on the returned index of the predicate function.</p>
-</dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.operators.Collect">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.operators.</code><code class="sig-name descname">Collect</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">num_out</span><span class="p">:</span> <span class="n">int</span> <span class="o">=</span> <span class="default_value">1</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.operators.Collect" title="Permalink to this definition">¶</a></dt>
-<dd><p>Opposite to flatten, turns a channel into a tuple</p>
-</dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.operators.Concat">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.operators.</code><code class="sig-name descname">Concat</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">num_out</span><span class="p">:</span> <span class="n">int</span> <span class="o">=</span> <span class="default_value">1</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.operators.Concat" title="Permalink to this definition">¶</a></dt>
-<dd><p>Data in channels are concatenated in the order of _input channels.</p>
-</dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.operators.Count">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.operators.</code><code class="sig-name descname">Count</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.operators.Count" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.operators.Distinct">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.operators.</code><code class="sig-name descname">Distinct</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.operators.Distinct" title="Permalink to this definition">¶</a></dt>
-<dd><p>Remove continuously duplicated item.</p>
-</dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.operators.Filter">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.operators.</code><code class="sig-name descname">Filter</code><span class="sig-paren">(</span><em class="sig-param">by: Union[Callable[[Any], bool], object] = &lt;function Filter.&lt;lambda&gt;&gt;, **kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.operators.Filter" title="Permalink to this definition">¶</a></dt>
-<dd><p>Filter item by the predicate function or the comparing identity.</p>
-</dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.operators.First">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.operators.</code><code class="sig-name descname">First</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.operators.First" title="Permalink to this definition">¶</a></dt>
-<dd><p>Take the first item</p>
-</dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.operators.Flatten">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.operators.</code><code class="sig-name descname">Flatten</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">max_level</span><span class="p">:</span> <span class="n">int</span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.operators.Flatten" title="Permalink to this definition">¶</a></dt>
-<dd><p>Flatten the _output of channel.</p>
-</dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.operators.Group">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.operators.</code><code class="sig-name descname">Group</code><span class="sig-paren">(</span><em class="sig-param">by: Callable = &lt;function Group.&lt;lambda&gt;&gt;</em>, <em class="sig-param">num: int = 9999999999999999999999999999999999999999999999999999999999</em>, <em class="sig-param">keep: bool = True</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.operators.Group" title="Permalink to this definition">¶</a></dt>
-<dd><p>return a new channel with item of Tuple(key_fn(_input), grouped_data_tuple),
-the group size can be specified.</p>
-</dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.operators.Last">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.operators.</code><code class="sig-name descname">Last</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.operators.Last" title="Permalink to this definition">¶</a></dt>
-<dd><p>Take the last item</p>
-</dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.operators.Map">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.operators.</code><code class="sig-name descname">Map</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">by</span><span class="p">:</span> <span class="n">Callable</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.operators.Map" title="Permalink to this definition">¶</a></dt>
-<dd><p>Map each item to another item return by the specified map function into a new channel.</p>
-</dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.operators.Max">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.operators.</code><code class="sig-name descname">Max</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">result</span><span class="p">:</span> <span class="n">float</span> <span class="o">=</span> <span class="default_value">- 999999999999999999999999999999999999999999999999999999999</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.operators.Max" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.operators.Merge">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.operators.</code><code class="sig-name descname">Merge</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">num_out</span><span class="p">:</span> <span class="n">int</span> <span class="o">=</span> <span class="default_value">1</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.operators.Merge" title="Permalink to this definition">¶</a></dt>
-<dd><p>Merge channels into a channel with _output of tuple.
-Even if there is only one channel _input, always _output a tuple</p>
-</dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.operators.Min">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.operators.</code><code class="sig-name descname">Min</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">result</span><span class="p">:</span> <span class="n">float</span> <span class="o">=</span> <span class="default_value">9999999999999999999999999999999999999999999999999999999999</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.operators.Min" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.operators.Mix">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.operators.</code><code class="sig-name descname">Mix</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">num_out</span><span class="p">:</span> <span class="n">int</span> <span class="o">=</span> <span class="default_value">1</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.operators.Mix" title="Permalink to this definition">¶</a></dt>
-<dd><p>Data emitted bu channels are mixed into a single channel.</p>
-</dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.operators.Reduce">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.operators.</code><code class="sig-name descname">Reduce</code><span class="sig-paren">(</span><em class="sig-param">by: Callable[[Any, Any], Any], result=&lt;object object&gt;, **kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.operators.Reduce" title="Permalink to this definition">¶</a></dt>
-<dd><p>Similar to normal reduce. results = f(n, f(n - 1))</p>
-</dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.operators.Sample">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.operators.</code><code class="sig-name descname">Sample</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">num</span><span class="p">:</span> <span class="n">int</span> <span class="o">=</span> <span class="default_value">1</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.operators.Sample" title="Permalink to this definition">¶</a></dt>
-<dd><p>Randomly sample at most <cite>num</cite> number of _input emitted by the channel
-using reservoir algorithm(should visit all elements.).</p>
-</dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.operators.Select">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.operators.</code><code class="sig-name descname">Select</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">index</span><span class="p">:</span> <span class="n">int</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.operators.Select" title="Permalink to this definition">¶</a></dt>
-<dd><p>Similar to split, used for tuple/list _output, select will only _output one channel, with the selected index</p>
-</dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.operators.Split">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.operators.</code><code class="sig-name descname">Split</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">num</span><span class="p">:</span> <span class="n">int</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.operators.Split" title="Permalink to this definition">¶</a></dt>
-<dd><p>Used when _output is tuple/list, use split to split each item of the tuple into a unique channel.</p>
-</dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.operators.Subscribe">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.operators.</code><code class="sig-name descname">Subscribe</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">on_next</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">on_complete</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.operators.Subscribe" title="Permalink to this definition">¶</a></dt>
-<dd><p>specify on_next or on_complete function as callbacks of these two event.</p>
-</dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.operators.Sum">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.operators.</code><code class="sig-name descname">Sum</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.operators.Sum" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.operators.Take">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.operators.</code><code class="sig-name descname">Take</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">num</span><span class="p">:</span> <span class="n">int</span> <span class="o">=</span> <span class="default_value">1</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.operators.Take" title="Permalink to this definition">¶</a></dt>
-<dd><p>Only take the first <cite>num</cite> number of items</p>
-</dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.operators.Unique">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.operators.</code><code class="sig-name descname">Unique</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.operators.Unique" title="Permalink to this definition">¶</a></dt>
-<dd><p>Emit items at most once(no duplicate).</p>
-</dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.operators.Until">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.operators.</code><code class="sig-name descname">Until</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">by</span><span class="p">:</span> <span class="n">Union<span class="p">[</span>Callable<span class="p">[</span><span class="p">[</span>Any<span class="p">]</span><span class="p">, </span>bool<span class="p">]</span><span class="p">, </span>object<span class="p">]</span></span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.operators.Until" title="Permalink to this definition">¶</a></dt>
-<dd><p>“Take items until meet a stop marker. the stop item will not be included</p>
-</dd></dl>
-
-<dl class="py class">
-<dt id="flowsaber.operators.View">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.operators.</code><code class="sig-name descname">View</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.operators.View" title="Permalink to this definition">¶</a></dt>
-<dd><p>Print each item emitted by the channel, Equals to call Subscribe(on_next=print)</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt id="flowsaber.operators.var">
-<code class="sig-prename descclassname">flowsaber.operators.</code><code class="sig-name descname">var</code><a class="headerlink" href="#flowsaber.operators.var" title="Permalink to this definition">¶</a></dt>
-<dd><p>alias of <a class="reference internal" href="#flowsaber.operators.Count" title="flowsaber.operators.Count"><code class="xref py py-class docutils literal notranslate"><span class="pre">flowsaber.operators.Count</span></code></a></p>
-</dd></dl>
-
 </div>
 <div class="section" id="module-flowsaber.tasks">
 <span id="tasks"></span><h2>Tasks<a class="headerlink" href="#module-flowsaber.tasks" title="Permalink to this headline">¶</a></h2>
 </div>
 <div class="section" id="module-flowsaber.context">
 <span id="context"></span><h2>Context<a class="headerlink" href="#module-flowsaber.context" title="Permalink to this headline">¶</a></h2>
-<p>Modified from prefect.utilities.context</p>
-<p><strong>Classes:</strong></p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.context.Context" title="flowsaber.context.Context"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Context</span></code></a>(*args, **kwargs)</p></td>
-<td><p>A thread safe context store for Prefect _input.</p></td>
-</tr>
-</tbody>
-</table>
-<dl class="py class">
-<dt id="flowsaber.context.Context">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.context.</code><code class="sig-name descname">Context</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.context.Context" title="Permalink to this definition">¶</a></dt>
-<dd><p>A thread safe context store for Prefect _input.</p>
+<p>A thread safe context store for Prefect _input.</p>
 <p>The <cite>Context</cite> is a <cite>DotDict</cite> subclass, and can be instantiated the same way.</p>
 <dl class="simple">
 <dt>Args:</dt><dd><ul class="simple">
@@ -637,8 +220,6 @@ using reservoir algorithm(should visit all elements.).</p>
 </ul>
 </dd>
 </dl>
-</dd></dl>
-
 </div>
 <div class="section" id="module-flowsaber.core.target">
 <span id="target"></span><h2>Target<a class="headerlink" href="#module-flowsaber.core.target" title="Permalink to this headline">¶</a></h2>
@@ -754,6 +335,145 @@ return True.</p>
 </div>
 <div class="section" id="module-flowsaber.core.executor">
 <span id="executor"></span><h2>Executor<a class="headerlink" href="#module-flowsaber.core.executor" title="Permalink to this headline">¶</a></h2>
+<p>Borrowed from prefect.executors.dask</p>
+<p><strong>Classes:</strong></p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.executor.DaskExecutor" title="flowsaber.core.executor.DaskExecutor"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DaskExecutor</span></code></a>(address, cluster_class, …)</p></td>
+<td><p>An executor that runs all functions using the <cite>dask.distributed</cite> scheduler.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py class">
+<dt id="flowsaber.core.executor.DaskExecutor">
+<em class="property">class </em><code class="sig-prename descclassname">flowsaber.core.executor.</code><code class="sig-name descname">DaskExecutor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">address</span><span class="p">:</span> <span class="n">str</span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">cluster_class</span><span class="p">:</span> <span class="n">Union<span class="p">[</span>str<span class="p">, </span>Callable<span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">cluster_kwargs</span><span class="p">:</span> <span class="n">dict</span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">adapt_kwargs</span><span class="p">:</span> <span class="n">dict</span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">client_kwargs</span><span class="p">:</span> <span class="n">dict</span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">debug</span><span class="p">:</span> <span class="n">bool</span> <span class="o">=</span> <span class="default_value">False</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.executor.DaskExecutor" title="Permalink to this definition">¶</a></dt>
+<dd><p>An executor that runs all functions using the <cite>dask.distributed</cite> scheduler.</p>
+<p>Check <a class="reference external" href="https://docs.dask.org/en/latest/setup.html">https://docs.dask.org/en/latest/setup.html</a> for all kinds of cluster types.</p>
+<p>By default a temporary <cite>distributed.LocalCluster</cite> is created (and
+subsequently torn down) within the <cite>start_loop()</cite> contextmanager. To use a
+different cluster class (e.g.
+[<cite>dask_kubernetes.KubeCluster</cite>](<a class="reference external" href="https://kubernetes.dask.org/">https://kubernetes.dask.org/</a>)), you can
+specify <cite>cluster_class</cite>/<cite>cluster_kwargs</cite>.</p>
+<p>Alternatively, if you already have a dask cluster running, you can provide
+the address of the scheduler via the <cite>address</cite> kwarg.</p>
+<p>Note that if you have tasks with tags of the form <cite>“dask-resource:KEY=NUM”</cite>
+they will be parsed and passed as
+[Worker Resources](<a class="reference external" href="https://distributed.dask.org/en/latest/resources.html">https://distributed.dask.org/en/latest/resources.html</a>)
+of the form <cite>{“KEY”: float(NUM)}</cite> to the Dask Scheduler.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><ul class="simple">
+<li><dl class="simple">
+<dt>address (string, optional): address of a currently running dask</dt><dd><p>scheduler; if one is not provided, a temporary cluster will be
+created in <cite>executor.start_loop()</cite>.  Defaults to <cite>None</cite>.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>cluster_class (string or callable, optional): the cluster class to use</dt><dd><p>when creating a temporary dask cluster. Can be either the full
+class name (e.g. <cite>“distributed.LocalCluster”</cite>), or the class itself.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>cluster_kwargs (dict, optional): addtional kwargs to pass to the</dt><dd><p><cite>cluster_class</cite> when creating a temporary dask cluster.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>adapt_kwargs (dict, optional): additional kwargs to pass to <cite>cluster.adapt</cite></dt><dd><p>when creating a temporary dask cluster. Note that adaptive scaling
+is only enabled if <cite>adapt_kwargs</cite> are provided.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>client_kwargs (dict, optional): additional kwargs to use when creating a</dt><dd><p>[<cite>dask.distributed.Client</cite>](<a class="reference external" href="https://distributed.dask.org/en/latest/api.html#client">https://distributed.dask.org/en/latest/api.html#client</a>).</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>debug (bool, optional): When running with a local cluster, setting</dt><dd><p><cite>debug=True</cite> will increase dask’s logging level, providing
+potentially useful debug info. Defaults to the <cite>debug</cite> value in
+your Prefect configuration.</p>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+<p>Examples:</p>
+<p>Using a temporary local dask cluster:</p>
+<p><code class="docutils literal notranslate"><span class="pre">`python</span>
+<span class="pre">executor</span> <span class="pre">=</span> <span class="pre">DaskExecutor()</span>
+<span class="pre">`</span></code></p>
+<p>Using a temporary cluster running elsewhere. Any Dask cluster class should
+work, here we use [dask-cloudprovider](<a class="reference external" href="https://cloudprovider.dask.org">https://cloudprovider.dask.org</a>):</p>
+<p><a href="#id5"><span class="problematic" id="id6">``</span></a><a href="#id7"><span class="problematic" id="id8">`</span></a>python
+executor = DaskExecutor(</p>
+<blockquote>
+<div><p>cluster_class=”dask_cloudprovider.FargateCluster”,
+cluster_kwargs={</p>
+<blockquote>
+<div><p>“image”: “prefecthq/prefect:latest”,
+“n_workers”: 5,
+…</p>
+</div></blockquote>
+<p>},</p>
+</div></blockquote>
+<p>Connecting to an existing dask cluster</p>
+<p><code class="docutils literal notranslate"><span class="pre">`python</span>
+<span class="pre">executor</span> <span class="pre">=</span> <span class="pre">DaskExecutor(address=&quot;192.0.2.255:8786&quot;)</span>
+<span class="pre">`</span></code></p>
+<p><strong>Methods:</strong></p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.executor.DaskExecutor.run" title="flowsaber.core.executor.DaskExecutor.run"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code></a>(fn, *args[, extra_context])</p></td>
+<td><p>Submit a function to the executor for execution.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.executor.DaskExecutor.start" title="flowsaber.core.executor.DaskExecutor.start"><code class="xref py py-obj docutils literal notranslate"><span class="pre">start</span></code></a>()</p></td>
+<td><p>Context manager for initializing execution.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt id="flowsaber.core.executor.DaskExecutor.run">
+<em class="property">async </em><code class="sig-name descname">run</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span></em>, <em class="sig-param"><span class="n">extra_context</span><span class="p">:</span> <span class="n">dict</span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span></em><span class="sig-paren">)</span> &#x2192; concurrent.futures._base.Future<a class="headerlink" href="#flowsaber.core.executor.DaskExecutor.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Submit a function to the executor for execution. Returns a Future object.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><ul class="simple">
+<li><p>fn (Callable): function that is being submitted for execution</p></li>
+<li><p><a href="#id9"><span class="problematic" id="id10">*</span></a>args (Any): arguments to be passed to <cite>fn</cite></p></li>
+<li><dl class="simple">
+<dt>extra_context (dict, optional): an optional dictionary with extra information</dt><dd><p>about the submitted task</p>
+</dd>
+</dl>
+</li>
+<li><p><a href="#id11"><span class="problematic" id="id12">**</span></a>kwargs (Any): keyword arguments to be passed to <cite>fn</cite></p></li>
+</ul>
+</dd>
+<dt>Returns:</dt><dd><ul class="simple">
+<li><p>Future: a Future-like object that represents the computation of <cite>fn(*args, **kwargs)</cite></p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="flowsaber.core.executor.DaskExecutor.start">
+<code class="sig-name descname">start</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Iterator<span class="p">[</span>None<span class="p">]</span><a class="headerlink" href="#flowsaber.core.executor.DaskExecutor.start" title="Permalink to this definition">¶</a></dt>
+<dd><p>Context manager for initializing execution.</p>
+<p>Creates a <cite>dask.distributed.Client</cite> and yields it.</p>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 <div class="section" id="module-flowsaber.core.cache">
 <span id="cache"></span><h2>Cache<a class="headerlink" href="#module-flowsaber.core.cache" title="Permalink to this headline">¶</a></h2>

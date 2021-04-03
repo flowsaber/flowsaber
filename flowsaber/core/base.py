@@ -5,7 +5,7 @@ from typing import Optional, Union, List, Sequence
 
 from makefun import with_signature
 
-from flowsaber.context import context
+from flowsaber.core.context import context
 from flowsaber.core.channel import Consumer, Channel
 from flowsaber.utility.logtool import get_logger
 from flowsaber.utility.utils import TaskOutput
