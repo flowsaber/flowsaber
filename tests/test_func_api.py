@@ -75,8 +75,10 @@ def test_flow2():
         return '-'.join(str(k) for k in dic.keys())
 
     @shell(conda="bwa samtools")
-    def shell1(f: str):
-        Shell(f"echo  '{f}' > {f}")
+    def shell1(self, f: str):
+        Shell(f"echo  '{f}' > {f}\n"
+              f"pwd\n"
+              f"ls -lah")
         return f
 
     # @shell(image="docker://continuumio/miniconda", pubdir="results/shell2")
@@ -88,6 +90,7 @@ def test_flow2():
                cat  '{f}' >> {f1}
                cat '{f1}' >> {f2}
                cat '{f}' >> {f2}
+               pwd
               """)
         return f1, f2
 
@@ -103,14 +106,14 @@ def test_flow2():
 
     @flow
     def flow2(self, ch):
-        fch = shell1(ch)
+        fch = shell1(ch) | subscribe(lambda x: print(f"{shell1} output {x}"))
         f12 = shell2(fch)
         f1ch, f2ch = Split(num=2)(f12)
         return concat(f1ch, f2ch) | shell3
 
     @flow
     def myflow(a, b):
-        ch = flow1(a, b)
+        ch = flow1(a, b) | view
         return flow2(ch)
 
     fasta1_list = [uuid.uuid4() for i in range(10)]

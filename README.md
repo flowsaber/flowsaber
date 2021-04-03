@@ -116,6 +116,7 @@ workflow = my_flow(num=num_ch)
 # now can generate dag
 workflow.graph.render('quick_start_dag', view=False, format='png', cleanup=True)
 # try run the flow
+# if meet error, wrap code under if __name__ == '__main__':
 asyncio.run(flowsaber.run(workflow))
 
 # visualize the flow

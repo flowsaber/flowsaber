@@ -1,5 +1,5 @@
 import inspect
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional, Union, List, Sequence
 
@@ -123,27 +123,32 @@ class TaskConfig:
     workdir: str = "work"
     pubdir: Union[str, Sequence[str]] = None
     skip_error: bool = False
-    executor: str = 'ray'
     cache: bool = True
     cache_type: str = 'local'
     retry: int = 0
     fork: int = 7
     # resource
     cpu: int = 1
+    gpu: int = 0
     memory: int = 4
     time: int = 1
     io: int = 3
-    # shell task env
+    # env
     module: str = None
     conda: str = None
     image: str = None
     runtime: str = "singularity"
+    # executor
+    submit_kwargs: dict = field(default_factory=dict)
 
     def __getitem__(self, item):
         return self.__dict__[item]
 
-    def get(self):
-        return self.__dict__.get
+    def __getattr__(self, item):
+        if item in self.__dict__:
+            return self[item]
+        else:
+            return getattr(self.__dict__, item)
 
     def resources(self):
         resource_keys = ['cpu', 'memory', 'time', 'io']
@@ -158,10 +163,6 @@ class TaskConfig:
         for k, v in self.resources().items():
             if k in config:
                 config[k] += v
-
-    def update(self, dic: dict):
-        for k, v in dic.items():
-            setattr(self, k, v)
 
     def get_pubdirs(self):
         if not self.pubdir:

@@ -21,7 +21,7 @@ def get_logger(name, file_=sys.stderr, level=LOG_LEVEL):
 
     class NoParsingFilter(logging.Filter):
         def filter(self, record):
-            return True
+            return 'Shell1' in record.getMessage()
 
     log.addFilter(NoParsingFilter())
 

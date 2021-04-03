@@ -2,7 +2,7 @@ import hashlib
 from pathlib import Path
 from typing import Union
 
-from flowsaber.core.executor import get_executor
+from flowsaber.context import context
 from flowsaber.utility.logtool import get_logger
 
 logger = get_logger(__name__)
@@ -66,7 +66,8 @@ class File(Target):
 
     async def check_hash(self) -> bool:
         assert self.initialized
-        new_hash = await get_executor().run(self.calculate_hash)
+        executor = context['__executor__']
+        new_hash = await executor.run(self.calculate_hash)
         return new_hash == self.hash
 
     def initialize_hash(self):

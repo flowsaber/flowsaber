@@ -226,3 +226,15 @@ class Context(DotDict):
 context = Context()
 
 config = Context()
+
+config.update({
+    'executor': {
+        'executor_type': 'dask',
+        'address': None,
+        'cluster_class': None,
+        'cluster_kwargs': None,
+        'adapt_kwargs': None,
+        'client_kwargs': None,
+        'debug': False,
+    }
+})

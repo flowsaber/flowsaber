@@ -29,7 +29,7 @@ class Env(object):
 
     @staticmethod
     def exec_script_cmd(name: str, command: str, exec_cmd: str = "bash -e "):
-        script_name = f".__Env__{name}__.sh"
+        script_name = Path(f".__Env__{name}__.sh").resolve()
         with open(script_name, 'w') as f:
             f.write(command)
         return f"{exec_cmd} {script_name} ;"

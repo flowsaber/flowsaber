@@ -289,5 +289,5 @@ assemly = Channel.values('hg19')
 enzyme = Channel.values('dnpIII')
 
 runner, workflow = FlowRunner(hic_flow).run(inputs, assemly, enzyme)
-# runner.start()
+# runner.start_loop()
 workflow.graph.render('/store/qzhong/dag.test', view=True, format='pdf', cleanup=True)

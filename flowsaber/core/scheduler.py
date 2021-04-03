@@ -1,6 +1,7 @@
 import asyncio
 import inspect
 from collections import defaultdict
+from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from typing import Set, Callable, Dict, Awaitable, Any, TypeVar, Sequence, Optional, Coroutine
 
@@ -118,6 +119,7 @@ class Scheduler(object):
         self.solver = GaSolver()
         self.error_jobs = []
         self.running: Optional[asyncio.Event] = None
+        self.stopped: Optional[asyncio.Event] = None
         self.process = Progress(
             TextColumn("[bold blue]{task.fields[task]}", justify="right"),
             BarColumn(),
@@ -135,16 +137,17 @@ class Scheduler(object):
             TimeElapsedColumn()
         )
 
-    def __enter__(self):
-        self.process.start()
-        asyncio.ensure_future(self.start())
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        for task, state in self.tasks.items():
-            for job in state.running:
-                job.cancel()
-        self.stop()
+    @asynccontextmanager
+    async def start(self):
+        try:
+            asyncio.ensure_future(self.start_loop())
+            yield self
+        finally:
+            if self.running is not None:
+                self.running.clear()
+            if self.stopped is not None:
+                await self.stopped.wait()
+                self.stopped = None
 
     def submit(self, coro: Coroutine, task: Task, *args, **kwargs) -> Job:
         job = Job(coro, owner=task, *args, **kwargs)
@@ -167,15 +170,14 @@ class Scheduler(object):
         self.tasks[task].wait_q.put_nowait(1)
         return job
 
-    def stop(self):
-        if self.running is not None:
-            self.running.clear()
-
-    async def start(self, **kwargs):
+    async def start_loop(self, **kwargs):
         self.running = asyncio.Event()
         self.running.set()
-        while True:
+        self.stopped = asyncio.Event()
+        self.stopped.clear()
+        self.process.start()
 
+        while True:
             pending_jobs = self.valid_pending_jobs
             if not (len(self.running_jobs) and len(pending_jobs) < 3):
                 try:
@@ -194,13 +196,15 @@ class Scheduler(object):
                     raise job.exception()
             # break if not running and no pending and running jobs
             if not self.running.is_set() and len(self.running_jobs) + len(self.pending_jobs) == 0:
-                self.running = None
                 break
             await asyncio.sleep(self.wait_time)
 
         self.update_process()
         self.process.refresh()
         self.process.stop()
+
+        self.running = None
+        self.stopped.set()
 
     def run_job(self, job: Job):
         async def _run_job():

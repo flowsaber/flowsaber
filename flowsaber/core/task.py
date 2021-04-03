@@ -10,10 +10,10 @@ from typing import Optional, Callable, Sequence
 
 from dask.base import tokenize
 
-from flowsaber.context import context, config
+from flowsaber.context import context, config as flow_config
 from flowsaber.core.cache import get_cache_cls, CacheInvalidError, Cache
 from flowsaber.core.env import Env, EnvCreator
-from flowsaber.core.executor import get_executor, Executor
+from flowsaber.core.executor import Executor
 from flowsaber.core.target import File, Stdout, Stdin, END, Skip
 from flowsaber.utility.logtool import get_logger
 from flowsaber.utility.utils import change_cwd, class_deco, TaskOutput, Data, capture_local
@@ -166,12 +166,12 @@ class Task(BaseTask):
         # 4. update user defined config
         cls_name = new.__class__.__name__
         # update if has self's class name
-        if hasattr(config, cls_name) and isinstance(config[cls_name], dict):
-            new.config.update(config[cls_name])
+        if hasattr(flow_config, cls_name) and isinstance(flow_config[cls_name], dict):
+            new.config.update(flow_config[cls_name])
         # update if has self's base classes
         for base in self.__class__.__mro__:
-            if base in config:
-                new.config.update(config[base])
+            if base in flow_config:
+                new.config.update(flow_config[base])
 
         # set task_key and working directory
         # task key is the unique identifier of the task and task' working directory, cache, run_key_lock
@@ -281,7 +281,7 @@ class Task(BaseTask):
                         # clean task will not contain _xxx like attribute
                         # should maintain input/run specific information in self.run_info dict
                         clean_task = self.copy_clean()
-                        res = await self.executor.run(clean_task.run, **run_args.arguments)
+                        res = await self.executor.run(clean_task.run, **run_args.arguments, **self.config.submit_kwargs)
                     else:
                         # print(f"{self}  use cache")
                         pass
@@ -381,12 +381,9 @@ class Task(BaseTask):
 
     @property
     def executor(self) -> Executor:
-        executor_type = self.config.executor
-        executors = context.setdefault('__executors__', {})
-        if executor_type not in executors:
-            executors[executor_type] = get_executor(executor_type, config=self.config)
-
-        return executors[executor_type]
+        """Note: The executor can not use threads, otherwise functions relies on `os.getcwd()` may change at any time"""
+        assert '__executor__' in context.__dict__, "Executor not in flowsaber.context"
+        return context['__executor__']
 
     @property
     def input_hash_source(self) -> dict:
@@ -501,7 +498,6 @@ class ShellTask(Task):
         running_path = Path(run_key)
         pubdirs = self.config.get_pubdirs()
         with change_cwd(running_path) as path:
-
             # 2. run in environment, stdout and stderr are separated, stdout of other commands are redirected
             run_env_cmd = env.gen_cmd(str(cmd))
             stdout_file = (running_path / Path(f".__run__.stdout")).open('w')

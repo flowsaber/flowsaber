@@ -42,10 +42,10 @@ def get_install_requires():
 requirements = [
     'makefun',
     'graphviz',
-    'dask',
+    'rich',
     'cloudpickle',
-    'ray',
-    'rich'
+    'dask',
+    'distributed'
 ]
 
 setup(
@@ -71,7 +71,8 @@ setup(
           'matplotlib',
           'httpimport',
           'autodocsumm',
-          'loky'
+          'pysam',
+          'matplotlib'
       ]
     },
     python_requires='>=3.6, <4',

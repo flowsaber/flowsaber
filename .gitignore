@@ -1,9 +1,12 @@
-__pycache__/
 *.py[cod]
 *$py.class
+*pdf
 tests/work
 tests/results
+
+.__*
 .idea
+__pycache__/
 dist/
 build/
 flowsaber.egg-info
@@ -12,3 +15,5 @@ flowsaber.egg-info
 /docs/source/results
 .pytest_cache*
 results/
+work/
+dask-worker-space/
