@@ -75,7 +75,10 @@ setup(
       ],
       'server': {
           'ariadne',
-          'uvicorn'
+          'sqlalchemy',
+          'pydantic',
+          'uvicorn',
+          'pendulum'
         }
     },
     python_requires='>=3.6, <4',
