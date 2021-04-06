@@ -360,7 +360,7 @@ different cluster class (e.g.
 specify <cite>cluster_class</cite>/<cite>cluster_kwargs</cite>.</p>
 <p>Alternatively, if you already have a dask cluster running, you can provide
 the address of the scheduler via the <cite>address</cite> kwarg.</p>
-<p>Note that if you have tasks with tags of the form <cite>“dask-resource:KEY=NUM”</cite>
+<p>Note that if you have tasks with tags of the form <cite>“dask-accum_resource:KEY=NUM”</cite>
 they will be parsed and passed as
 [Worker Resources](<a class="reference external" href="https://distributed.dask.org/en/latest/resources.html">https://distributed.dask.org/en/latest/resources.html</a>)
 of the form <cite>{“KEY”: float(NUM)}</cite> to the Dask Scheduler.</p>

@@ -127,7 +127,7 @@ class TaskConfig:
     cache_type: str = 'local'
     retry: int = 0
     fork: int = 7
-    # resource
+    # accum_resource
     cpu: int = 1
     gpu: int = 0
     memory: int = 4

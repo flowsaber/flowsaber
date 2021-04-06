@@ -82,7 +82,7 @@ class DaskExecutor(Executor):
     Alternatively, if you already have a dask cluster running, you can provide
     the address of the scheduler via the `address` kwarg.
 
-    Note that if you have tasks with tags of the form `"dask-resource:KEY=NUM"`
+    Note that if you have tasks with tags of the form `"dask-accum_resource:KEY=NUM"`
     they will be parsed and passed as
     [Worker Resources](https://distributed.dask.org/en/latest/resources.html)
     of the form `{"KEY": float(NUM)}` to the Dask Scheduler.
@@ -347,7 +347,7 @@ class DaskExecutor(Executor):
         # infer from context if dask resources are being utilized
         task_tags = extra_context.get("task_tags", [])
         dask_resource_tags = [
-            tag for tag in task_tags if tag.lower().startswith("dask-resource")
+            tag for tag in task_tags if tag.lower().startswith("dask-accum_resource")
         ]
         if dask_resource_tags:
             resources = {}
