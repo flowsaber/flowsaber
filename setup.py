@@ -72,7 +72,11 @@ setup(
           'autodocsumm',
           'pysam',
           'matplotlib'
-      ]
+      ],
+      'server': {
+          'ariadne',
+          'uvicorn'
+        }
     },
     python_requires='>=3.6, <4',
 )

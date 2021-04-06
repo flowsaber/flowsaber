@@ -1,0 +1,84 @@
+extend type Query {
+
+    get_taskrun(taskrun_id: UUID!): taskrun!
+
+    get_flowrun(flowrun_id: UUID!): flowrun!
+
+    get_taskruns(input: get_taskruns_input): taskruns_id_payload!
+
+    get_flowruns(input: get_flowruns_input): flowruns_id_payload!
+}
+
+extend type Mutation {
+    update_flowrun_state(input: flowrun_state_input!): flowrun_state!
+
+    update_taskrun_state(input: taskrun_state_input!): taskrun_state!
+
+    create_flowrun(input: flowrun_input!): flowrun!
+
+    cancel_flowrun(flowrun_id: UUID): flowrun!
+
+    update_flowrun_heartbeat(flowrun_id: UUID): success_payload!
+
+    update_taskrun_heartbeat(taskrun_id: UUID): success_payload!
+}
+
+type taskruns_id_payload {
+    ids: [UUID]!
+}
+type flowruns_id_payload {
+    ids: [UUID]!
+}
+
+
+input get_flowruns_input {
+    id: UUID
+    name: String
+    labels: [String!]
+}
+
+input get_taskruns_input {
+    id: UUID
+    task_id: UUID
+}
+
+type taskrun {
+    id: UUID!
+    task_id: UUID!
+    state: taskrun_state
+}
+
+type flowrun {
+    id: UUID!
+    name: String!
+    labels: [String!]
+    context: JSON
+    state: flowrun_state!
+}
+
+
+input flowrun_input {
+    id: UUID
+    name: String
+    labels: [String!]
+    context: JSON
+}
+
+
+input flowrun_state_input {
+    state: JSON!
+}
+
+
+input taskrun_state_input {
+    state: JSON!
+}
+
+
+type taskrun_state {
+    state: JSON!
+}
+
+type flowrun_state {
+    state: JSON!
+}

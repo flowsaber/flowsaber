@@ -1,0 +1,24 @@
+scalar DateTime
+scalar JSON
+scalar UUID
+
+enum LogLevel {
+    DEBUG
+    INFO
+    WARNING
+    ERROR
+    CRITICAL
+}
+type Query {
+    hello: String
+}
+
+type Mutation {
+    test: success_payload!
+}
+
+
+type success_payload {
+    success: Boolean!
+    error: String
+}

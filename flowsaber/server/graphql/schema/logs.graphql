@@ -1,0 +1,14 @@
+extend type Mutation {
+    write_taskrun_logs(logs: [taskrun_log_input!]!): success_payload!
+
+}
+
+
+input taskrun_log_input {
+    taskrun_id: String!
+    flowrun_id: String!
+    level: LogLevel
+    time: DateTime
+    message: String
+    info: JSON
+}

@@ -1,0 +1,38 @@
+extend type Mutation {
+    create_flow(input: flow_input!): flow!
+
+    delete_flow(flow_id: UUID!): flow!
+
+}
+
+extend type Query {
+    get_flow(flow_id: UUID!): flow!
+    get_flows(input: get_flows_input!): flows_id_payload!
+}
+
+input get_flows_input {
+    id: UUID
+    labels: [String]
+}
+
+input flow_input {
+    id: UUID
+    name: String
+    labels: [String]
+    description: String
+    serialized_flow: JSON!
+    context: JSON
+}
+
+type flow {
+    id: UUID!
+    name: String!
+    labels: [String!]!
+    description: String
+    serialized_flow: JSON!
+    context: JSON
+}
+
+type flows_id_payload {
+    ids: [UUID!]!
+}
