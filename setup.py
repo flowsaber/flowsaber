@@ -69,9 +69,7 @@ setup(
           'pytest',
           'pytest-cov',
           'httpimport',
-          'autodocsumm',
-          'pysam',
-          'matplotlib'
+          'autodocsumm'
       ]
     },
     python_requires='>=3.6, <4',
