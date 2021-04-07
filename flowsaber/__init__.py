@@ -1,4 +1,4 @@
-__version__ = '0.1.3.3'
+__version__ = '0.1.3.4'
 
 from flowsaber.tasks.operators import *
 from flowsaber.core.context import *
