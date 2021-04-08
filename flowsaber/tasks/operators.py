@@ -12,8 +12,8 @@ Only Map and Reduce uses executor, other operators runs locally
 """
 
 Predicate = Callable[[Any], bool]
-POS_INF = 9999999999999999999999999999999999999999999999999999999999
-NEG_INF = -999999999999999999999999999999999999999999999999999999999
+POS_INF = float('inf')
+NEG_INF = float('-inf')
 
 
 class Merge(BaseTask):
