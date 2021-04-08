@@ -24,6 +24,16 @@ async def resolve_write_run_logs(obj: Any, info: GraphQLResolveInfo, logs: List[
         return {'success': True}
 
 
+@mutation.field('update_flowrun')
+async def update_flowrun_state(obj: Any, info: GraphQLResolveInfo, flowrun_state_input: Dict[str, str]) -> dict:
+    pass
+
+
+@mutation.field('update_taskrun')
+async def a():
+    pass
+
+
 class LogLevel(enum.IntEnum):
     DEBUG = 1
     INFO = 2

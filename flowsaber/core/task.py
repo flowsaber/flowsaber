@@ -4,22 +4,24 @@ import os
 import subprocess
 from collections import abc, defaultdict
 from functools import partial
-from inspect import BoundArguments, Parameter
+from inspect import Parameter
 from pathlib import Path
-from typing import Optional, Callable, Sequence
+from typing import Callable, Sequence
 
 from dask.base import tokenize
 
-from flowsaber.core.context import context, config as flow_config
-from flowsaber.core.cache import get_cache_cls, CacheInvalidError, Cache
-from flowsaber.core.env import Env, EnvCreator
 from flowsaber.core.executor import Executor
-from flowsaber.core.target import File, Stdout, Stdin, END, Skip
+from flowsaber.core.utils.cache import get_cache_cls, Cache
+from flowsaber.core.utils.context import context, config as flow_config
+from flowsaber.core.utils.env import Env, EnvCreator
+from flowsaber.core.utils.target import File, Stdout, Stdin, END
 from flowsaber.utility.logtool import get_logger
 from flowsaber.utility.utils import change_cwd, class_deco, TaskOutput, Data, capture_local
 from .base import FlowComponent, TaskConfig
 from .channel import Channel, Consumer, ConstantChannel, Queue
+from .runner.task_runner import get_task_runner_cls
 from .scheduler import Scheduler
+from .utils.state import *
 
 logger = get_logger(__name__)
 
@@ -197,29 +199,26 @@ class Task(BaseTask):
             run_args = self.create_run_args(run_data)
             depend_args = dict(zip(self._dependencies, depend_data))
             # initialize run_info
-            run_info = depend_args
-            # skip
-            if self.skip_fn and await self.need_skip(run_args):
-                # un-tuple if has only one argument
-                enqueue_data = run_data[0] if len_args == 1 else run_data
-                await self.enqueue_output(enqueue_data)
-            # or run
+            state = Pending(context=depend_args)
+            # submit to scheduler
+            if scheduler:
+                # create a clean task for ease of serialization
+                job = scheduler.submit(self.handle_input(run_args, state=state), task=self)
+                job.add_async_done_callback(self.handle_target_state)
+                if self.config.fork <= 1:
+                    await job
+                scheduled = True
+            # or in current loop
             else:
-                # submit to scheduler
-                if scheduler:
-                    # create a clean task for ease of serialization
-                    job = scheduler.submit(self.handle_input(run_args, run_info=run_info), task=self)
-                    job.add_async_done_callback(self.enqueue_output)
-                    if self.config.fork <= 1:
-                        await job
-                    scheduled = True
-                # or in current loop
-                else:
-                    res = await self.handle_input(run_args, run_info=run_info)
-                    await self.enqueue_output(res)
+                state = await self.handle_input(run_args, state=state)
+                await self.handle_target_state(state)
         if scheduler and scheduled:
-            task_state = scheduler.get_state(self)
-            await task_state
+            await scheduler.get_state(self)
+
+    async def handle_target_state(self, state):
+        assert isinstance(state, Done)
+        if isinstance(state, Success):
+            await self._output.put(state.result)
 
     def create_run_args(self, data: Data) -> BoundArguments:
         # 1. build BoundArgument
@@ -233,80 +232,34 @@ class Task(BaseTask):
         run_args.apply_defaults()
         return run_args
 
-    async def need_skip(self, bound_args: BoundArguments) -> bool:
+    def need_skip(self, bound_args: BoundArguments) -> bool:
         if self.skip_fn:
-            if inspect.iscoroutine(self.skip_fn):
-                return await self.skip_fn(**bound_args.arguments)
-            else:
-                return self.skip_fn(**bound_args.arguments)
+            return self.skip_fn(**bound_args.arguments)
         else:
             return False
 
-    async def enqueue_output(self, res):
-        if not isinstance(res, Skip):
-            logger.debug(f"{self} send {res} to output channel.")
-            await self._output.put(res)
-        else:
-            logger.debug(f"{self} skipped put output by SKIP")
-
-    async def handle_input(self, run_args: BoundArguments, **kwargs):
+    async def handle_input(self, run_args: BoundArguments, **kwargs) -> State:
         logger.debug(f"{self} start handle_input()")
-        self.run_info = kwargs.get('run_info', {})
 
         run_args = await self.check_run_args(run_args)
         input_hash = self.cache.hash(run_args, **self.input_hash_source)
         run_key = self.run_key(input_hash)
         logger.debug(f"{self} {run_args} {self.input_hash_source} {run_key}")
-        # get and set run_info
-        self.run_info.update({
-            'run_key': run_key,
-        })
-        await self.update_run_info(run_args)
 
-        errors = []
         # 1. set running info and lock key
         # must lock input key to avoid collision in cache and files in running path
         async with self.run_key_lock(run_key):
-            # try to use _cache
-            logger.debug(f"{self} get lock:{run_key}")
-            retry = self.config.retry + 1
-            while retry > 0:
-                try:
-                    no_cache = object()
-                    res = self.cache.get(run_key, no_cache)
-                    use_cache = res is not no_cache
-                    if not use_cache:
-                        # print(f"{self}  no use cache")
-                        # Important, need create a clean task, as serialization will included self
-                        # clean task will not contain _xxx like attribute
-                        # should maintain input/run specific information in self.run_info dict
-                        clean_task = self.copy_clean()
-                        res = await self.executor.run(clean_task.run, **run_args.arguments, **self.config.submit_kwargs)
-                    else:
-                        # print(f"{self}  use cache")
-                        pass
-                    res = await self.check_run_output(res, is_cache=use_cache)
-                except Exception as e:
-                    errors.append(e)
-                    # if it's caused by checking failed
-                    if isinstance(e, CacheInvalidError):
-                        logger.debug(f'{self} read cache:{run_key} with error: {CacheInvalidError}')
-                        self.cache.remove(run_key)
-                        retry += 1
-                else:
-                    if not use_cache:
-                        self.cache.put(run_key, res)
-                    break
-                retry -= 1
-            else:
-                if self.config.skip_error:
-                    res = Skip
-                else:
-                    raise errors[-1]
+            clean_task = self.copy_clean()
+            task_runner = get_task_runner_cls()(task=clean_task)
+            state = kwargs['state']
+            state.inputs = run_args
+            state.context.update({
+                'run_key': run_key
+            })
+            state = await self.executor.run(task_runner.run, state)
         logger.debug(f"{self} release lock:{run_key}")
         # 3. unset running info
-        self.run_info = {}
-        return res
+        return state
 
     async def check_run_args(self, run_args: BoundArguments) -> BoundArguments:
         run_params = dict(inspect.signature(self.run).parameters)
@@ -335,27 +288,14 @@ class Task(BaseTask):
                     f.hash = new_hash
         return run_args
 
-    async def update_run_info(self, data: BoundArguments):
-        pass
+    def get_run_info(self, data: BoundArguments) -> dict:
+        return {}
 
     def run(self, *args, **kwargs):
         """
         This function should be stateless
         """
         raise NotImplementedError
-
-    async def check_run_output(self, res, is_cache: bool = False):
-        # make sure each File's checksum didn't change
-        if is_cache:
-            values = [res] if not isinstance(res, (list, tuple, set)) else res
-            for f in [v for v in values if isinstance(v, File)]:
-                if f.initialized:
-                    check_hash = await self.executor.run(f.calculate_hash)
-                    if check_hash != f.hash:
-                        msg = f"Task {self.task_name} read cache failed from disk " \
-                              f"because file content task_hash changed."
-                        raise CacheInvalidError(msg)
-        return res
 
     @property
     def task_key(self):
@@ -451,23 +391,22 @@ class ShellTask(Task):
 
         return new
 
-    async def update_run_info(self, data: BoundArguments):
+    def get_run_info(self, data: BoundArguments) -> dict:
         # run user defined function and get the true bash commands
-        await super().update_run_info(data)
+        run_info = super().get_run_info(data)
         # find the real shell commands
-        with context():
-            with capture_local() as local_vars:
-                cmd_output = self.command(**data.arguments)
+        with context(), capture_local() as local_vars:
+            cmd_output = self.command(**data.arguments)
             cmd: str = context.get(self.SCRIPT_CMD, None)
-            # two options: 1. use Shell('cmd') 2. use __doc__ = 'cmd'
+        # two options: 1. use Shell('cmd') 2. use __doc__ = 'cmd'
+        if cmd is None:
+            cmd = self.command.__doc__
             if cmd is None:
-                cmd = self.command.__doc__
-                if cmd is None:
-                    raise ValueError("ShellTask must be registered with a shell script_cmd "
-                                     "by calling `_(CMD) or Bash(CMD)` inside the function or add the "
-                                     "script_cmd as the command() method's documentation by setting __doc__ ")
-                local_vars.update({'self': self})
-                cmd = cmd.format(**local_vars)
+                raise ValueError("ShellTask must be registered with a shell script_cmd "
+                                 "by calling `_(CMD) or Bash(CMD)` inside the function or add the "
+                                 "script_cmd as the command() method's documentation by setting __doc__ ")
+            local_vars.update({'self': self})
+            cmd = cmd.format(**local_vars)
         # check if there are _stdin
         stdin = ''
         for arg in list(data.args) + list(data.kwargs.values()):
@@ -476,11 +415,12 @@ class ShellTask(Task):
                     raise RuntimeError(f"Found two stdin inputs.")
                 stdin = arg
 
-        self.run_info.update({
+        run_info.update({
             'cmd_output': cmd_output,
             'cmd': cmd,
             'stdin': stdin
         })
+        return run_info
 
     def command(self, *args, **kwargs) -> str:
         raise NotImplementedError

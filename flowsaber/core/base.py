@@ -1,11 +1,11 @@
 import inspect
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional, Union, List, Sequence
+from typing import Optional, Union, List, Sequence, Callable
 
 from makefun import with_signature
 
-from flowsaber.core.context import context
+from flowsaber.core.utils.context import context
 from flowsaber.core.channel import Consumer, Channel
 from flowsaber.utility.logtool import get_logger
 from flowsaber.utility.utils import TaskOutput
@@ -51,6 +51,7 @@ class FlowComponent(object, metaclass=CopySigMeta):
         self._input_len: Optional[int] = None
         self._input: Optional[Consumer] = None
         self._output: Optional[TaskOutput] = None
+        self._state_handlers: List[Callable] = []
 
         self.name = name
         self.identity_name = ""
@@ -112,6 +113,8 @@ class FlowComponent(object, metaclass=CopySigMeta):
 
     def run(self, *args, **kwargs):
         return NotImplementedError
+
+
 
 
 @dataclass

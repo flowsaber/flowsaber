@@ -5,7 +5,7 @@ from typing import Sequence
 import psutil
 
 
-class ResourceCounter(Thread):
+class ResourceMonitor(Thread):
     STATIC_ATTRS = ['num_ctx_switches', 'cpu_times']
     # STATIC_ATTRS = ['num_ctx_switches', 'io_counters', 'cpu_times']
     DYNAMIC_ATTRS = ['cpu_percent', 'num_threads', 'num_fds', 'memory_percent', 'memory_full_info']

@@ -2,7 +2,7 @@ import hashlib
 from pathlib import Path
 from typing import Union
 
-from flowsaber.core.context import context
+from flowsaber.core.utils.context import context
 from flowsaber.utility.logtool import get_logger
 
 logger = get_logger(__name__)
@@ -120,16 +120,4 @@ class End(Target):
         return hash("[END]")
 
 
-class Skip(Target):
-    def __repr__(self):
-        return "[SKIP]"
-
-    def __copy__(self):
-        return self
-
-    def __hash__(self):
-        return hash("[SKIP]")
-
-
 END = End()
-SKIP = Skip()

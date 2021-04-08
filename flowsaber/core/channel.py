@@ -3,7 +3,7 @@ from collections import abc
 from queue import SimpleQueue
 from typing import Union, Sequence, Dict, Optional
 
-from flowsaber.core.target import END, End
+from flowsaber.core.utils.target import END, End
 from flowsaber.utility.logtool import get_logger
 
 logger = get_logger(__name__)
