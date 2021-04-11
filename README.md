@@ -54,7 +54,7 @@
 - Python based: Import/Compose/Modify Task/Flow objects at any time.
 - DAG generation.
 - Local Cache.
-- Clustering support based on ray.
+- Clustering support based on dask.
 - Conda and Container execution environment.
 
 
@@ -105,7 +105,7 @@ def my_flow(num):
 config.update({
     'cpu': 8,
     Task: {
-        'executor': 'ray'
+        'executor': 'dask'
     }
 })
 
