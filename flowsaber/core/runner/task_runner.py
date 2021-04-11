@@ -1,7 +1,7 @@
 import signal
 import time
 
-from .runner import Runner, call_state_change_handlers
+from .runner import Runner, call_state_change_handlers, catch_to_failure
 from ..utils.state import *
 from ..utils.target import *
 from ...utility.statutils import ResourceMonitor
@@ -18,43 +18,39 @@ class TaskRunner(Runner):
         state.context.update(run_info)
         return state
 
+    @call_state_change_handlers
+    @catch_to_failure
     def run(self, state: State) -> State:
-        try:
-            state = self.initialize_run(state)
-            state = self.set_running(state)
-            # 1. skip if needed
-            state = self.check_skip(state)
-            if isinstance(state, Skip):
+        state = self.initialize_run(state)
+        state = self.set_state(state, Running)
+        # 1. skip if needed
+        state = self.check_skip(state)
+        if isinstance(state, Skip):
+            return state
+        retry = self.task.config.get("retry", 1)
+        while True:
+            # 2. use cached result if needed
+            state = self.read_cache(state)
+            if isinstance(state, Cached):
                 return state
-            retry = self.task.config.get("retry", 1)
-            while True:
-                # 2. use cached result if needed
-                state = self.read_cache(state)
-                if isinstance(state, Cached):
-                    return state
-                # 3. run the task
-                state = self.run_task(state)
-                if isinstance(state, Failure):
-                    if retry > 0:
-                        self.logger.info(f"Run task: {self.task} failed, try to retry."
-                                         f"with {retry - 1} retrying left.")
-                        state = self.set_retrying(state)
-                        time.sleep(self.task.config.get('retry_wait_time', 3))
-                        state = self.set_running(state)
-                        retry -= 1
-                        continue
-                    elif self.task.config.get("skip_error", False):
-                        state = self.set_drop(state)
-                break
-            # 4. write to cache if needed
-            if isinstance(state, Success):
-                state = self.write_cache(state)
+            # 3. run the task
+            state = self.run_task(state)
+            if isinstance(state, Failure):
+                if retry > 0:
+                    self.logger.info(f"Run task: {self.task} failed, try to retry."
+                                     f"with {retry - 1} retrying left.")
+                    state = self.set_state(state, Retrying)
+                    time.sleep(self.task.config.get('retry_wait_time', 3))
+                    state = self.set_state(state, Running)
+                    retry -= 1
+                    continue
+                elif self.task.config.get("skip_error", False):
+                    state = self.set_state(state, Drop)
+            break
+        # 4. write to cache if needed
+        if isinstance(state, Success):
+            state = self.write_cache(state)
 
-        except Exception as exc:
-            e_str = f"Unexpected error: {exc} when calling task_runner.run"
-            if self.logger:
-                self.logger.exception(e_str)
-            state = Failure(result=exc, message=e_str)
         return state
 
     @call_state_change_handlers
@@ -90,32 +86,15 @@ class TaskRunner(Runner):
         return state
 
     @call_state_change_handlers
+    @catch_to_failure
     def run_task(self, state: State) -> State:
-        try:
-            with context(state.context), ResourceMonitor() as monitor:
-                res = self.run_task_timeout(**state.inputs.arguments)
-            state = Success.copy(state)
-            state.result = res
-            state.context['resource_usage'] = monitor.usage
-        except Exception as exc:
-            e_str = f"Unexpected error: {exc} when calling task_runner.run"
-            if self.logger:
-                self.logger.exception(e_str)
-            state = Failure(result=exc, message=e_str)
+        with context(state.context), ResourceMonitor() as monitor:
+            res = self.run_task_timeout(**state.inputs.arguments)
+        state = Success.copy(state)
+        state.result = res
+        state.context['resource_usage'] = monitor.usage
 
         return state
-
-    @call_state_change_handlers
-    def set_running(self, state) -> State:
-        return Running.copy(state)
-
-    @call_state_change_handlers
-    def set_retrying(self, state) -> State:
-        return Retrying.copy(state)
-
-    @call_state_change_handlers
-    def set_drop(self, state) -> State:
-        return Drop.copy(state)
 
     @call_state_change_handlers
     def write_cache(self, state):

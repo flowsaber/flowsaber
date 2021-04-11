@@ -1,24 +1,30 @@
-scalar DateTime
-scalar JSON
-scalar UUID
-
-enum LogLevel {
-    DEBUG
-    INFO
-    WARNING
-    ERROR
-    CRITICAL
-}
 type Query {
     hello: String
+
+    get_agent(agent_id: UUID!): agent!
+    get_agents: ids_payload!
+
+    get_flow(flow_id: UUID!): flow!
+    get_flows(input: get_flows_input!): ids_payload!
+
+    get_taskrun(taskrun_id: UUID!): taskrun!
+    get_taskruns(input: get_taskruns_input!): ids_payload!
+
+    get_flowrun(flowrun_id: UUID!): flowrun!
+    get_flowruns(input: get_flowruns_input!): ids_payload!
 }
 
 type Mutation {
-    test: success_payload!
-}
+    hello: success_payload!
 
+    register_agent(agent_id: UUID!): success_payload!
+    delete_agent(agent_id: UUID!): success_payload!
 
-type success_payload {
-    success: Boolean!
-    error: String
+    create_flow(input: flow_input!): flow!
+    delete_flow(flow_id: UUID!): flow!
+
+    update_flowrun(input: flowrun_input!): flowrun!
+    update_taskrun(input: taskrun_input!): taskrun!
+
+    write_taskrun_logs(logs: [taskrun_log_input!]!): success_payload!
 }

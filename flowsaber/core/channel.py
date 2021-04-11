@@ -324,7 +324,7 @@ class Consumer(Fetcher):
             else:
                 if ch.async_activated:
                     raise ValueError("Can not create consumer from activated Channel, try to create"
-                                     " the consumer before running the flow.")
+                                     " the consumer before _running the flow.")
         queues = [ch.create_queue(consumer=consumer) for ch in channels]
         return cls(queues, **kwargs)
 

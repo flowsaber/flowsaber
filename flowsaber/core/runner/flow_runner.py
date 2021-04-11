@@ -1,6 +1,7 @@
 import asyncio
 
 from .runner import *
+from ..scheduler import TaskScheduler
 from ..utils.state import *
 
 
@@ -11,25 +12,23 @@ class FlowRunner(Runner):
         self.flow = flow
 
     @call_state_change_handlers
-    def set_running(self, state):
-        return Running.copy(state)
+    @catch_to_failure
+    def run(self, state: State) -> State:
+        state = self.initialize_run(state)
+        state = self.set_state(state, Running)
+        state = self.run_flow(state)
+
+        return state
 
     @call_state_change_handlers
+    @catch_to_failure
     def run_flow(self, state):
-        res = asyncio.run(self.flow.execute())
+        res = asyncio.run(self.async_run_flow())
         state = Success.copy(state)
         state.result = res
         return state
 
-    def run(self, state) -> State:
-        try:
-            state = self.initialize_run(state)
-            state = self.set_running(state)
-            state = self.run_flow(state)
-        except Exception as exc:
-            e_str = f"Unexpected error: {exc} when calling flow_runner.run"
-            if self.logger:
-                self.logger.exception(e_str)
-            state = Failure(result=exc, message=e_str)
-
-        return state
+    async def async_run_flow(self):
+        async with TaskScheduler().start() as scheduler:
+            res = await self.flow.execute(scheduler=scheduler)
+        return res

@@ -20,7 +20,7 @@ from flowsaber.utility.utils import change_cwd, class_deco, TaskOutput, Data, ca
 from .base import FlowComponent, TaskConfig
 from .channel import Channel, Consumer, ConstantChannel, Queue
 from .runner.task_runner import get_task_runner_cls
-from .scheduler import Scheduler
+from .scheduler import TaskScheduler
 from .utils.state import *
 
 logger = get_logger(__name__)
@@ -185,7 +185,7 @@ class Task(BaseTask):
     async def handle_consumer(self, consumer: Consumer, **kwargs):
         # make working directory
         self.workdir.mkdir(parents=True, exist_ok=True)
-        scheduler: Scheduler = kwargs.get('scheduler')
+        scheduler: TaskScheduler = kwargs.get('scheduler')
         scheduled = False
 
         async for data in consumer:
@@ -246,8 +246,8 @@ class Task(BaseTask):
         run_key = self.run_key(input_hash)
         logger.debug(f"{self} {run_args} {self.input_hash_source} {run_key}")
 
-        # 1. set running info and lock key
-        # must lock input key to avoid collision in cache and files in running path
+        # 1. set _running info and lock key
+        # must lock input key to avoid collision in cache and files in _running path
         async with self.run_key_lock(run_key):
             clean_task = self.copy_clean()
             task_runner = get_task_runner_cls()(task=clean_task)
@@ -258,7 +258,7 @@ class Task(BaseTask):
             })
             state = await self.executor.run(task_runner.run, state)
         logger.debug(f"{self} release lock:{run_key}")
-        # 3. unset running info
+        # 3. unset _running info
         return state
 
     async def check_run_args(self, run_args: BoundArguments) -> BoundArguments:

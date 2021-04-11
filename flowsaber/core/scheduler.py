@@ -1,20 +1,11 @@
 import asyncio
 import inspect
-from collections import defaultdict
-from contextlib import asynccontextmanager
+from concurrent.futures import ProcessPoolExecutor, Future
+from contextlib import asynccontextmanager, contextmanager
 from dataclasses import dataclass, field
-from typing import Set, Callable, Dict, Awaitable, Any, TypeVar, Sequence, Optional, Coroutine
+from functools import partial
+from typing import Set, Callable, Awaitable, Any, Sequence, Optional, Coroutine, Generator, AsyncGenerator
 
-from rich.progress import (
-    Progress,
-    TextColumn,
-    BarColumn,
-    SpinnerColumn,
-    TimeElapsedColumn
-)
-
-from flowsaber.core.utils.context import config
-from flowsaber.core.base import TaskConfig
 from flowsaber.utility.logtool import get_logger
 
 # TODO The displaying and scheduler should be separated.
@@ -23,192 +14,124 @@ logger = get_logger(__name__)
 
 AsyncFunc = Callable[[Any], Awaitable[None]]
 
-Task = TypeVar('Task')
-
-
-@dataclass
-class Job(asyncio.Future):
-    coro: Coroutine
-    owner: Optional[Task] = None
-    task: Optional[asyncio.Task] = None
-    async_done_callbacks: list = field(default_factory=list)
-
-    def add_async_done_callback(self, callback: AsyncFunc):
-        assert inspect.iscoroutinefunction(callback)
-        self.async_done_callbacks.append(callback)
-
-    def remove_async_done_callback(self, callback):
-        self.async_done_callbacks.remove(callback)
-
-    def cancel(self, msg: Optional[str] = ...) -> bool:
-        if self.task:
-            self.task.cancel(msg=msg)
-        return super().cancel(msg=msg)
-
-    def __post_init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    def __hash__(self):
-        return hash(self.coro)
-
-
-@dataclass
-class TaskState:
-    pending: Set[Job] = field(default_factory=set)
-    running: Set[Job] = field(default_factory=set)
-    done: Set[Job] = field(default_factory=set)
-    wait_q: asyncio.Queue = field(default_factory=asyncio.Queue)
-    all_submitted: asyncio.Event = field(default_factory=asyncio.Event)
-    task_id: int = 0
-    task: Task = None
-
-    def __iter__(self):
-        return iter(self.__dict__.values())
-
-    def __len__(self):
-        return len(self.__dict__)
-
-    def __await__(self):
-        self.all_submitted.set()
-        return self.wait_q.join().__await__()
-
 
 class Solver(object):
-    pass
+    def solve(self, *args, **kwargs):
+        raise NotImplementedError
 
 
 class GaSolver(Solver):
+    def __init__(self, score_func: Callable = None):
+        self.score_func = score_func
 
-    def solve(self, jobs: Sequence[Job]) -> Sequence[Job]:
+    def solve(self, items: Sequence) -> Sequence:
         from pyeasyga import pyeasyga
-        if len(jobs) <= 0:
-            return jobs
-        ga = pyeasyga.GeneticAlgorithm(list(jobs))
-        ga.fitness_function = self.fitness
+        if len(items) <= 0 or self.score_func is None:
+            return items
+
+        ga = pyeasyga.GeneticAlgorithm(list(items))
+        ga.fitness_function = partial(self.fitness, score_func)
         ga.run()
-        cpus, flags = ga.best_individual()
-        num_jobs = len(jobs)
-        jobs = [job for i, job in enumerate(jobs) if flags[i]]
-        logger.debug(f"Best solution cost {cpus} cpus with {len(jobs)} jobs "
-                     f"selected from {num_jobs} jobs in total.")
-        return jobs
+        max_score, flags = ga.best_individual()
 
-    @staticmethod
-    def fitness(individual, jobs: Sequence[Job]):
-        resource_cost = TaskConfig().resources()
-        for k, v in resource_cost.items():
-            resource_cost[k] = 0
-        for selected, job in zip(individual, jobs):
+        return max_score, flags
+
+    def fitness(self, score_func, individual, items: Sequence):
+        assert len(items)
+        total = None
+        for selected, item in zip(individual, items):
             if selected:
-                task_config: TaskConfig = job.owner.config
-                for k, v in task_config.resources().items():
-                    resource_cost[k] += v
-        num_cpu = resource_cost['cpu']
-        for k, v in resource_cost.items():
-            if v > config.get(k, 99999):
-                num_cpu = 0
-                break
-
-        return num_cpu
+                if total is None:
+                    total = item
+                else:
+                    total += item
+        return score_func(total)
 
 
-class Scheduler(object):
-    def __init__(self, wait_time=1):
-        self.wait_time = wait_time
-        self.tasks: Dict[Task, TaskState] = defaultdict(TaskState)
-        self.solver = GaSolver()
+class TaskScheduler(object):
+    @dataclass
+    class Job(asyncio.Future):
+        coro: Coroutine
+        task: Optional[asyncio.Task] = None
+        async_done_callbacks: list = field(default_factory=list)
+        cost: Callable = None
+
+        def add_async_done_callback(self, callback: AsyncFunc):
+            assert inspect.iscoroutinefunction(callback)
+            self.async_done_callbacks.append(callback)
+
+        def remove_async_done_callback(self, callback):
+            self.async_done_callbacks.remove(callback)
+
+        def cancel(self, msg: Optional[str] = ...) -> bool:
+            if self.task:
+                self.task.cancel(msg=msg)
+            return super().cancel(msg=msg)
+
+        def __post_init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+
+        def __hash__(self):
+            return hash(self.coro)
+
+    def __init__(self, wait_time=1, score_func: Callable = None):
+        self.pending_jobs: Set["TaskScheduler.Job"] = set()
+        self.running_jobs: Set["TaskScheduler.Job"] = set()
+        self.done_jobs: Set["TaskScheduler.Job"] = set()
+        self.solver = GaSolver(score_func=score_func)
         self.error_jobs = []
-        self.running: Optional[asyncio.Event] = None
-        self.stopped: Optional[asyncio.Event] = None
-        self.process = Progress(
-            TextColumn("[bold blue]{task.fields[task]}", justify="right"),
-            BarColumn(),
-            "[progress.percentage]{task.percentage:>3.1f}%",
-            "•",
-            TextColumn("{task.fields[pending]}"),
-            "⌛",
-            "•",
-            TextColumn("{task.fields[running]}"),
-            SpinnerColumn(),
-            "•",
-            TextColumn("{task.fields[done]}"),
-            "✓",
-            "|",
-            TimeElapsedColumn()
-        )
+        self.wait_time = wait_time
+
+        self._running: Optional[asyncio.Event] = None
 
     @asynccontextmanager
-    async def start(self):
+    async def start(self) -> AsyncGenerator['TaskScheduler']:
         try:
-            asyncio.ensure_future(self.start_loop())
+            loop_fut = asyncio.ensure_future(self.start_loop())
             yield self
         finally:
-            if self.running is not None:
-                self.running.clear()
-            if self.stopped is not None:
-                await self.stopped.wait()
-                self.stopped = None
+            if self._running is not None:
+                self._running.clear()
 
-    def submit(self, coro: Coroutine, task: Task, *args, **kwargs) -> Job:
-        job = Job(coro, owner=task, *args, **kwargs)
-        # update process
-        if task not in self.tasks:
-            task_id = self.process.add_task(
-                str(task),
-                task=task,
-                pending=0,
-                running=0,
-                done=0,
-                total=1
-            )
-            # print('input ', task, task_id)
-            self.tasks[task].task_id = task_id
-            self.tasks[task].task = task
-            self.process.start_task(task_id)
+            await loop_fut
+
+    def submit(self, coro: Coroutine, cost: Callable = None) -> Future:
+        job = self.Job(coro, cost=cost)
         # add to tasks
-        self.tasks[task].pending.add(job)
-        self.tasks[task].wait_q.put_nowait(1)
+        self.pending_jobs.add(job)
+        # self.tasks[task].wait_q.put_nowait(1)
         return job
 
     async def start_loop(self, **kwargs):
-        self.running = asyncio.Event()
-        self.running.set()
-        self.stopped = asyncio.Event()
-        self.stopped.clear()
-        self.process.start()
+        self._running = asyncio.Event()
+        self._running.set()
 
         while True:
-            pending_jobs = self.valid_pending_jobs
-            if not (len(self.running_jobs) and len(pending_jobs) < 3):
-                try:
-                    # TODO sometimes this leads to error
-                    jobs = self.solver.solve(pending_jobs)
-                except Exception:
-                    jobs = pending_jobs
-                for job in jobs:
-                    job = self.run_job(job)
-            # collect info
-            # update process
-            self.update_process()
+            # use multiple knapsack problem sover to find the best subset of jobs given score_func
+            try:
+                # TODO sometimes this leads to error
+                maydo = [job for job in self.pending_jobs if job.cost is not None]
+                mustdo = [job for job in self.pending_jobs if job.cost is None]
+                max_score, selected = self.solver.solve([job.cost() for job in maydo])
+                jobs = [job for i, job in enumerate(maydo) if selected[i]] + mustdo
+            except Exception:
+                jobs = pending_jobs
+
+            for job in jobs:
+                job = self.run_job(job)
             # handle error
             if len(self.error_jobs):
                 for job in self.error_jobs:
                     raise job.exception()
-            # break if not running and no pending and running jobs
-            if not self.running.is_set() and len(self.running_jobs) + len(self.pending_jobs) == 0:
+            # break if not _running and no pending and _running jobs
+            if not self._running.is_set() and len(self.running_jobs) + len(self.pending_jobs) == 0:
                 break
             await asyncio.sleep(self.wait_time)
 
-        self.update_process()
-        self.process.refresh()
-        self.process.stop()
+        self._running = None
 
-        self.running = None
-        self.stopped.set()
-
-    def run_job(self, job: Job):
+    def run_job(self, job: "TaskScheduler.Job"):
         async def _run_job():
-            state = self.tasks[job.owner]
             try:
                 res = await job.coro
             except Exception as e:
@@ -217,26 +140,16 @@ class Scheduler(object):
                 raise e
             finally:
                 # always move to done
-                state.running.remove(job)
-                state.done.add(job)
-                await state.wait_q.get()
-                state.wait_q.task_done()
+                self.running_jobs.remove(job)
+                self.done_jobs.add(job)
             # call awaitable callbacks
             for callback in job.async_done_callbacks:
                 await callback(res)
             return res
 
-        # remove from pending to running
-        state = self.tasks[job.owner]
-        state.pending.remove(job)
-        state.running.add(job)
-
-        # cost resources and release when job is done
-        def release_resources(fut):
-            job.owner.config.release_resources(config)
-
-        job.owner.config.cost_resources(config)
-        job.add_done_callback(release_resources)
+        # remove from pending to _running
+        self.pending_jobs.remove(job)
+        self.running_jobs.add(job)
 
         # float up exception or result
         def run_job_done_callback(f: asyncio.Future):
@@ -251,49 +164,25 @@ class Scheduler(object):
 
         return job
 
-    def update_process(self):
-        for task, state in self.tasks.items():
-            pending = len(state.pending)
-            running = len(state.running)
-            done = len(state.done)
-            # print(pending, running, done)
-            # print("check ", state.task, state.task_id)
-            self.process.update(
-                task_id=state.task_id,
-                pending=pending,
-                running=running,
-                done=done
-            )
 
-            if state.all_submitted.is_set() and state.wait_q.empty():
-                self.process.update(state.task_id, completed=1)
+class FlowScheduler(object):
+    def __init__(self, executor_cls=ProcessPoolExecutor, executor_kwargs: dict = None):
+        self.executor = executor_cls(**(executor_kwargs or {}))
+        self.futures: Set[Future] = set()
 
-    def get_state(self, task):
-        assert task in self.tasks
-        return self.tasks[task]
+    @contextmanager
+    def start(self) -> Generator['FlowScheduler']:
+        try:
+            yield self
+        finally:
+            self.executor.shutdown(wait=True)
+            self.futures.clear()
 
-    @property
-    def valid_pending_jobs(self):
-        jobs = []
-        for task, state in self.tasks.items():
-            remain_fork = task.config.fork - len(state.running)
-            jobs += list(state.pending)[:remain_fork]
-        return jobs
+    def submit(self, fn) -> Future:
+        fut = self.executor.submit(fn)
+        fut.add_done_callback(self.remove_future)
+        self.futures.add(fut)
+        return fut
 
-    def jobs(self, mode: str):
-        jobs = []
-        for task, state in self.tasks.items():
-            jobs += list(getattr(state, mode))
-        return jobs
-
-    @property
-    def running_jobs(self):
-        return self.jobs('running')
-
-    @property
-    def pending_jobs(self):
-        return self.jobs('pending')
-
-    @property
-    def done_jobs(self):
-        return self.jobs('done')
+    def remove_future(self, fut):
+        self.futures.remove(fut)

@@ -9,7 +9,7 @@ from .utility.utils import *
 
 async def run(build_flow: Flow) -> asyncio.Future:
     with context():
-        async with Scheduler().start() as scheduler:
+        async with TaskScheduler().start() as scheduler:
             executor_type = config.executor['executor_type']
             async with get_executor(executor_type, **config.executor).start() as executor:
                 loop = asyncio.get_running_loop()

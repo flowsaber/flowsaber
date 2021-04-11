@@ -79,16 +79,16 @@ class DaskExecutor(Executor):
     [`dask_kubernetes.KubeCluster`](https://kubernetes.dask.org/)), you can
     specify `cluster_class`/`cluster_kwargs`.
 
-    Alternatively, if you already have a dask cluster running, you can provide
+    Alternatively, if you already have a dask cluster _running, you can provide
     the address of the scheduler via the `address` kwarg.
 
     Note that if you have tasks with tags of the form `"dask-accum_resource:KEY=NUM"`
     they will be parsed and passed as
     [Worker Resources](https://distributed.dask.org/en/latest/resources.html)
-    of the form `{"KEY": float(NUM)}` to the Dask Scheduler.
+    of the form `{"KEY": float(NUM)}` to the Dask TaskScheduler.
 
     Args:
-        - address (string, optional): address of a currently running dask
+        - address (string, optional): address of a currently _running dask
             scheduler; if one is not provided, a temporary cluster will be
             created in `executor.start_loop()`.  Defaults to `None`.
         - cluster_class (string or callable, optional): the cluster class to use
@@ -101,7 +101,7 @@ class DaskExecutor(Executor):
             is only enabled if `adapt_kwargs` are provided.
         - client_kwargs (dict, optional): additional kwargs to use when creating a
             [`dask.distributed.Client`](https://distributed.dask.org/en/latest/api.html#client).
-        - debug (bool, optional): When running with a local cluster, setting
+        - debug (bool, optional): When _running with a local cluster, setting
             `debug=True` will increase dask's logging level, providing
             potentially useful debug info. Defaults to the `debug` value in
             your Prefect configuration.
@@ -114,7 +114,7 @@ class DaskExecutor(Executor):
     executor = DaskExecutor()
     ```
 
-    Using a temporary cluster running elsewhere. Any Dask cluster class should
+    Using a temporary cluster _running elsewhere. Any Dask cluster class should
     work, here we use [dask-cloudprovider](https://cloudprovider.dask.org):
 
     ```python
@@ -319,7 +319,7 @@ class DaskExecutor(Executor):
                 self._should_run_event.clear()
             except Exception:
                 pass
-            # 2.) Wait for all running tasks to complete
+            # 2.) Wait for all _running tasks to complete
             try:
                 futures = [f for f in list(self._futures) if not f.done()]  # type: ignore
                 if futures:
