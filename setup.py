@@ -45,7 +45,7 @@ requirements = [
     'rich',
     'cloudpickle',
     'dask',
-    'distributed'
+    'distributed',
 ]
 
 setup(
@@ -73,13 +73,12 @@ setup(
           'pysam',
           'matplotlib'
       ],
-      'server': {
+      'server': [
+          "graphql-core",
           'ariadne',
-          'sqlalchemy',
           'pydantic',
           'uvicorn',
-          'pendulum'
-        }
+        ]
     },
     python_requires='>=3.6, <4',
 )
