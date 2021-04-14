@@ -2,13 +2,6 @@ scalar DateTime
 scalar JSON
 scalar UUID
 
-enum LogLevel {
-    DEBUG
-    INFO
-    WARNING
-    ERROR
-    CRITICAL
-}
 
 type success_payload {
     success: Boolean!
@@ -16,100 +9,5 @@ type success_payload {
 }
 
 type ids_payload {
-    ids: [UUID]!
+    id: [UUID]!
 }
-
-type agent {
-    id: UUID!
-    address: String!
-    flowruns_id: [UUID!]!
-}
-
-type flow {
-    id: UUID!
-    name: String!
-    labels: [String!]!
-    description: String
-    serialized_flow: JSON!
-    context: JSON
-}
-
-type flowrun {
-    id: UUID!
-    flow_id: UUID!
-    name: String!
-    labels: [String!]
-    state: JSON!
-    last_heartbeat: DateTime!
-}
-
-type taskrun {
-    id: UUID!
-    task_id: UUID!
-    name: String!
-    state: JSON!
-    resource_cost: JSON!
-}
-
-
-input flow_input {
-    id: UUID
-    name: String
-    labels: [String]
-    description: String
-    serialized_flow: JSON!
-    context: JSON
-}
-
-input get_flows_input {
-    id: UUID
-    name: String
-    labels: [String]
-}
-
-input get_flowruns_input {
-    id: UUID
-    flow_id: UUID
-    agent_id: UUID
-    name: String
-    labels: [String!]
-    state_type: String
-}
-
-input get_taskruns_input {
-    id: UUID
-    task_id: UUID
-    name: String
-    state_type: String
-}
-
-input flowrun_input {
-    id: UUID!
-    flow_id: UUID
-    name: String
-    labels: [String!]
-    state: JSON
-    last_heartbeat: DateTime
-}
-
-input taskrun_input {
-    id: UUID!
-    task_id: UUID
-    name: String
-    state: JSON
-    resource_cost: JSON
-}
-
-
-input taskrun_log_input {
-    taskrun_id: String!
-    flowrun_id: String!
-    level: LogLevel
-    time: DateTime
-    message: String
-    info: JSON
-}
-
-
-
-

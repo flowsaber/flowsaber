@@ -1,0 +1,39 @@
+enum LogLevel {
+    DEBUG
+    INFO
+    WARNING
+    ERROR
+    CRITICAL
+}
+
+type RunLog {
+    id: UUID!
+    level: LogLevel!
+    time: DateTime!
+    taskrun_id: UUID
+    flowrun_id: UUID
+    agent_id: UUID
+    message: String
+    info: JSON
+}
+
+input RunLogInput {
+    id: UUID!
+    level: LogLevel!
+    time: DateTime!
+    taskrun_id: UUID
+    flowrun_id: UUID
+    agent_id: UUID
+    message: String
+    info: JSON
+}
+
+input GetRunLogsInput {
+    id: [UUID!]
+    taskrun_id: [UUID!]
+    flowrun_id: [UUID!]
+    agent_id: [UUID!]
+    level: [String!]
+    before: DateTime
+    after: DateTime
+}

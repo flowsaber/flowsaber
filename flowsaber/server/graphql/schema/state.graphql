@@ -1,0 +1,16 @@
+type State {
+    state_type: String!
+    inputs: JSON
+    result: String
+    context: JSON
+    message: String
+}
+
+input StateInput {
+    id: UUID!
+    state_type: String!
+    inputs: JSON
+    result: String
+    context: JSON
+    message: String
+}

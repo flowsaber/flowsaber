@@ -1,5 +1,8 @@
-from typing import List, Dict, Any
+from motor.motor_asyncio import AsyncIOMotorClient
 
 
-async def write_run_logs(logs: List[Dict[str, Any]]):
-    pass
+def get_db(url: str, db_name: str = "flowsaber"):
+    client = AsyncIOMotorClient(url)
+    db = client[db_name]
+
+    return db

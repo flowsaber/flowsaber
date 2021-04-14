@@ -8,10 +8,10 @@ import logging
 import sys
 import uuid
 import weakref
+from concurrent.futures import Future
 from contextlib import asynccontextmanager
 from io import StringIO
 from typing import Union, Callable, Optional, Any, Iterator
-from concurrent.futures import Future
 
 from flowsaber.utility.importtools import import_object
 from flowsaber.utility.logtool import get_logger

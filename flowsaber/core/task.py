@@ -6,7 +6,7 @@ from collections import abc, defaultdict
 from functools import partial
 from inspect import Parameter
 from pathlib import Path
-from typing import Callable, Sequence
+from typing import Callable, Sequence, Optional
 
 from dask.base import tokenize
 
@@ -186,7 +186,7 @@ class Task(BaseTask):
         # make working directory
         self.workdir.mkdir(parents=True, exist_ok=True)
         scheduler: TaskScheduler = kwargs.get('scheduler')
-        scheduled = False
+        futs = []
 
         async for data in consumer:
             # handle _input _input_args
@@ -203,17 +203,17 @@ class Task(BaseTask):
             # submit to scheduler
             if scheduler:
                 # create a clean task for ease of serialization
-                job = scheduler.submit(self.handle_input(run_args, state=state), task=self)
+                job = scheduler.submit(self.handle_input(run_args, state=state))
                 job.add_async_done_callback(self.handle_target_state)
                 if self.config.fork <= 1:
                     await job
-                scheduled = True
+                futs.append(job)
             # or in current loop
             else:
                 state = await self.handle_input(run_args, state=state)
                 await self.handle_target_state(state)
-        if scheduler and scheduled:
-            await scheduler.get_state(self)
+        if scheduler and len(futs):
+            done, pending = asyncio.wait(*futs, return_when=asyncio.ALL_COMPLETED)
 
     async def handle_target_state(self, state):
         assert isinstance(state, Done)

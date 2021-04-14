@@ -1,0 +1,68 @@
+type FlowRun {
+    id: UUID!
+    flow_id: UUID!
+    agent_id: UUID!
+    name: String!
+    labels: [String!]!
+    state: State!
+    start_time: DateTime!
+    end_time: DateTime
+    last_heartbeat: DateTime!
+    taskruns: [TaskRun!]!
+}
+
+type TaskRun {
+    id: UUID!
+    task_id: UUID!
+    flow_id: UUID!
+    agent_id: UUID!
+    flowrun_id: UUID!
+    state: State!
+    start_time: DateTime!
+    end_time: DateTime
+    last_heartbeat: DateTime!
+}
+
+
+input TaskRunInput {
+    id: UUID!
+    task_id: UUID
+    flow_id: UUID
+    agent_id: UUID
+    flowrun_id: UUID
+    state: StateInput
+}
+
+input FlowRunInput {
+    id: UUID!
+    flow_id: UUID
+    agent_id: UUID
+    name: String
+    labels: [String!]
+    state: StateInput
+}
+
+
+
+input GetFLowRunsInput {
+    flowrun_id: [UUID!]
+    flow_id: [UUID!]
+    agent_id: [UUID!]
+    name: [String!]
+    labels: [String!]
+    state_type: [String!]
+    after: DateTime
+    before: DateTime
+}
+
+input  GetTaskRunsInput {
+    taskrun_id: [UUID!]
+    task_id: [UUID!]
+    flow_id: [UUID!]
+    agent_id: [UUID!]
+    flowrun_id: [UUID!]
+    state_type: [String!]
+    after: DateTime
+    before: DateTime
+}
+

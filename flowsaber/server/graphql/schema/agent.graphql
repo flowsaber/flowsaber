@@ -1,0 +1,13 @@
+type Agent {
+    id: UUID!
+    name: String!
+    labels: [String]!
+    address: String!
+    flowruns: [FlowRun!]!
+}
+
+input AgentInput {
+    id: UUID!
+    name: String!
+    labels: [String]!
+}

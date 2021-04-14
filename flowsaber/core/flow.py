@@ -78,5 +78,12 @@ class Flow(FlowComponent):
 
         return fut
 
+    def serialize(self) -> str:
+        return ""
+
+    @classmethod
+    def deserialize(cls, serialized_flow: str) -> "Flow":
+        return Flow()
+
 
 flow = class_deco(Flow, 'run')

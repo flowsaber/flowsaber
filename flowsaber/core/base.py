@@ -5,8 +5,8 @@ from typing import Optional, Union, List, Sequence, Callable
 
 from makefun import with_signature
 
-from flowsaber.core.utils.context import context
 from flowsaber.core.channel import Consumer, Channel
+from flowsaber.core.utils.context import context
 from flowsaber.utility.logtool import get_logger
 from flowsaber.utility.utils import TaskOutput
 
@@ -114,7 +114,8 @@ class FlowComponent(object, metaclass=CopySigMeta):
     def run(self, *args, **kwargs):
         return NotImplementedError
 
-
+    def serialize(self) -> str:
+        raise NotImplementedError
 
 
 @dataclass

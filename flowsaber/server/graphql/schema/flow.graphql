@@ -1,0 +1,77 @@
+type Flow {
+    id: String!
+    name: String!
+    labels: [String!]!
+    config: JSON!
+    source_code: String!
+    serialized_flow: String!
+    tasks: [Task!]!
+    edges: [Edge!]!
+    flowruns: [FlowRun!]!
+}
+
+type Task {
+    id: UUID!
+    flow_id: UUID!
+    name: String!
+    config: JSON!
+    input_signature: JSON!
+    output_signature: String!
+    outputs: [Channel]!
+    source_code: String!
+    command: String
+    taskruns: [TaskRun!]!
+}
+
+
+type Channel {
+    id: UUID!
+    task_id: UUID!
+    flow_id: UUID!
+}
+
+type Edge {
+    channel_id: UUID!
+    task_id: UUID!
+}
+
+input EdgeInput {
+    channel_id: UUID!
+    task_id: UUID!
+}
+
+input ChannelInput {
+    id: UUID!
+    task_id: UUID!
+    flow_id: UUID!
+}
+
+input TaskInput {
+    id: UUID!
+    flow_id: UUID!
+    name: String!
+    config: JSON!
+    input_signature: JSON!
+    output_signature: String!
+    outputs: [ChannelInput]!
+    source_code: String!
+    command: String
+}
+
+input FlowInput {
+    id: String!
+    name: String!
+    labels: [String!]!
+    config: JSON!
+    source_code: String!
+    serialized_flow: String!
+    tasks: [TaskInput!]!
+    edges: [EdgeInput!]!
+}
+
+
+input GetFLowsInput {
+    id: [UUID!]
+    name: [UUID!]
+    labels: [String!]
+}

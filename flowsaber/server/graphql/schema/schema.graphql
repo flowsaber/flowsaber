@@ -1,30 +1,32 @@
 type Query {
     hello: String
 
-    get_agent(agent_id: UUID!): agent!
+    get_agent(agent_id: String!): Agent!
     get_agents: ids_payload!
 
-    get_flow(flow_id: UUID!): flow!
-    get_flows(input: get_flows_input!): ids_payload!
+    get_flow(flow_id: UUID!): Flow!
+    get_flows(input: GetFLowsInput!): ids_payload!
 
-    get_taskrun(taskrun_id: UUID!): taskrun!
-    get_taskruns(input: get_taskruns_input!): ids_payload!
+    get_taskrun(taskrun_id: UUID!): TaskRun!
+    get_taskruns(input: GetTaskRunsInput!): ids_payload!
 
-    get_flowrun(flowrun_id: UUID!): flowrun!
-    get_flowruns(input: get_flowruns_input!): ids_payload!
+    get_flowrun(flowrun_id: UUID!): FlowRun!
+    get_flowruns(input: GetFLowRunsInput!): ids_payload!
+
+    get_runlogs(input: GetRunLogsInput!): [RunLog!]!
 }
 
 type Mutation {
     hello: success_payload!
 
-    register_agent(agent_id: UUID!): success_payload!
+    create_agent(input: AgentInput!): Agent!
     delete_agent(agent_id: UUID!): success_payload!
 
-    create_flow(input: flow_input!): flow!
-    delete_flow(flow_id: UUID!): flow!
+    create_flow(input: FlowInput!): Flow!
+    delete_flow(flow_id: UUID!): success_payload!
 
-    update_flowrun(input: flowrun_input!): flowrun!
-    update_taskrun(input: taskrun_input!): taskrun!
+    update_flowrun(input: FlowRunInput!): FlowRun!
+    update_taskrun(input: TaskRunInput!): TaskRun!
 
-    write_taskrun_logs(logs: [taskrun_log_input!]!): success_payload!
+    write_runlogs(logs: [RunLogInput!]!): success_payload!
 }

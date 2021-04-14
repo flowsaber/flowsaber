@@ -8,8 +8,6 @@ from typing import Set, Callable, Awaitable, Any, Sequence, Optional, Coroutine,
 
 from flowsaber.utility.logtool import get_logger
 
-# TODO The displaying and scheduler should be separated.
-
 logger = get_logger(__name__)
 
 AsyncFunc = Callable[[Any], Awaitable[None]]
@@ -95,7 +93,7 @@ class TaskScheduler(object):
 
             await loop_fut
 
-    def submit(self, coro: Coroutine, cost: Callable = None) -> Future:
+    def submit(self, coro: Coroutine, cost: Callable = None) -> "TaskScheduler.Job":
         job = self.Job(coro, cost=cost)
         # add to tasks
         self.pending_jobs.add(job)
