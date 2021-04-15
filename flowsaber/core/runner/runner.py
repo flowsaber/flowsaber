@@ -44,6 +44,9 @@ class Runner(object):
         self.state_change_handlers = []
         self.logger = logger
 
+    def serialize(self, old_state: State, new_state: State, state_only=False) -> RunInput:
+        raise NotImplementedError
+
     def initialize_run(self, state) -> State:
         return state
 

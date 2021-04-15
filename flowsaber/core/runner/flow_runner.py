@@ -10,6 +10,24 @@ class FlowRunner(Runner):
         super().__init__(**kwargs)
         assert flow.initialized
         self.flow = flow
+        self.name: str = None
+        self.labels: List[str] = None
+
+    def serialize(self, old_state: State, new_state: State, state_only=False) -> RunInput:
+        if state_only:
+            return FlowRunInput(
+                id=self.key,
+                state=(new_state - old_state).serialize()
+            )
+        else:
+            return TaskRunInput(
+                id=self.key,
+                flow_id=self.task.flow_key,
+                agent_id=self.agent_id,
+                name=self.name,
+                labels=self.labels,
+                state=new_state.serialize()
+            )
 
     @call_state_change_handlers
     @catch_to_failure

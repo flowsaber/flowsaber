@@ -12,6 +12,22 @@ class TaskRunner(Runner):
         super().__init__(**kwargs)
         self.task = task
 
+    def serialize(self, old_state: State, new_state: State, state_only=False) -> RunInput:
+        if state_only:
+            return TaskRunInput(
+                id=self.key,
+                state=(new_state - old_state).serialize()
+            )
+        else:
+            return TaskRunInput(
+                id=self.key,
+                task_id=self.task.key,
+                flow_id=self.task.flow_key,
+                agent_id=self.agent_id,
+                flowrun_id=self.flowrun_key,
+                state=new_state.serialize()
+            )
+
     def initialize_run(self, state) -> State:
         state = super().initialize_run(state)
         run_info = self.task.get_run_info(state.inputs)

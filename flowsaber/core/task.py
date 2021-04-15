@@ -22,9 +22,22 @@ from .channel import Channel, Consumer, ConstantChannel, Queue
 from .runner.task_runner import get_task_runner_cls
 from .scheduler import TaskScheduler
 from .utils.state import *
+from ..server.models import *
+
 
 logger = get_logger(__name__)
 
+
+class Edge(object):
+    def __init__(self, channel: Channel, task: "Task"):
+        self.channel = channel
+        self.task = task
+
+    def serialize_to_model(self) -> EdgeInput:
+        return EdgeInput(
+            channel_id=self.channel.key,
+            task_id=self.task.key
+        )
 
 class BaseTask(FlowComponent):
     def __init__(self, num_out: int = 1, **kwargs):
@@ -137,6 +150,23 @@ class BaseTask(FlowComponent):
         """
         return chs >> self
 
+    @property
+    def source_code(self) -> str:
+        return ""
+
+    def serialize_to_model(self) -> TaskInput:
+        task_input = TaskInput(
+            id=self.key,
+            flow_id=self.flow.key,
+            name=self.name,
+            config=self.config,
+            input_signature=self.input_signature,
+            output_signature=self.output_signature,
+            outputs=[ch.serialize() for ch in self._output],
+            source_code=self.source_code
+        )
+
+        return task_input
 
 class Task(BaseTask):
     DEFAULT_CONFIG = {}
@@ -424,6 +454,11 @@ class ShellTask(Task):
 
     def command(self, *args, **kwargs) -> str:
         raise NotImplementedError
+
+    def serialize_to_model(self) -> TaskInput:
+        task_input = super().serialize_to_model()
+        task_input.command = self.inspect_command()
+        return task_input
 
     def run(self, *args, **kwargs):
         """

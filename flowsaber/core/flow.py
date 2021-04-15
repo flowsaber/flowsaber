@@ -9,6 +9,7 @@ from flowsaber.utility.logtool import get_logger
 from flowsaber.utility.utils import class_deco, TaskOutput
 from .base import FlowComponent
 from .channel import Channel
+from ..server.models import *
 
 logger = get_logger(__name__)
 
@@ -78,8 +79,21 @@ class Flow(FlowComponent):
 
         return fut
 
-    def serialize(self) -> str:
+    @property
+    def source_code(self) -> str:
         return ""
+
+    def serialize_to_model(self) -> FlowInput:
+        return FlowInput(
+            id=self.key,
+            name=self.name,
+            labels=self.labels,
+            config=self.config,
+            source_code=self.source_code,
+            serialize_flow=self.serialized_flow,
+            tasks=[task.serialize_to_model() for task in self._tasks],
+            edges=[edge.serialize_to_model() for edge in self._edges]
+        )
 
     @classmethod
     def deserialize(cls, serialized_flow: str) -> "Flow":

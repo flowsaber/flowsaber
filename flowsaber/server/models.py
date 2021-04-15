@@ -97,22 +97,24 @@ class StateInput(BaseModel):
     message: str = None
 
 
-class TaskRunInput(BaseModel):
+class RunInput(BaseModel):
+    state: StateInput = None
+
+
+class TaskRunInput(RunInput):
     id: str
     task_id: str = None
     flow_id: str = None
     agent_id: str = None
     flowrun_id: str = None
-    state: StateInput = None
 
 
-class FlowRunInput(BaseModel):
+class FlowRunInput(RunInput):
     id: str
     flow_id: str = None
     agent_id: str = None
     name: str = None
     labels: List[str] = None
-    state: StateInput = None
 
 
 class GetFlowRunsInput(BaseModel):
