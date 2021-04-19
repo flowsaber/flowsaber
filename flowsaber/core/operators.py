@@ -3,30 +3,27 @@ import builtins
 from collections import defaultdict, abc
 from typing import Callable, Any, Union
 
-from flowsaber.core.channel import ConstantChannel, END, Consumer, Queue, Channel
+from flowsaber.core.channel import ConstantChannel, END, Consumer, LazyAsyncQueue, Channel
 from flowsaber.core.task import BaseTask, Data
 from flowsaber.utility.utils import extend_method, class_to_method
 
-"""
-Only Map and Reduce uses executor, other operators runs locally
-"""
-
 Predicate = Callable[[Any], bool]
-POS_INF = 9999999999999999999999999999999999999999999999999999999999
-NEG_INF = -999999999999999999999999999999999999999999999999999999999
+POS_INF = float("inf")
+NEG_INF = float("-inf")
 
 
-class Merge(BaseTask):
+class Operator(BaseTask):
+    pass
+
+
+class Merge(Operator):
     """Merge channels into a channel with _output of tuple.
     Even if there is only one channel _input, always _output a tuple
     """
-
-    async def handle_input(self, data, *args, **kwargs):
-        if data is not END:
-            await self._output.put(data)
+    pass
 
 
-class Split(BaseTask):
+class Split(Operator):
     """Used when _output is tuple/list, use split to split each item of the tuple into a unique channel.
     """
 
@@ -34,15 +31,8 @@ class Split(BaseTask):
         assert num >= 2, "Number of outputs must be at least 2."
         super().__init__(num_out=num, **kwargs)
 
-    async def handle_input(self, data: Data, *args, **kwargs):
-        if data is not END:
-            if not isinstance(data, (tuple, list)) or len(data) != self.num_out:
-                raise RuntimeError(f"The _input _input {data} can't be split into {self.num_out} channels")
-            for out_ch, value in zip(self._output, data):
-                await out_ch.put(value)
 
-
-class Select(BaseTask):
+class Select(Operator):
     """Similar to split, used for tuple/list _output, select will only _output one channel, with the selected index
     """
 
@@ -53,12 +43,12 @@ class Select(BaseTask):
     async def handle_input(self, data, *args, **kwargs):
         if data is not END:
             try:
-                await self._output.put(data[self.index])
+                await self.enqueue_res(data[self.index])
             except TypeError as e:
-                raise ValueError(f"The _output _input {data} can be be indexed with {self.index}. error is: {e}")
+                raise ValueError(f"The output {data} can be be indexed with {self.index}. error is: {e}")
 
 
-class Mix(BaseTask):
+class Mix(Operator):
     """Data emitted bu channels are mixed into a single channel.
     """
 
@@ -67,9 +57,9 @@ class Mix(BaseTask):
         if num_constant_ch > 0:
             raise ValueError("Can not mix with constant channel.")
 
-        async def pump_queue(q: Queue):
+        async def pump_queue(q: LazyAsyncQueue):
             async for data in q:
-                await self._output.put(data)
+                await self.enqueue_res(data)
 
         done, pending = await asyncio.wait(
             [asyncio.ensure_future(pump_queue(q)) for q in consumer.queues],
@@ -80,17 +70,17 @@ class Mix(BaseTask):
                 raise task.exception()
 
 
-class Concat(BaseTask):
+class Concat(Operator):
     """Data in channels are concatenated in the order of _input channels.
     """
 
     async def handle_consumer(self, consumer: Consumer, **kwargs):
         for q in consumer.queues:
             async for data in q:
-                await self._output.put(data)
+                await self.enqueue_res(data)
 
 
-class Collect(BaseTask):
+class Collect(Operator):
     """Opposite to flatten, turns a channel into a tuple
     """
 
@@ -98,10 +88,10 @@ class Collect(BaseTask):
         values = []
         async for data in consumer:
             values.append(data)
-        await self._output.put(tuple(values))
+        await self.enqueue_res(tuple(values))
 
 
-class Branch(BaseTask):
+class Branch(Operator):
     """Dispatch _input into specified number of channels base on the returned index of the predicate function.
     """
 
@@ -115,10 +105,10 @@ class Branch(BaseTask):
             chosen_index = self.fn(data)
             if chosen_index >= self.num_out:
                 raise RuntimeError(f"The returned index of {self.fn} >= number of _output channels")
-            await self._output[chosen_index].put(data)
+            await self.enqueue_res(data, chosen_index)
 
 
-class Sample(BaseTask):
+class Sample(Operator):
     """Randomly sample at most `num` number of _input emitted by the channel
     using reservoir algorithm(should visit all elements.).
     """
@@ -141,13 +131,13 @@ class Sample(BaseTask):
                     self.reservoir[i] = data
             cur += 1
         for data in self.reservoir[0:cur]:
-            await self._output.put(data)
+            await self.enqueue_res(data)
 
 
 """Map Task"""
 
 
-class Subscribe(BaseTask):
+class Subscribe(Operator):
     """specify on_next or on_complete function as callbacks of these two event.
     """
 
@@ -160,7 +150,7 @@ class Subscribe(BaseTask):
         async for data in consumer:
             if self.on_next:
                 self.on_next(data)
-            await self._output.put(data)
+            await self.enqueue_res(data)
         if self.on_complete:
             self.on_complete()
 
@@ -173,11 +163,10 @@ class View(Subscribe):
         super().__init__(on_next=print, **kwargs)
 
 
-class Map(BaseTask):
+class Map(Operator):
     """Map each item to another item return by the specified map function into a new channel.
     """
 
-    # TODO should we use executor?
     def __init__(self, by: Callable, **kwargs):
         super().__init__(**kwargs)
         self.fn = by
@@ -185,10 +174,10 @@ class Map(BaseTask):
     async def handle_input(self, data: Data, *args, **kwargs):
         if data is not END:
             res = self.fn(data)
-            await self._output.put(res)
+            await self.enqueue_res(res)
 
 
-class Reduce(BaseTask):
+class Reduce(Operator):
     """Similar to normal reduce. results = f(n, f(n - 1))
     """
     NOTSET = object()
@@ -205,11 +194,11 @@ class Reduce(BaseTask):
             self.prev_result, self.result = self.result, result
         else:
             if self.prev_result is not self.NOTSET:
-                await self._output.put(self.result)
+                await self.enqueue_res(self.result)
             self.result = self.NOTSET
 
 
-class Flatten(BaseTask):
+class Flatten(Operator):
     """Flatten the _output of channel.
     """
 
@@ -237,10 +226,10 @@ class Flatten(BaseTask):
             traverse(data, 1)
 
             for item in flattened_items:
-                await self._output.put(item)
+                await self.enqueue_res(item)
 
 
-class Group(BaseTask):
+class Group(Operator):
     """return a new channel with item of Tuple(key_fn(_input), grouped_data_tuple),
     the group size can be specified.
     """
@@ -259,16 +248,16 @@ class Group(BaseTask):
             group = self.groups[key]
             group.append(data)
             if len(group) >= self.group_size:
-                self._output.put((key, tuple(group)))
+                await self.enqueue_res((key, tuple(group)))
                 del self.groups[key]
         else:
             if self.keep_rest:
-                for k, values in self.groups.items():
-                    await self._output.put((k, tuple(values)))
+                for key, values in self.groups.items():
+                    await self.enqueue_res((key, tuple(values)))
                 self.groups = defaultdict(list)
 
 
-class Filter(BaseTask):
+class Filter(Operator):
     """Filter item by the predicate function or the comparing identity.
     """
 
@@ -281,7 +270,7 @@ class Filter(BaseTask):
             # two cases, filter by predicate or by _output
             keep = self.by(data) if callable(self.by) else data == self.by
             if keep:
-                await self._output.put(data)
+                await self.enqueue_res(data)
 
 
 class Unique(Filter):
@@ -316,7 +305,7 @@ class Distinct(Filter):
         return True
 
 
-class Take(BaseTask):
+class Take(Operator):
     """Only take the first `num` number of items
     """
 
@@ -327,7 +316,7 @@ class Take(BaseTask):
 
     async def handle_input(self, data, *args, **kwargs):
         if data is not END and self.num > 0:
-            await self._output.put(data)
+            await self.enqueue_res(data)
             self.num -= 1
 
 
@@ -338,7 +327,7 @@ class First(Take):
         super().__init__(num=1, **kwargs)
 
 
-class Last(BaseTask):
+class Last(Operator):
     """Take the last item"""
     NOTSET = object()
 
@@ -351,11 +340,11 @@ class Last(BaseTask):
             self.prev = data
         else:
             if self.prev is not self.NOTSET:
-                await self._output.put(self.prev)
+                await self.enqueue_res(self.prev)
             self.prev = self.NOTSET
 
 
-class Until(BaseTask):
+class Until(Operator):
     """"Take items until meet a stop marker. the stop item will not be included"""
 
     def __init__(self, by: Union[Predicate, object], **kwargs):
@@ -367,7 +356,7 @@ class Until(BaseTask):
         if data is not END and not self.stop:
             self.stop = self.by(data) if callable(self.by) else data == self.by
             if not self.stop:
-                await self._output.put(data)
+                await self.enqueue_res(data)
 
 
 class Min(Reduce):
@@ -394,7 +383,7 @@ class Count(Reduce):
 # operators = set()
 # operators_map = {}
 for var in tuple(locals().values()):
-    if isinstance(var, type) and issubclass(var, BaseTask) and var is not BaseTask:
+    if isinstance(var, type) and issubclass(var, Operator) and var is not Operator:
         # operator = class_to_func(var)
         # operators_map[operator.__name__] = operator
         # operators.add(operator)

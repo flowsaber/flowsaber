@@ -32,7 +32,7 @@ class Agent(object):
                     await self.client.update_flowrun(FlowRunInput(state=state.to_model()))
                     # use flowrunner to run the flow
                     flow_runner = FlowRunner(flow)
-                    fut = scheduler.submit(partial(flow_runner.run, state))
+                    fut = scheduler.create_task(partial(flow_runner.run, state))
                     self.flowruns[flowrun_id] = fut
 
                     def remove_flowrun(fut):

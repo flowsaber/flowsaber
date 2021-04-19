@@ -76,7 +76,7 @@ class LocalCache(Cache):
         if not self.enable:
             return ""
         hash_dict = {
-            'run_args': tuple(input_args.arguments.values()),
+            'data': tuple(input_args.arguments.values()),
             **kwargs,
         }
         return tokenize(hash_dict)
@@ -133,11 +133,11 @@ class LocalCache(Cache):
                 self.serializer.dump(value, wf)
 
 
-def get_cache_cls(cache_type: str = 'local', *args, **kwargs):
+def get_cache(cache: str = 'local', *args, **kwargs):
     cache_cls = {
         'local': LocalCache
     }
-    if cache_type not in cache_cls:
-        raise ValueError(f"cache type {cache_type} not supported, choose one of {cache_cls.keys()}")
+    if cache not in cache_cls:
+        raise ValueError(f"cache type {cache} not supported, choose one of {cache_cls.keys()}")
 
-    return cache_cls[cache_type](*args, **kwargs)
+    return cache_cls[cache](*args, **kwargs)

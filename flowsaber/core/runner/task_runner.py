@@ -43,7 +43,7 @@ class TaskRunner(Runner):
         state = self.check_skip(state)
         if isinstance(state, Skip):
             return state
-        retry = self.task.config.get("retry", 1)
+        retry = self.task.config_dict.get("retry", 1)
         while True:
             # 2. use cached result if needed
             state = self.read_cache(state)
@@ -56,11 +56,11 @@ class TaskRunner(Runner):
                     self.logger.info(f"Run task: {self.task} failed, try to retry."
                                      f"with {retry - 1} retrying left.")
                     state = self.set_state(state, Retrying)
-                    time.sleep(self.task.config.get('retry_wait_time', 3))
+                    time.sleep(self.task.config_dict.get('retry_wait_time', 3))
                     state = self.set_state(state, Running)
                     retry -= 1
                     continue
-                elif self.task.config.get("skip_error", False):
+                elif self.task.config_dict.get("skip_error", False):
                     state = self.set_state(state, Drop)
             break
         # 4. write to cache if needed
@@ -119,9 +119,9 @@ class TaskRunner(Runner):
         return state
 
     def run_task_timeout(self, **kwargs):
-        timeout = self.task.config.get("timeout")
+        timeout = self.task.config_dict.get("timeout")
         if not timeout:
-            return self.task.run(**kwargs)
+            return self.task.run_in_context(**kwargs)
 
         def error_handler(signum, frame):
             raise TimeoutError(f"Execution timout out of {timeout}")
@@ -132,7 +132,7 @@ class TaskRunner(Runner):
             self.logger.debug(f"Sending alarm with {timeout}s timeout...")
             signal.alarm(timeout)
             self.logger.debug(f"Executing function in main thread...")
-            return self.task.run(**kwargs)
+            return self.task.run_in_context(**kwargs)
 
         finally:
             signal.alarm(0)

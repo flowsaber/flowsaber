@@ -397,9 +397,9 @@ class DaskExecutor(Executor):
         from distributed import Event, get_client
 
         try:
-            # Explicitly pass in the timeout from dask's config. Some versions of
+            # Explicitly pass in the timeout from dask's config_dict. Some versions of
             # distributed hardcode this rather than using the value from the
-            # config.  Can be removed once we bump our min requirements for
+            # config_dict.  Can be removed once we bump our min requirements for
             # distributed to >= 2.31.0.
             timeout = dask.config.get("distributed.comm.timeouts.connect")
             event = Event(event_name, client=get_client(timeout=timeout))

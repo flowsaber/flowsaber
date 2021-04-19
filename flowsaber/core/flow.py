@@ -1,103 +1,110 @@
-import asyncio
-from collections import defaultdict
-from typing import Union, Dict, Optional
+from typing import Union
 
-from graphviz import Digraph
+import cloudpickle
 
-from flowsaber.core.utils.context import context
-from flowsaber.utility.logtool import get_logger
-from flowsaber.utility.utils import class_deco, TaskOutput
-from .base import FlowComponent
-from .channel import Channel
-from ..server.models import *
+from .task import *
 
 logger = get_logger(__name__)
 
 
-class Flow(FlowComponent):
+class Flow(Component):
+    FUNC_PAIRS = [('run', '__call__', True)]
+
+    default_config = {
+        'fork': 20,
+        'workdir': ""
+    }
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._tasks: Optional[Dict[FlowComponent, {}]] = None
-        self._graph = None
-
-    def tasks(self):
-        if getattr(self, '_tasks') is None:
-            raise ValueError("You are using a copied or fresh new flow, please initialize")
-        return self._tasks
+        self.components = Optional[List[Component]] = None
+        self.tasks = Optional[List[BaseTask]] = None
+        self.edges = Optional[List[Edge]] = None
 
     @property
-    def graph(self):
-        if not getattr(self, '_graph', None):
-            self._graph = Digraph()
-        return self._graph
+    def config_name(self) -> str:
+        return "flow_config"
 
     def __enter__(self):
-        context.flow_stack.append(self)
+        flowsaber.context.flow_stack.append(self)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        context.flow_stack.pop(-1)
+        flowsaber.context.flow_stack.pop(-1)
 
-    def __call__(self, *args, **kwargs) -> Union[TaskOutput, 'Flow']:
-        flow = self.copy_new()
-        # set up flows environments
-        with flow:
-            flow._output = flow.run(*args, **kwargs)
-            # in case the _output is None/Nothing, create a END Channel
-            if flow._output is None:
-                flow._output = Channel.end()
+    def __call__(self, *args, **kwargs) -> Union[Output, 'Flow']:
+        # update context and store to flow.context
+        flow = self.call_initialize()
+        # enter flow context
+        with flow, flowsaber.context(flow.context):
+            flow.output = flow.run(*args, **kwargs) or Channel.end()
 
-        if context.up_flow:
-            context.up_flow._tasks.setdefault(flow, {})
-            return flow._output
-        # in the top level flow, just return the flow itself
+        if flowsaber.context.up_flow:
+            flowsaber.context.up_flow.components.append(flow)
+            return flow.output
         else:
+            # in the top level flow, just return the flow itself
             return flow
 
-    def copy_new(self, *args, **kwargs):
-        new = super().copy_new(*args, **kwargs)
-        new._tasks = defaultdict(dict)
+    def call_initialize(self, *args, **kwargs):
+        new: "Flow" = super().call_initialize(*args, **kwargs)
+        # only the up-most flow record infos
+        if not flowsaber.context.up_flow:
+            new.components = []
+            new.tasks = []
+            new.edges = []
         return new
+
+    def initialize_context(self):
+        # a task's workdir == context.flow_workdir / context.flow_config.workdir / context.task_config.workdir
+        # If any of the above dirs is absolute dir, then use it instead
+        super().initialize_context()
+        # only inject the up-most flow's info
+        if not flowsaber.context.up_flow:
+            flow_workdir = self.config_dict['workdir']
+            if not Path(flow_workdir).is_absolute():
+                flow_workdir = str(Path().resolve().absolute())
+            self.context.update({
+                'flow_id': self.config_dict['id'],
+                'flow_name': self.config_dict['name'],
+                'flow_full_name': self.config_dict['full_name'],
+                'flow_labels': self.config_dict['labels'],
+                'flow_workdir': flow_workdir,
+                'top_flow_config': self.config_dict
+            })
 
     def run(self, *args, **kwargs) -> Channel:
         raise NotImplementedError("Not implemented. Users are supposed to compose flow/task in this method.")
 
     async def execute(self, **kwargs) -> asyncio.Future:
         await super().execute(**kwargs)
-        task_futures = []
-        for task, task_info in self._tasks.items():
-            future = task_info['future'] = asyncio.ensure_future(task.execute(**kwargs))
-            task_futures.append(future)
+        futures = []
+        for component in self.components:
+            future = asyncio.ensure_future(component.execute(**kwargs))
+            futures.append(future)
 
-            # used fo debugging
-            loop = asyncio.get_running_loop()
-            if not hasattr(loop, '_task_futures'):
-                loop._task_futures = []
-            loop._task_futures.append((task, future))
+        # used fo debugging
+        loop = asyncio.get_running_loop()
+        if not hasattr(loop, 'flowsaber_futures'):
+            loop.flowsaber_futures = []
+        loop.flowsaber_futures += list(zip(self.components, futures))
 
-        fut = await asyncio.gather(*task_futures)
+        fut = await asyncio.gather(*futures)
 
         return fut
 
-    @property
-    def source_code(self) -> str:
-        return ""
-
-    def serialize_to_model(self) -> FlowInput:
+    def serialize(self) -> FlowInput:
+        config = self.config
         return FlowInput(
-            id=self.key,
-            name=self.name,
-            labels=self.labels,
-            config=self.config,
-            source_code=self.source_code,
-            serialize_flow=self.serialized_flow,
-            tasks=[task.serialize_to_model() for task in self._tasks],
-            edges=[edge.serialize_to_model() for edge in self._edges]
+            id=config.id,
+            name=config.name,
+            labels=config.labels,
+            tasks=[task.serialize() for task in self.tasks],
+            edges=[edge.serialize() for edge in self.edges],
+            source_code=inspect.getsource(type(self)),
+            serialized_flow=str(cloudpickle.dumps(self))
         )
 
     @classmethod
-    def deserialize(cls, serialized_flow: str) -> "Flow":
-        return Flow()
-
-
-flow = class_deco(Flow, 'run')
+    def deserialize(cls, flow: str) -> "Flow":
+        return cloudpickle.loads(bytes(flow))

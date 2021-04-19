@@ -102,7 +102,7 @@ def my_flow(num):
     | map_(lambda x: int(x.strip())) \
     | view
 
-config.update({
+config_dict.update({
     'cpu': 8,
     Task: {
         'executor': 'ray'

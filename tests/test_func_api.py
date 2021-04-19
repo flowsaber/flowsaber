@@ -7,7 +7,7 @@ from flowsaber import *
 import uuid
 import numpy as np
 
-EnvTask.DEFAULT_CONFIG = {'workdir': '/tmp/Env'}  # make the EnvTask cache at a global place
+EnvTask.DEFAULT_CONFIG = {'task_workdir': '/tmp/Env'}  # make the EnvTask cache at a global place
 
 
 def test_flow1():

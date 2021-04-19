@@ -3,6 +3,7 @@ type Flow {
     name: String!
     labels: [String!]!
     config: JSON!
+    docstring: String!
     source_code: String!
     serialized_flow: String!
     tasks: [Task!]!
@@ -18,8 +19,8 @@ type Task {
     input_signature: JSON!
     output_signature: String!
     outputs: [Channel]!
+    docstring: String!
     source_code: String!
-    command: String
     taskruns: [TaskRun!]!
 }
 

@@ -1,14 +1,14 @@
 """
 Modified from prefect.utilities.context
 """
-
 import contextlib
+import uuid
 from collections.abc import MutableMapping
 from typing import Any, Iterable, Iterator, Union, cast
 
 DictLike = Union[dict, "DotDict"]
 
-__all__ = ['Context', 'context', 'config']
+__all__ = ['DotDict', 'Context', 'context']
 
 
 def merge_dicts(d1: DictLike, d2: DictLike) -> DictLike:
@@ -61,11 +61,12 @@ class DotDict(MutableMapping):
         ```
     """
 
-    def __init__(self, init_dict: DictLike = None, **kwargs: Any):
+    def __init__(self, init_dict: DictLike = None, write=True, **kwargs: Any):
         # a DotDict could have a task_hash that shadows `update`
         if init_dict:
             super().update(init_dict)
         super().update(kwargs)
+        self.write = write
 
     def get(self, key: str, default: Any = None) -> Any:
         """
@@ -85,15 +86,21 @@ class DotDict(MutableMapping):
         return self.__dict__[key]  # __dict__ expects string keys
 
     def __setitem__(self, key: str, value: Any) -> None:
+        if not self.write:
+            raise ValueError("This dot_dict can not be edited.")
         self.__dict__[key] = value
 
     def __setattr__(self, attr: str, value: Any) -> None:
+        if not self.write:
+            raise ValueError("This dot_dict can not be edited.")
         self[attr] = value
 
     def __iter__(self) -> Iterator[str]:
         return iter(self.__dict__.keys())
 
     def __delitem__(self, key: str) -> None:
+        if not self.write:
+            raise ValueError("This dot_dict can not be edited.")
         del self.__dict__[key]
 
     def __len__(self) -> int:
@@ -122,7 +129,7 @@ class DotDict(MutableMapping):
 
 def as_nested_dict(
         obj: Union[DictLike, Iterable[DictLike]],
-        dct_class: type = DotDict) -> Union[DictLike, Iterable[DictLike]]:
+        dct_class: type = DotDict, **kwargs) -> Union[DictLike, Iterable[DictLike]]:
     """
     Given a obj formatted as a dictionary, transforms it (and any nested dictionaries)
     into the provided dct_class
@@ -145,7 +152,8 @@ def as_nested_dict(
             {
                 k: as_nested_dict(v, dct_class)
                 for k, v in getattr(obj, "__dict__", obj).items()
-            }
+            },
+            **kwargs
         )
     return obj
 
@@ -157,28 +165,37 @@ class Context(DotDict):
     The `Context` is a `DotDict` subclass, and can be instantiated the same way.
 
     Args:
-        - *run_args (Any): arguments to provide to the `DotDict` constructor (e.g.,
+        - *data (Any): arguments to provide to the `DotDict` constructor (e.g.,
             an initial dictionary)
         - **kwargs (Any): any task_hash / _output pairs to initialize this context with
     """
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        # TODO merge with config
+    def __init__(self, *args: Any, write=True, **kwargs: Any) -> None:
         init = {}
-        # Overwrite with explicit run_args
+        # Initialize with config_dict context
+        # config_dict = {}
+        # init.update(config_dict.get("context", {}))
+        # Overwrite with explicit args
         init.update(dict(*args, **kwargs))
-        super().__init__(init)
-        self.__flow_stack = []
-        self.__env_tasks = {}
-        self.__dict__['_flow_stack'] = []
+        # Merge in config_dict (with explicit args overwriting)
+        # init["config_dict"] = merge_dicts(config_dict, init.get("config_dict", {}))
+        super().__init__(write=True)
+        self.update(init)
+        self.__context_stack = []
+        self.info = {}
+
+    def update(self, *args, **kwargs) -> None:
+        dot_dict = as_nested_dict(dict(*args, **kwargs), DotDict, write=self.write)
+        super().update(**dot_dict)
 
     @property
-    def env_tasks(self):
-        return self.__env_tasks
+    def random_id(self) -> str:
+        return str(uuid.uuid4())
 
     @property
     def flow_stack(self):
-        return self.__flow_stack
+        self.info.setdefault('__flow_stack', [])
+        return self.info['__flow_stack']
 
     @property
     def top_flow(self):
@@ -196,7 +213,7 @@ class Context(DotDict):
         """
         raise TypeError(
             "Pickling context objects is explicitly not supported. You should always "
-            "access context as an attribute of the `prefect` module, as in `prefect.context`"
+            "access context as an attribute of the `flowsaber` module, as in `flowsaber.context`"
         )
 
     def __repr__(self) -> str:
@@ -213,28 +230,27 @@ class Context(DotDict):
                 print(context.a) # 1
         """
         # Avoid creating new `Context` object, copy as `dict` instead.
-        previous_context = self.__dict__.copy()
+        from copy import deepcopy
+        self.__context_stack.append(deepcopy(self.__dict__))
         try:
             new_context = dict(*args, **kwargs)
+            # for config_dict-prefixed dict, merge it
+            for k, v in new_context.items():
+                if "config_dict" in k:
+                    new_context[k] = merge_dicts(self.get(k, {}), v)
             self.update(new_context)  # type: ignore
             yield self
         finally:
             self.clear()
-            self.update(previous_context)
+            self.update(self.__context_stack.pop())
 
 
 context = Context()
 
-config = Context()
-
-config.update({
-    'executor': {
-        'executor_type': 'dask',
-        'address': None,
-        'cluster_class': None,
-        'cluster_kwargs': None,
-        'adapt_kwargs': None,
-        'client_kwargs': None,
-        'debug': False,
+context.update({
+    'default_flow_config': {
+        'fork': 20,
+    },
+    'default_task_config': {
     }
 })

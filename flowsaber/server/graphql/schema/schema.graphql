@@ -1,7 +1,7 @@
 type Query {
     hello: String
 
-    get_agent(agent_id: String!): Agent!
+    get_agent(agent_id: UUID!): Agent!
     get_agents: ids_payload!
 
     get_flow(flow_id: UUID!): Flow!

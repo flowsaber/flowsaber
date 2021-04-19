@@ -1,24 +1,17 @@
 import asyncio
 from collections import abc
 from queue import SimpleQueue
-from typing import Union, Sequence, Dict, Optional
+from typing import Union, Sequence, Optional, List
 
+import flowsaber
 from flowsaber.core.utils.target import END, End
+from flowsaber.server.models import ChannelInput
 from flowsaber.utility.logtool import get_logger
 
 logger = get_logger(__name__)
 
 
-# TODO theoretically, channel should always emit END after the first emission of EMD
-class DataObject(object):
-    def __init__(self, task=None, **kwargs):
-        self.task = task
-        for k, v in kwargs.items():
-            if not hasattr(self, k):
-                setattr(self, k, v)
-
-
-class Fetcher(DataObject):
+class Fetcher(object):
     def __aiter__(self):
         return self
 
@@ -46,89 +39,85 @@ class Fetcher(DataObject):
         raise NotImplementedError
 
 
-class Queue(Fetcher):
-    def __init__(self, ch, consumer, queue_factory, **kwargs):
-        super().__init__(**kwargs)
-        self.consumer = consumer
-        self.ch: 'Channel' = ch
-        self.queue_factory = queue_factory
-        self._queue: Optional[asyncio.Queue] = None
+class ConstantQueue(object):
+    """constant value can only be settled once by using put_nowait or put"""
+    NOTSET = object()
 
-    @property
-    def queue(self):
-        if self._queue is None:
-            self._queue = self.queue_factory()
-        return self._queue
+    def __init__(self):
+        self.value = self.NOTSET
+        self.has_value = asyncio.Event()
+
+    def put_nowait(self, item):
+        if not self.has_value.is_set():
+            self.has_value.set()
+        self.value = item
+
+    async def put(self, item):
+        self.put_nowait(item)
+
+    def get_nowait(self):
+        if self.value is self.NOTSET:
+            raise RuntimeError("The ConstantQueue is not initialized, please use ch.put/ch.put_nowait "
+                               "to set the initial value")
+        return self.value
 
     async def get(self):
-        if not self.ch.async_activated:
-            self.ch.activate()
+        await self.has_value.wait()
+        return self.get_nowait()
+
+    def empty(self):
+        return self.value is not self.NOTSET
+
+
+class LazyAsyncQueue(Fetcher):
+    def __init__(self, ch, queue_factory, **kwargs):
+        super().__init__(**kwargs)
+        self.ch: Channel = ch
+        self.queue_factory = queue_factory
+        self.queue: Optional[Union[asyncio.Queue, ConstantQueue]] = None
+
+    def initialize_queue(self):
+        if self.queue is None:
+            self.queue = self.queue_factory()
+
+    async def get(self):
+        self.initialize_queue()
+        if not self.ch.initialized:
+            self.ch.initialize()
         return await self.queue.get()
 
     def get_nowait(self):
+        self.initialize_queue()
         return self.queue.get_nowait()
 
     def put_nowait(self, item):
+        self.initialize_queue()
         return self.queue.put_nowait(item)
 
     async def put(self, item):
+        self.initialize_queue()
+        if not self.ch.initialized:
+            self.ch.initialize()
         return await self.queue.put(item)
 
     def empty(self):
         return self.queue.empty()
 
 
-class Channel(DataObject):
-
-    def __init__(self, name="", task=None, queue_factory: type = asyncio.Queue, **kwargs):
-        super().__init__(**kwargs)
-        # info
-        self.task = task
-        self.name = name
-        self.name_with_id = True
-        self.name = f"{task or ''}-{self}".lstrip('-')
-        # _input
-        self.buffer = SimpleQueue()
-        self.async_activated = False
-        self.queues: Dict[str, Queue] = {}
-        self.queue_factory = queue_factory
-        self.end = False
-
-    def __repr__(self):
-        name = f"{self.name}|{type(self).__name__}({type(self).__bases__[0].__name__})"
-        if self.name_with_id:
-            name += f"[{hex(hash(self))}]"
-        return name.lstrip('|')
+class ChannelBase(object):
+    def __init__(self, **kwargs):
+        for k, v in kwargs.items():
+            if not hasattr(self, k):
+                setattr(self, k, v)
 
     def put_nowait(self, item):
-        if self.async_activated:
-            for q in self.queues.values():
-                q.put_nowait(item)
-        else:
-            self.buffer.put(item)
-
-    def activate(self):
-        if not self.async_activated:
-            self.async_activated = True
-            if self.buffer.qsize():
-                # always put a END
-                self.buffer.put(END)
-                while not self.buffer.empty():
-                    _item = self.buffer.get()
-                    for q in self.queues.values():
-                        q.put_nowait(_item)
+        raise NotImplementedError
 
     async def put(self, item):
-        for q in self.queues.values():
-            await q.put(item)
+        return self.put_nowait(item)
 
-    def create_queue(self, consumer, key=None):
-        q = Queue(ch=self, consumer=consumer, queue_factory=self.queue_factory)
-        key = key or str(hash(q))
-        if key in self.queues:
-            raise ValueError(f"The chosen key {key} exists in this channel. Use a different key.")
-        self.queues[key] = q
-        return q
+    def create_queue(self) -> LazyAsyncQueue:
+        raise NotImplementedError
 
     def __lshift__(self, other):
         """
@@ -193,67 +182,51 @@ class Channel(DataObject):
         """
         return Channel.values(*items)
 
-    @staticmethod
-    def from_path(path: Union[str, Sequence[str]], hidden: bool = False, file_type="file", check_exit: bool = True):
-        """
-        files = Channel.fromPath( '_input/**.fa' )
-        """
-        pass
 
-    @staticmethod
-    def from_file_pairs(path: str):
-        """
-        Channel.from_file_pairs('/my/_input/SRR*_{1,2}.fastq')
+class Channel(ChannelBase):
 
-        [SRR493366, [/my/_input/SRR493366_1.fastq, /my/_input/SRR493366_2.fastq]]
-        """
-        pass
+    def __init__(self, queue_factory: type = asyncio.Queue, **kwargs):
+        super().__init__(**kwargs)
+        self.buffer = SimpleQueue()
+        self.initialized = False
+        self.queues: List[LazyAsyncQueue] = []
+        self.queue_factory = queue_factory
+        self.id = flowsaber.context.random_id
+        self.task_id = flowsaber.context.get('task_id')
+        self.flow_id = flowsaber.context.get('flow_id')
 
-    @staticmethod
-    def from_SRA(sra_id: Union[str, Sequence[str]]):
-        """
-        Channel.from_SRA('SRP043510')
-        [SRR1448794, ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR144/004/SRR1448794/SRR1448794.fastq.gz]
-        [SRR1448795, ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR144/005/SRR1448795/SRR1448795.fastq.gz]
+    def serialize(self) -> ChannelInput:
+        return ChannelInput(
+            id=self.id,
+            task_id=self.task_id,
+            flow_id=self.flow_id
+        )
 
-        https://www.ncbi.nlm.nih.gov/books/NBK25499/#chapter4.ESearch
-        """
-        pass
-
-    @staticmethod
-    def watch_paths(paths: Union[str, Sequence[str]]):
-        pass
-
-    # Operators defined for use of ide, the true definition is dynamically generated
-
-
-class ConstantQueue(object):
-    """constant value can only be settled once by using put_nowait or put"""
-    NOTSET = object()
-
-    def __init__(self):
-        self.value = self.NOTSET
-        self.has_value = asyncio.Event()
+    def initialize(self):
+        if not self.initialized:
+            self.initialized = True
+            if self.buffer.qsize():
+                # always put a END
+                self.buffer.put(END)
+                while not self.buffer.empty():
+                    self.put_nowait(self.buffer.get())
 
     def put_nowait(self, item):
-        if not self.has_value.is_set():
-            self.value = item
-            self.has_value.set()
+        if self.initialized:
+            for q in self.queues:
+                q.put_nowait(item)
+        else:
+            self.buffer.put(item)
 
     async def put(self, item):
-        self.put_nowait(item)
+        self.initialize()
+        for q in self.queues:
+            await q.put(item)
 
-    def get_nowait(self):
-        if self.value is self.NOTSET:
-            raise RuntimeError("The ConstantQueue is not initialized, please use ch.put to set the initial value")
-        return self.value
-
-    async def get(self):
-        await self.has_value.wait()
-        return self.get_nowait()
-
-    def empty(self):
-        return self.value is not self.NOTSET
+    def create_queue(self):
+        q = LazyAsyncQueue(ch=self, queue_factory=self.queue_factory)
+        self.queues.append(q)
+        return q
 
 
 class ConstantChannel(Channel):
@@ -262,10 +235,10 @@ class ConstantChannel(Channel):
 
 
 class Consumer(Fetcher):
-    def __init__(self, queues: Sequence[Queue], **kwargs):
+    def __init__(self, *queues: LazyAsyncQueue, **kwargs):
         super().__init__(**kwargs)
-        self.queues = list(queues)
-        assert all(isinstance(q, Queue) for q in self.queues)
+        self.queues: List[LazyAsyncQueue] = list(queues)
+        assert all(isinstance(q, LazyAsyncQueue) for q in self.queues)
         self.num_emitted = 0
 
     @property
@@ -279,7 +252,7 @@ class Consumer(Fetcher):
     def __len__(self):
         return len(self.queues)
 
-    async def get(self) -> tuple:
+    async def get(self):
         # make sure empty inputs only emit once
         if self.empty and self.num_emitted >= 1:
             return END
@@ -287,16 +260,14 @@ class Consumer(Fetcher):
         for q in self.queues:
             value = await q.get()
             if isinstance(value, End):
-                logger.debug(f"{self.task} get END from {q.ch.task}")
                 return END
-            else:
-                values.append(value)
+            values.append(value)
         self.num_emitted += 1
         # emit single input without tuple
         res = tuple(values) if not self.single else values[0]
         return res
 
-    def get_nowait(self) -> tuple:
+    def get_nowait(self):
         # make sure empty inputs only emit once
         if self.empty and self.num_emitted >= 1:
             return END
@@ -305,28 +276,24 @@ class Consumer(Fetcher):
             value = q.get_nowait()
             if isinstance(value, End):
                 return END
-            else:
-                values.append(value)
+            values.append(value)
         self.num_emitted += 1
         # emit single input without tuple
         return tuple(values) if not self.single else values[0]
 
     @classmethod
-    def from_channels(cls, channels: Sequence[Union[Channel, object]], consumer=None, **kwargs) -> 'Consumer':
-        channels = list(channels) if isinstance(channels, abc.Sequence) else [channels]
+    def from_channels(cls, *channels: Sequence[Union[Channel, object]], **kwargs) -> 'Consumer':
+        channels = list(channels)
         for i, ch in enumerate(channels):
             if not isinstance(ch, Channel):
                 if isinstance(ch, (tuple, list)) and any(isinstance(v, Channel) for v in ch):
                     raise ValueError(f"The _input: {ch} is a list/tuple of channels, "
                                      f"please unwrap it before pass into a Task/Flow")
                 else:
-                    channels[i] = Channel.values(ch)
+                    channels[i] = Channel.value(ch)
             else:
-                if ch.async_activated:
+                if ch.initialized:
                     raise ValueError("Can not create consumer from activated Channel, try to create"
                                      " the consumer before _running the flow.")
-        queues = [ch.create_queue(consumer=consumer) for ch in channels]
-        return cls(queues, **kwargs)
-
-    def add_channel(self, channel: Channel, consumer=None):
-        self.queues.append(channel.create_queue(consumer=consumer))
+        queues = [ch.create_queue() for ch in channels]
+        return cls(*queues, **kwargs)

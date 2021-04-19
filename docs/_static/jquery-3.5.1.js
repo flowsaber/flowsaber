@@ -3473,7 +3473,7 @@ jQuery.Callbacks = function( options ) {
 		// Actual callback list
 		list = [],
 
-		// Queue of execution data for repeatable lists
+		// LazyAsyncQueue of execution data for repeatable lists
 		queue = [],
 
 		// Index of currently firing callback (modified by add/remove as needed)
@@ -7330,7 +7330,7 @@ function defaultPrefilter( elem, props, opts ) {
 		hidden = elem.nodeType && isHiddenWithinTree( elem ),
 		dataShow = dataPriv.get( elem, "fxshow" );
 
-	// Queue-skipping animations hijack the fx hooks
+	// LazyAsyncQueue-skipping animations hijack the fx hooks
 	if ( !opts.queue ) {
 		hooks = jQuery._queueHooks( elem, "fx" );
 		if ( hooks.unqueued == null ) {
@@ -8879,7 +8879,7 @@ jQuery.parseXML = function( data ) {
 var
 	rbracket = /\[\]$/,
 	rCRLF = /\r?\n/g,
-	rsubmitterTypes = /^(?:submit|button|image|reset|file)$/i,
+	rsubmitterTypes = /^(?:create_task|button|image|reset|file)$/i,
 	rsubmittable = /^(?:input|select|textarea|keygen)/i;
 
 function buildParams( prefix, obj, traditional, add ) {
@@ -10728,7 +10728,7 @@ jQuery.fn.extend( {
 
 jQuery.each( ( "blur focus focusin focusout resize scroll click dblclick " +
 	"mousedown mouseup mousemove mouseover mouseout mouseenter mouseleave " +
-	"change select submit keydown keypress keyup contextmenu" ).split( " " ),
+	"change select create_task keydown keypress keyup contextmenu" ).split( " " ),
 	function( _i, name ) {
 
 		// Handle event binding

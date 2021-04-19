@@ -173,13 +173,13 @@
 object can be used multiple times, so there may be multiple tasks share the same <code class="docutils literal notranslate"><span class="pre">task_key</span></code>.</p></li>
 </ul>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">task</span><span class="o">.</span><span class="n">task_key</span> <span class="o">=</span> <span class="n">classname</span><span class="o">-</span><span class="nb">hash</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">run_job</span><span class="o">.</span><span class="vm">__code__</span> <span class="o">+</span> <span class="n">task</span><span class="o">.</span><span class="n">run</span><span class="o">.</span><span class="n">__annotation__</span> <span class="o">+</span> <span class="n">other_info</span><span class="p">)</span>
-<span class="n">task</span><span class="o">.</span><span class="n">workdir</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">workdir</span><span class="o">/</span><span class="n">task</span><span class="o">.</span><span class="n">task_key</span>
+<span class="n">task</span><span class="o">.</span><span class="n">task_workdir</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">config_dict</span><span class="o">.</span><span class="n">task_workdir</span><span class="o">/</span><span class="n">task</span><span class="o">.</span><span class="n">task_key</span>
 </pre></div>
 </div>
 <ul class="simple">
 <li><p>For each input of <code class="docutils literal notranslate"><span class="pre">task.run</span></code>, the run will have a <code class="docutils literal notranslate"><span class="pre">run_key</span></code> equals to it’s working directory</p></li>
 </ul>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">run</span><span class="o">.</span><span class="n">workdir</span> <span class="o">=</span> <span class="n">run_key</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">workdir</span><span class="o">/</span><span class="nb">hash</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">other_info</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">run</span><span class="o">.</span><span class="n">task_workdir</span> <span class="o">=</span> <span class="n">run_key</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">task_workdir</span><span class="o">/</span><span class="nb">hash</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">other_info</span><span class="p">)</span>
 </pre></div>
 </div>
 <ul class="simple">

@@ -14,7 +14,7 @@ from makefun import with_signature
 
 from flowsaber.core.channel import Channel, End
 
-TaskOutput = Union[Sequence[Channel], Channel, None]
+Output = Union[Sequence[Channel], Channel]
 Data = Union[tuple, End]
 
 
@@ -48,8 +48,8 @@ def class_to_func(cls: type):
             def __init__(self, a: int, b: str = "x", **kwargs):
                 pass
     into a function:
-        def a(*run_args, a: int, b: str = "x", **kwargs):
-            return A(a=a, b=b, **kwargs)(*run_args)
+        def a(*data, a: int, b: str = "x", **kwargs):
+            return A(a=a, b=b, **kwargs)(*data)
     """
     assert isinstance(cls, type), "The consumer argument must be a class"
     # Get signature of cls.__init__ except for self
@@ -59,11 +59,11 @@ def class_to_func(cls: type):
     if fn_name in dir(builtins):
         fn_name += "_by"
     # replace POSITIONAL_OR_KEYWORD to KEYWORD_ONLY
-    # append *run_args VAR_POSITIONAL at the front
+    # append *data VAR_POSITIONAL at the front
     sigs = list(inspect.signature(fn).parameters.values())
     for i, sig in enumerate(sigs):
         if sig.kind == inspect.Parameter.VAR_POSITIONAL:
-            raise ValueError("The consumer cls.__init__ should not have *run_args: VAR_POSITIONAL parameter.")
+            raise ValueError("The consumer cls.__init__ should not have *data: VAR_POSITIONAL parameter.")
         elif sig.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD:
             sigs[i] = sig.replace(kind=inspect.Parameter.KEYWORD_ONLY)
     sigs.insert(0, ARGS_SIG)
@@ -83,8 +83,8 @@ def class_to_method(cls: type):
             def __init__(self, a: int, b: str = "x", **kwargs):
                 pass
     into a function:
-        def a(self, *run_args, a: int, b: str = "x", **kwargs):
-            return A(a=a, b=b, **kwargs)(self, *run_args)
+        def a(self, *data, a: int, b: str = "x", **kwargs):
+            return A(a=a, b=b, **kwargs)(self, *data)
     """
     assert isinstance(cls, type), "The consumer argument must be a class"
     fn = types.MethodType(cls.__init__, object)
@@ -92,7 +92,7 @@ def class_to_method(cls: type):
     sigs = list(inspect.signature(fn).parameters.values())
     for i, sig in enumerate(sigs):
         if sig.kind == inspect.Parameter.VAR_POSITIONAL:
-            raise ValueError(f"The input class {cls}.__init__ should not have *run_args: VAR_POSITIONAL parameter.")
+            raise ValueError(f"The input class {cls}.__init__ should not have *data: VAR_POSITIONAL parameter.")
         elif sig.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD:
             sigs[i] = sig.replace(kind=inspect.Parameter.KEYWORD_ONLY)
     sigs = [SELF_SIG, ARGS_SIG] + sigs

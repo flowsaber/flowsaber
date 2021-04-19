@@ -2,108 +2,93 @@ import asyncio
 import inspect
 import os
 import subprocess
+from abc import ABC
 from collections import abc, defaultdict
-from functools import partial
 from inspect import Parameter
 from pathlib import Path
-from typing import Callable, Sequence, Optional
+from typing import Callable, Sequence
 
 from dask.base import tokenize
 
+import flowsaber
 from flowsaber.core.executor import Executor
-from flowsaber.core.utils.cache import get_cache_cls, Cache
-from flowsaber.core.utils.context import context, config as flow_config
+from flowsaber.core.utils.cache import get_cache, Cache
 from flowsaber.core.utils.env import Env, EnvCreator
 from flowsaber.core.utils.target import File, Stdout, Stdin, END
 from flowsaber.utility.logtool import get_logger
-from flowsaber.utility.utils import change_cwd, class_deco, TaskOutput, Data, capture_local
-from .base import FlowComponent, TaskConfig
-from .channel import Channel, Consumer, ConstantChannel, Queue
+from flowsaber.utility.utils import change_cwd, Data, capture_local, Output
+from .base import Component
+from .channel import Channel, Consumer, ConstantChannel
+from .executor import get_executor
 from .runner.task_runner import get_task_runner_cls
 from .scheduler import TaskScheduler
 from .utils.state import *
 from ..server.models import *
 
-
 logger = get_logger(__name__)
 
 
-class Edge(object):
-    def __init__(self, channel: Channel, task: "Task"):
-        self.channel = channel
-        self.task = task
+class BaseTask(Component):
+    default_config = {
+        'workdir': 'work'
+    }
 
-    def serialize_to_model(self) -> EdgeInput:
-        return EdgeInput(
-            channel_id=self.channel.key,
-            task_id=self.task.key
-        )
-
-class BaseTask(FlowComponent):
     def __init__(self, num_out: int = 1, **kwargs):
         super().__init__(**kwargs)
         self.num_out = num_out
-        self._dependencies: Optional[dict] = None
 
-    def __call__(self, *args, **kwargs) -> TaskOutput:
-        task = self.copy_new(*args, **kwargs)
-        up_flow = context.up_flow
-        assert task not in up_flow._tasks
-        up_flow._tasks.setdefault(task, {})
+    @property
+    def config_name(self) -> str:
+        return "task_config"
 
-        return task._output
+    def __call__(self, *args, **kwargs) -> Output:
+        # update context and store to task.context
+        task = self.call_initialize(*args, **kwargs)
+        # enter task context
+        with flowsaber.context(task.context):
+            task.initialize_input(*args, **kwargs)
+            task.initialize_output()
+        # register to top flow for serializing
+        top_flow = flowsaber.context.top_flow
+        top_flow.tasks.append(task)
+        # register to up flow for execution
+        up_flow = flowsaber.context.up_flow
+        up_flow.compoments.append(task)
 
-    def copy_new(self, *args, **kwargs):
-        new = super().copy_new(*args, **kwargs)
-        new.initialize_output()
-        new.register_graph(new._input.queues)
-        return new
+        return task.output
 
-    def initialize_input(self, *args, **kwargs) -> Consumer:
+    def initialize_context(self):
+        super().initialize_context()
+        # only expose the info of the outermost flow
+        self.context.update({
+            'task_id': self.config_dict['id'],
+            'task_name': self.config_dict['name'],
+            'task_full_name': self.config_dict['full_name'],
+            'task_labels': self.config_dict['labels']
+        })
+
+    def initialize_input(self, *args, **kwargs):
         super().initialize_input(*args, **kwargs)
         channels = list(args) + list(kwargs.values())
-        self._input = Consumer.from_channels(channels, consumer=self, task=self)
-        self._dependencies = {}
-        return self._input
+        self.input = Consumer.from_channels(channels, task=self)
+        # register edges into the up-most flow
+        for input_q in self.input.queues:
+            edge = Edge(channel=input_q.ch, task=self)
+            flowsaber.context.top_flow.edges.apend(edge)
 
-    def initialize_output(self) -> TaskOutput:
-        self._output = tuple(Channel(task=self) for i in range(self.num_out))
-        if len(self._output) == 1:
-            self._output = self._output[0]
-        return self._output
-
-    def register_graph(self, qv: Sequence[Queue]):
-        g = context.top_flow.graph
-        kwargs = dict(
-            style="filled",
-            colorscheme="svg"
-        )
-        g.node(self.identity_name, **kwargs)
-        for q in qv:
-            src = q.ch.task or q.ch
-            src_name = getattr(src, 'identity_name', None) or src.name
-            shape = 'box' if isinstance(self, Task) else 'ellipse'
-            if f"\t{src_name}" not in g.source:
-                g.node(src_name, shape=shape, **kwargs)
-            g.edge(src_name, self.identity_name)
-
-    def add_dependency(self, name: str, channel: Channel):
-        assert name not in self._dependencies
-        self._dependencies[name] = channel
-        self._input.add_channel(channel, consumer=self)
-        self.register_graph([self._input.queues[-1]])
+    def initialize_output(self):
+        self.output = tuple(Channel(task=self) for i in range(self.num_out))
+        if self.num_out == 1:
+            self.output = self.output[0]
 
     async def execute(self, **kwargs):
         await super().execute(**kwargs)
         try:
             # extract data using consumer
-            res = await self.handle_consumer(self._input, **kwargs)
+            res = await self.handle_consumer(self.input, **kwargs)
             # always sends a END to _output channel
-            if isinstance(self._output, abc.Sequence):
-                for ch in self._output:
-                    await ch.put(END)
-            else:
-                await self._output.put(END)
+            end_signal = END if self.num_out == 1 else [END] * self.num_out
+            await self.enqueue_res(end_signal)
         except Exception as e:
             raise e
         finally:
@@ -116,9 +101,25 @@ class BaseTask(FlowComponent):
         await self.handle_input(END)
 
     async def handle_input(self, data, *args, **kwargs):
-        return NotImplemented
+        if data is not END:
+            await self.enqueue_res(data)
 
-    def __ror__(self, chs) -> TaskOutput:
+    async def enqueue_res(self, data, index=None):
+        # enqueue data into the output channel
+        if self.num_out != 1 and isinstance(self.output, Sequence):
+            try:
+                if index is None:
+                    for ch, _res in zip(self.output, data):
+                        await ch.put(_res)
+                else:
+                    self.output[index].put(data)
+            except TypeError as e:
+                raise RuntimeError(f"The output: {data} can't be split into {self.num_out} channels."
+                                   f"The error is {e}")
+        else:
+            await self.output.put(data)
+
+    def __ror__(self, chs) -> Output:
         """
         ch | task               -> task(ch)
         [ch1, ch2, ch3] | task  -> task(ch1, ch2, ch3)
@@ -154,146 +155,111 @@ class BaseTask(FlowComponent):
     def source_code(self) -> str:
         return ""
 
-    def serialize_to_model(self) -> TaskInput:
-        task_input = TaskInput(
-            id=self.key,
-            flow_id=self.flow.key,
-            name=self.name,
-            config=self.config,
-            input_signature=self.input_signature,
-            output_signature=self.output_signature,
-            outputs=[ch.serialize() for ch in self._output],
-            source_code=self.source_code
-        )
-
-        return task_input
-
-class Task(BaseTask):
-    DEFAULT_CONFIG = {}
-
-    def __new__(cls, *args, **kwargs):
-        # handle for pickle not support __getattr__
-        obj = super().__new__(cls)
-        # 1. load global default config
-        obj.config = TaskConfig()
-        # 2. load task class's default config
-        obj.config.update(cls.DEFAULT_CONFIG)
-        # 3. load config specified by kwargs
-        obj.config.update(kwargs)
-        return obj
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        # task specific
-        self.skip_fn: Optional[Callable] = None
-        self.workdir = None
-        # run specific
-        self.run_info: Optional[dict] = None
-
-    def __getattr__(self, item):
-        return getattr(self.config, item)
-
-    def copy_new(self, *args, **kwargs):
-        new: Task = super().copy_new(*args, **kwargs)
-        # 4. update user defined config
-        cls_name = new.__class__.__name__
-        # update if has self's class name
-        if hasattr(flow_config, cls_name) and isinstance(flow_config[cls_name], dict):
-            new.config.update(flow_config[cls_name])
-        # update if has self's base classes
-        for base in self.__class__.__mro__:
-            if base in flow_config:
-                new.config.update(flow_config[base])
-
-        # set task_key and working directory
-        # task key is the unique identifier of the task and task' working directory, cache, run_key_lock
-        new.workdir = Path(new.config.workdir, new.task_key).expanduser().resolve()
-        logger.debug(f"the working directory of {self} is {new.task_key}")
-        # set cache
-        return new
-
-    async def handle_consumer(self, consumer: Consumer, **kwargs):
-        # make working directory
-        self.workdir.mkdir(parents=True, exist_ok=True)
-        scheduler: TaskScheduler = kwargs.get('scheduler')
-        futs = []
-
-        async for data in consumer:
-            # handle _input _input_args
-            # tuple if needed
-            run_data = (data,) if self._input.single else data
-            logger.debug(f"{self} get data {data} from consumer.")
-            len_args = self._input_len
-            # split run data and dependent data
-            run_data, depend_data = run_data[:len_args], run_data[len_args:]
-            run_args = self.create_run_args(run_data)
-            depend_args = dict(zip(self._dependencies, depend_data))
-            # initialize run_info
-            state = Pending(context=depend_args)
-            # submit to scheduler
-            if scheduler:
-                # create a clean task for ease of serialization
-                job = scheduler.submit(self.handle_input(run_args, state=state))
-                job.add_async_done_callback(self.handle_target_state)
-                if self.config.fork <= 1:
-                    await job
-                futs.append(job)
-            # or in current loop
-            else:
-                state = await self.handle_input(run_args, state=state)
-                await self.handle_target_state(state)
-        if scheduler and len(futs):
-            done, pending = asyncio.wait(*futs, return_when=asyncio.ALL_COMPLETED)
-
-    async def handle_target_state(self, state):
-        assert isinstance(state, Done)
-        if isinstance(state, Success):
-            await self._output.put(state.result)
-
-    def create_run_args(self, data: Data) -> BoundArguments:
-        # 1. build BoundArgument
-        len_args = len(self._input_args)
-        args = data[:len_args]
-        kwargs = {
-            k: data[len_args + i] for i, k in enumerate(self._input_kwargs.keys())
+    @classmethod
+    def input_signature(cls) -> dict:
+        call_signature = {
+            param: str(param_type)
+            for param, param_type
+            in inspect.signature(cls.__call__).parameters.items()
         }
 
-        run_args = inspect.signature(self.run).bind(*args, **kwargs)
-        run_args.apply_defaults()
-        return run_args
+        return call_signature
 
-    def need_skip(self, bound_args: BoundArguments) -> bool:
-        if self.skip_fn:
-            return self.skip_fn(**bound_args.arguments)
-        else:
-            return False
+    def serialize(self) -> TaskInput:
+        config = self.config
+        outputs = self.output
+        if self.num_out == 1:
+            outputs = [self.output]
+        return TaskInput(
+            id=config.id,
+            flow_id=flowsaber.context.flow_id,
+            name=config.name,
+            labels=config.labels,
+            input_signature=self.input_signature(),
+            outputs=[ch.serialize() for ch in outputs],
+            source_code=inspect.getsource(type(self))
+        )
 
-    async def handle_input(self, run_args: BoundArguments, **kwargs) -> State:
-        logger.debug(f"{self} start handle_input()")
+    def logger(self, context: dict):
+        return NotImplementedError
 
-        run_args = await self.check_run_args(run_args)
-        input_hash = self.cache.hash(run_args, **self.input_hash_source)
-        run_key = self.run_key(input_hash)
-        logger.debug(f"{self} {run_args} {self.input_hash_source} {run_key}")
 
-        # 1. set _running info and lock key
-        # must lock input key to avoid collision in cache and files in _running path
-        async with self.run_key_lock(run_key):
-            clean_task = self.copy_clean()
-            task_runner = get_task_runner_cls()(task=clean_task)
-            state = kwargs['state']
-            state.inputs = run_args
-            state.context.update({
-                'run_key': run_key
-            })
-            state = await self.executor.run(task_runner.run, state)
-        logger.debug(f"{self} release lock:{run_key}")
-        # 3. unset _running info
-        return state
+class RunTask(BaseTask):
+    """RunTask represents tasks with run method.
+    1. Runs of multiple inputs will be executed in parallel.
+    2. Runs will be executed in the main loop.
+    """
+    FUNC_PAIRS = [('run', '__call__', True)]
+    default_config = {
+        'publish_dirs': [],
+        'drop_error': False,
+        'cache': 'local',
+        'retry': 0,
+        'fork': 7,
+        'cpu': 1,
+        'gpu': 0,
+        'memory': 0.2,
+        'time': 1,
+        'io': 1,
+        'executor_type': 'dask',
+        'executor_address': None,
+        'executor_cluster_class': None,
+        'executor_cluster_kwargs': None,
+        'executor_adapt_kwargs': None,
+        'executor_client_kwargs': None,
+        'executor_debug': False
+    }
 
-    async def check_run_args(self, run_args: BoundArguments) -> BoundArguments:
+    @property
+    def executor(self) -> Executor:
+        """Note: The executor can not use threads, otherwise functions relies
+        on `os.getcwd()` may change at any time"""
+        executors = flowsaber.context.info.setdefault('__executors', {})
+        executor_kwargs = {k.rstrip("executor_"): v for k, v in self.config_dict.items()
+                           if k.startswith("executor_")}
+        executor_hash = tokenize(**executor_kwargs)
+        if executor_hash not in executors:
+            executors[executor_hash] = get_executor(**executor_kwargs)
+        return executors[executor_hash]
+
+    async def handle_consumer(self, consumer: Consumer, **kwargs):
+        scheduler: TaskScheduler = kwargs.get("scheduler")
+        futures = []
+
+        async for data in consumer:
+            run_data = (data,) if self.input.single else data
+            # split run data and dependent data
+            run_data = self.create_run_data(run_data)
+            job_coro = self.handle_run_data(run_data, **kwargs)
+            # create_task to scheduler
+            if scheduler:
+                fut = scheduler.create_task(job_coro)
+            else:
+                fut = asyncio.create_task(job_coro)
+            futures.append(fut)
+        fut = asyncio.gather(*futures)
+        return fut
+
+    def create_run_data(self, data: Data) -> BoundArguments:
+        # 1. build BoundArgument
+        len_args = len(self.input_args)
+        args = data[:len_args]
+        kwargs = {
+            k: data[len_args + i] for i, k in enumerate(self.input_kwargs.keys())
+        }
+
+        run_data = inspect.signature(self.run).bind(*args, **kwargs)
+        run_data.apply_defaults()
+        return run_data
+
+    async def handle_run_data(self, data: BoundArguments, **kwargs):
+        data: BoundArguments = await self.check_run_data(data, **kwargs)
+        res = await self.call_run(data, **kwargs)
+        await self.handle_res(res)
+
+    async def check_run_data(self, data: BoundArguments, **kwargs):
         run_params = dict(inspect.signature(self.run).parameters)
-        arguments = run_args.arguments
+        arguments = data.arguments
         for arg, param in run_params.items():
             ano_type = param.annotation
             if ano_type is not Parameter.empty and isinstance(ano_type, type):
@@ -316,23 +282,57 @@ class Task(BaseTask):
                 if not f.initialized:
                     new_hash = await self.executor.run(f.calculate_hash)
                     f.hash = new_hash
-        return run_args
+        return data
 
-    def get_run_info(self, data: BoundArguments) -> dict:
-        return {}
+    async def call_run(self, data: BoundArguments, **kwargs):
+        """
+        RunTask.run should be run within the context of task.context
+        """
+        from copy import copy
+        clean_task = copy(self)
+        res = clean_task.run_in_context(data, **kwargs)
+        return res
+
+    async def handle_res(self, res):
+        await self.enqueue_res(res)
+
+    def run_in_context(self, data: BoundArguments, **kwargs):
+        with flowsaber.context(self.context):
+            with flowsaber.context(kwargs.get('context', {})):
+                return self.run(**data.arguments)
 
     def run(self, *args, **kwargs):
-        """
-        This function should be stateless
-        """
-        raise NotImplementedError
+        raise NotImplementedError("Please implement this method.")
+
+
+class Task(RunTask, ABC):
+    """Task is subclass of RunTask:
+    1. Each Task will have a unique task_key/task_workdir
+    2. Each input's run will have a unique run_key/task_workdir.
+    3. Task's run will be executed in executor and handled by a task runner.
+    4. Within the task runner, task will pass through a state machine, callbacks can be registered to each state changes.
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.skip_fn: Optional[Callable] = None
 
     @property
-    def task_key(self):
-        return f"{self.__class__.__name__}-{self.task_hash}"
+    def cache(self, ) -> Cache:
+        caches = flowsaber.context.info.setdefault('__caches', {})
+        task_workdir = self.task_workdir
+        if task_workdir not in caches:
+            caches[task_workdir] = get_cache(cache=self.config_dict['cache'])
+        return caches[task_workdir]
 
     @property
-    def task_hash(self):
+    def run_lock(self):
+        run_workdir = str(self.run_workdir)
+        locks = flowsaber.context.info.setdefault('__run_locks', defaultdict(asyncio.Lock))
+        return locks[run_workdir]
+
+    @property
+    def task_hash(self) -> str:
         # get the task_hash of this task defined by the real source code of self.run
         fn = self.run
         # for wrapped func, use __source_func__ as a link
@@ -344,28 +344,67 @@ class Task(BaseTask):
         return tokenize(code, annotations)
 
     @property
-    def cache(self) -> Cache:
-        create_cache = partial(get_cache_cls, self.config.cache_type, task=self)
-        caches = context.setdefault('__caches__', defaultdict(create_cache))
-        return caches[self.task_key]
+    def task_key(self) -> str:
+        return f"{str(self)}-{self.task_hash}"
+
+    def initialize_context(self):
+        super().initialize_context()
+        task_key = self.task_key
+        self.config_dict.update({
+            'task_key': task_key,
+        })
+        self.context.update({
+            'task_key': task_key,
+        })
 
     @property
-    def executor(self) -> Executor:
-        """Note: The executor can not use threads, otherwise functions relies on `os.getcwd()` may change at any time"""
-        assert '__executor__' in context.__dict__, "Executor not in flowsaber.context"
-        return context['__executor__']
+    def task_workdir(self) -> Path:
+        workdir = Path(self.context['task_config']['workdir'], self.context['task_key'])
+        if workdir.is_absolute():
+            return workdir
+        workdir = Path(self.context['flow_config']['workdir'], workdir)
+        if workdir.is_absolute():
+            return workdir
+        workdir = Path(self.context['flow_workdir'], workdir)
+        assert workdir.is_absolute()
+        return workdir
+
+    @property
+    def run_workdir(self) -> Path:
+        return Path(self.task_workdir, self.context['run_key'])
+
+    async def call_run(self, data: BoundArguments, **kwargs) -> State:
+        from copy import copy
+        run_key = self.cache.hash(data, **self.input_hash_source)
+        run_workdir = self.run_workdir
+        task = copy(self)
+        task.context.update({
+            'run_key': run_key,
+            'run_workdir': run_workdir
+        })
+        state = Pending(inputs=data, context=task.context)
+        # 1. set _running info and lock key
+        # must lock input key to avoid collision in cache and files in _running path
+        async with task.run_lock:
+            task_runner = get_task_runner_cls()(task=task)
+            state = await self.executor.run(task_runner.run, state)
+        # 3. unset _running info
+        return state
+
+    async def handle_res(self, res):
+        assert isinstance(res, Done)
+        if isinstance(res, Success):
+            await self.enqueue_res(res.result)
+
+    def need_skip(self, bound_args: BoundArguments) -> bool:
+        if self.skip_fn:
+            return self.skip_fn(**bound_args.arguments)
+        else:
+            return False
 
     @property
     def input_hash_source(self) -> dict:
         return {}
-
-    def run_key(self, input_hash):
-        assert self.task_key is not None and Path(self.workdir).is_dir()
-        return str(Path(self.workdir, input_hash))
-
-    def run_key_lock(self, run_key: str):
-        locks = context.setdefault('__run_key_locks__', defaultdict(asyncio.Lock))
-        return locks[run_key]
 
     def skip(self, skip_fn: Callable):
         assert callable(skip_fn)
@@ -377,121 +416,38 @@ class Task(BaseTask):
 
 
 class ShellTask(Task):
-    FUNC_PAIRS = [('command', 'run')]
-    SCRIPT_CMD = "SCRIPT_CMD"
 
-    class Script(object):
-        def __init__(self, cmd: str):
-            assert isinstance(cmd, str)
-            self.cmd = cmd
-            context[ShellTask.SCRIPT_CMD] = self
+    def run(self, cmd: str, output=None, env: Env = None):
+        env = env or Env()
+        flow_workdir = self.context['flow_workdir']
+        run_workdir = self.context['run_workdir']
 
-        def __str__(self):
-            return f"{self.cmd}"
-
-    class ShellScript(Script):
-        pass
-
-    class PythonScript(Script):
-        def __init__(self, cmd: str):
-            super().__init__(cmd)
-            raise NotImplementedError("Why not write python code in Task?")
-
-    class Rscript(Script):
-        SCRIPT_FILE = ".__Rscript.R"
-
-        def __str__(self):
-            Path(self.SCRIPT_FILE).write_text(self.cmd)
-            return f"Rscript {self.SCRIPT_FILE};"
-
-    def copy_new(self, *args, **kwargs):
-        new = super().copy_new(*args, **kwargs)
-        # handling env dependency
-        config = new.config
-        if config.module or config.conda or config.image:
-            env_creator = EnvCreator(
-                module=config.module,
-                conda=config.conda,
-                image=config.image
-            )
-            if env_creator not in context.env_tasks:
-                context.env_tasks[env_creator] = EnvTask(env_creator=env_creator)()
-            env_task_out_ch: Channel = context.env_tasks[env_creator]
-            new.add_dependency(name='env', channel=env_task_out_ch)
-
-        return new
-
-    def get_run_info(self, data: BoundArguments) -> dict:
-        # run user defined function and get the true bash commands
-        run_info = super().get_run_info(data)
-        # find the real shell commands
-        with context(), capture_local() as local_vars:
-            cmd_output = self.command(**data.arguments)
-            cmd: str = context.get(self.SCRIPT_CMD, None)
-        # two options: 1. use Shell('cmd') 2. use __doc__ = 'cmd'
-        if cmd is None:
-            cmd = self.command.__doc__
-            if cmd is None:
-                raise ValueError("ShellTask must be registered with a shell script_cmd "
-                                 "by calling `_(CMD) or Bash(CMD)` inside the function or add the "
-                                 "script_cmd as the command() method's documentation by setting __doc__ ")
-            local_vars.update({'self': self})
-            cmd = cmd.format(**local_vars)
-        # check if there are _stdin
-        stdin = ''
-        for arg in list(data.args) + list(data.kwargs.values()):
-            if isinstance(arg, Stdin):
-                if stdin:
-                    raise RuntimeError(f"Found two stdin inputs.")
-                stdin = arg
-
-        run_info.update({
-            'cmd_output': cmd_output,
-            'cmd': cmd,
-            'stdin': stdin
-        })
-        return run_info
-
-    def command(self, *args, **kwargs) -> str:
-        raise NotImplementedError
-
-    def serialize_to_model(self) -> TaskInput:
-        task_input = super().serialize_to_model()
-        task_input.command = self.inspect_command()
-        return task_input
-
-    def run(self, *args, **kwargs):
-        """
-        This function should be stateless
-        """
-        run_info = self.run_info
-        stdin = run_info['stdin']
-        cmd = run_info['cmd']
-        cmd_output = run_info['cmd_output']
-        run_key = run_info['run_key']
-        env: Env = run_info.get('env') or Env()
-        running_path = Path(run_key)
-        pubdirs = self.config.get_pubdirs()
-        with change_cwd(running_path) as path:
+        # resolve publish dirs
+        publish_dirs = []
+        for pub_dir in self.config_dict['publish_dirs']:
+            pub_dir = Path(pub_dir).expanduser().resolve()
+            if pub_dir.is_absolute():
+                publish_dirs.append(pub_dir)
+            else:
+                publish_dirs.append(Path(flow_workdir, pub_dir).resolve())
+        # start run
+        with change_cwd(run_workdir) as path:
             # 2. run in environment, stdout and stderr are separated, stdout of other commands are redirected
             run_env_cmd = env.gen_cmd(str(cmd))
-            stdout_file = (running_path / Path(f".__run__.stdout")).open('w')
-            stderr_file = (running_path / Path(f".__run__.stderr")).open('w+')
-            with subprocess.Popen(f"{stdin} {run_env_cmd}",
-                                  stdout=stdout_file,
-                                  stderr=stderr_file,
-                                  env=os.environ.copy(), shell=True) as p:
-                p.wait()
+            stdout_f = run_workdir / Path(f".__run__.stdout")
+            stderr_f = run_workdir / Path(f".__run__.stderr")
+            with stdout_f.open('w') as stdout_file, stderr_f.open('w+') as stderr_file:
+                with subprocess.Popen(f"{run_env_cmd}",
+                                      stdout=stdout_file,
+                                      stderr=stderr_file,
+                                      env=os.environ.copy(), shell=True) as p:
+                    p.wait()
 
-            stderr_file.seek(0)
-            stderr = stderr_file.read(1000)
-            stdout_file.close()
-            stderr_file.close()
-            if p.returncode:
-                raise ValueError(
-                    f"Run in environment for task {self} with error: {stderr} in {running_path} task: {self}")
-            # return stdout or globed new files
-            output = cmd_output
+                stderr_file.seek(0)
+                stderr = stderr_file.read(1000)
+                if p.returncode:
+                    raise ValueError(
+                        f"Run in environment for task {self} with error: {stderr} in {run_workdir} task: {self}")
 
             # 1. return stdout simulated by file
             if output is None:
@@ -524,10 +480,10 @@ class ShellTask(Task):
                 elif isinstance(item, File):
                     # initialize hash
                     item.initialize_hash()
-                    # publish to pubdir
-                    for pubdir in pubdirs:
-                        pubdir.mkdir(parents=True, exist_ok=True)
-                        pub_file = pubdir / Path(item.name)
+                    # publish to publish dir
+                    for pub_dir in publish_dirs:
+                        pub_dir.mkdir(parents=True, exist_ok=True)
+                        pub_file = pub_dir / Path(item.name)
                         if not pub_file.exists():
                             item.link_to(pub_file)
 
@@ -543,31 +499,60 @@ class ShellTask(Task):
             return output if not single else output[0]
 
 
+class CommandTask(RunTask):
+    FUNC_PAIRS = [('command', 'run')]
+
+    def __init__(self, **kwargs):
+        super().__init__(num_out=3, **kwargs)
+
+    def command(self, *args, **kwargs) -> str:
+        raise NotImplementedError("Please implement this function and return a bash script.")
+
+    def run(self, *args, **kwargs):
+        # TWO options: 1: use local var: CMD or use docstring
+        with capture_local() as local_vars:
+            cmd_output = self.command(*args, **kwargs)
+        cmd = local_vars.get("CMD")
+        if cmd is None:
+            cmd = self.command.__doc__
+            if cmd is None:
+                raise ValueError("CommandTask must be registered with a shell script_cmd "
+                                 "by calling `_(CMD) or Bash(CMD)` inside the function or add the "
+                                 "script_cmd as the command() method's documentation by setting __doc__ ")
+            local_vars.update({'self': self})
+            cmd = cmd.format(**local_vars)
+        # add cat stdin cmd
+        stdins = [arg for arg in list(args) + list(kwargs.values()) if isinstance(arg, Stdin)]
+        if len(stdins) > 1:
+            raise RuntimeError(f"Found more than two stdin inputs: {stdins}")
+        stdin = f"{stdins[0]} " if len(stdins) else ""
+        cmd = f"{stdin}{cmd}"
+        return cmd, cmd_output
+
+
 class EnvTask(ShellTask):
-    def __init__(self, env_creator: EnvCreator = None, **kwargs):
+    __ENV_TASKS__ = {}
+
+    def __call__(self, *args, **kwargs):
+        env_hash = self.env_creator.hash
+        if env_hash not in self.__ENV_TASKS__:
+            self.__ENV_TASKS__[env_hash] = super().__call__(*args, **kwargs)
+        return self.__ENV_TASKS__[env_hash]
+
+    def __init__(self, module: str = None, conda: str = None, image: str = None, **kwargs):
         super().__init__(**kwargs)
-        self.env_creator: EnvCreator = env_creator
+        self.env_creator: EnvCreator = EnvCreator(module, conda, image)
         self.env: Optional[Env] = None
 
-    def copy_new(self, *args, **kwargs):
-        new = super().copy_new(*args, **kwargs)
-        if new.env_creator is None:
-            new.env_creator = EnvCreator(
-                module=new.config.module,
-                conda=new.config.conda,
-                image=new.config.image
-            )
-        return new
+    def initialize_output(self) -> Output:
+        self.output = ConstantChannel(task=self)
+        return self.output
 
-    def initialize_output(self) -> TaskOutput:
-        self._output = ConstantChannel(task=self)
-        return self._output
-
-    def command(self) -> Env:
-        running_path = Path(self.run_info['run_key'])
-        with change_cwd(running_path) as path:
+    def run(self, cmd: str, output=None, env: Env = None):
+        run_workdir = self.context['run_workdir']
+        with change_cwd(run_workdir) as path:
             cmd, env = self.env_creator.gen_cmd_env()
-        Shell(cmd)
+        super().run(cmd=cmd)
         self.env = env
         return env
 
@@ -578,10 +563,13 @@ class EnvTask(ShellTask):
         }
 
 
-# decorator to make Task
-task = class_deco(Task, 'run')
-shell = class_deco(ShellTask, 'command')
-# function to register command
-Shell = ShellTask.ShellScript
-Python = ShellTask.PythonScript
-Rscript = ShellTask.Rscript
+class Edge(object):
+    def __init__(self, channel: Channel, task: BaseTask):
+        self.channel: Channel = channel
+        self.task: BaseTask = task
+
+    def serialize(self) -> EdgeInput:
+        return EdgeInput(
+            channel_id=self.channel.id,
+            task_id=self.task.context['task_id']
+        )

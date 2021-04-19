@@ -93,7 +93,7 @@ class TaskScheduler(object):
 
             await loop_fut
 
-    def submit(self, coro: Coroutine, cost: Callable = None) -> "TaskScheduler.Job":
+    def create_task(self, coro: Coroutine, cost: Callable = None) -> "TaskScheduler.Job":
         job = self.Job(coro, cost=cost)
         # add to tasks
         self.pending_jobs.add(job)
@@ -176,7 +176,7 @@ class FlowScheduler(object):
             self.executor.shutdown(wait=True)
             self.futures.clear()
 
-    def submit(self, fn) -> Future:
+    def create_task(self, fn) -> Future:
         fut = self.executor.submit(fn)
         fut.add_done_callback(self.remove_future)
         self.futures.add(fut)

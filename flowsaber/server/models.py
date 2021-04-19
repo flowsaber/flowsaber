@@ -1,6 +1,6 @@
 import enum
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -56,31 +56,27 @@ class EdgeInput(BaseModel):
 
 class ChannelInput(BaseModel):
     id: str
-    task_id: str
-    flow_id: str
+    task_id: Optional[str]
+    flow_id: Optional[str]
 
 
 class TaskInput(BaseModel):
     id: str
     flow_id: str
     name: str
-    config: dict
-    input_signature: dict
-    output_signature: str
+    call_signature: dict
     outputs: List[ChannelInput]
     source_code: str
-    command: str = ""
 
 
 class FlowInput(BaseModel):
     id: str
     name: str
     labels: List[str]
-    config: dict
-    source_code: str
-    serialized_flow: str
     tasks: List[TaskInput]
     edges: List[EdgeInput]
+    source_code: str
+    serialized_flow: str
 
 
 class GetFlowsInput(BaseModel):

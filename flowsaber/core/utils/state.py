@@ -13,7 +13,7 @@ Done
         Drop
 """
 from inspect import BoundArguments
-from typing import Any, Optional
+from typing import Any
 
 from ...server.models import *
 
@@ -103,7 +103,7 @@ class Skip(Success):
 
 class Drop(Failure):
     """This state means the output should be dropped and will not be passed to the output channel.
-    Usually this is caused by settled skip on error option in task.config"""
+    Usually this is caused by settled skip on error option in task.config_dict"""
     pass
 
 
