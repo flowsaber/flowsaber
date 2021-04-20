@@ -3,7 +3,7 @@ import sys
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 
-sys.path.insert(0, '../')
+sys.path.insert(0, '../../')
 import flowsaber
 from flowsaber import *
 

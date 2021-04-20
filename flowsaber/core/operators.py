@@ -3,8 +3,9 @@ import builtins
 from collections import defaultdict, abc
 from typing import Callable, Any, Union
 
-from flowsaber.core.channel import ConstantChannel, END, Consumer, LazyAsyncQueue, Channel
-from flowsaber.core.task import BaseTask, Data
+from flowsaber.core.channel import ConstantChannel, END, Consumer, LazyAsyncQueue, ChannelBase
+from flowsaber.core.task import BaseTask
+from flowsaber.core.utility.target import Data
 from flowsaber.utility.utils import extend_method, class_to_method
 
 Predicate = Callable[[Any], bool]
@@ -379,7 +380,7 @@ class Count(Reduce):
         super().__init__(by=lambda a, b: a + 1, result=0, **kwargs)
 
 
-# TODO though this more simple, but operators can not be detected by ide
+# though this more simple, but operators can not be detected by ide
 # operators = set()
 # operators_map = {}
 for var in tuple(locals().values()):
@@ -387,7 +388,7 @@ for var in tuple(locals().values()):
         # operator = class_to_func(var)
         # operators_map[operator.__name__] = operator
         # operators.add(operator)
-        extend_method(Channel)(class_to_method(var))
+        extend_method(ChannelBase)(class_to_method(var))
 # locals().update(operators_map)
 
 

@@ -2,7 +2,7 @@ from typing import Union
 
 import cloudpickle
 
-from .task import *
+from flowsaber.core.task import *
 
 logger = get_logger(__name__)
 
@@ -76,11 +76,11 @@ class Flow(Component):
     def run(self, *args, **kwargs) -> Channel:
         raise NotImplementedError("Not implemented. Users are supposed to compose flow/task in this method.")
 
-    async def execute(self, **kwargs) -> asyncio.Future:
-        await super().execute(**kwargs)
+    async def start_execute(self, **kwargs):
+        await super().start_execute(**kwargs)
         futures = []
         for component in self.components:
-            future = asyncio.ensure_future(component.execute(**kwargs))
+            future = asyncio.ensure_future(component.start(**kwargs))
             futures.append(future)
 
         # used fo debugging
@@ -90,7 +90,6 @@ class Flow(Component):
         loop.flowsaber_futures += list(zip(self.components, futures))
 
         fut = await asyncio.gather(*futures)
-
         return fut
 
     def serialize(self) -> FlowInput:

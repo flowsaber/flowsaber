@@ -1,43 +1,48 @@
 import signal
 import time
 
-from .runner import Runner, call_state_change_handlers, catch_to_failure
-from ..utils.state import *
-from ..utils.target import *
-from ...utility.statutils import ResourceMonitor
+import flowsaber
+from flowsaber.core.runner.runner import Runner, call_state_change_handlers, catch_to_failure, run_within_context
+from flowsaber.core.utility.state import *
+from flowsaber.core.utility.target import *
+from flowsaber.server.database.models import TaskRunInput
+from flowsaber.utility.statutils import ResourceMonitor
 
 
 class TaskRunner(Runner):
-    def __init__(self, task, **kwargs):
+    def __init__(self, task, inputs: BoundArguments, **kwargs):
         super().__init__(**kwargs)
         self.task = task
+        self.inputs: BoundArguments = inputs
 
-    def serialize(self, old_state: State, new_state: State, state_only=False) -> RunInput:
-        if state_only:
-            return TaskRunInput(
-                id=self.key,
-                state=(new_state - old_state).serialize()
-            )
-        else:
-            return TaskRunInput(
-                id=self.key,
-                task_id=self.task.key,
-                flow_id=self.task.flow_key,
-                agent_id=self.agent_id,
-                flowrun_id=self.flowrun_key,
-                state=new_state.serialize()
-            )
+    @property
+    def context(self):
+        return self.task.context
+
+    def serialize(self, old_state: State, new_state: State) -> TaskRunInput:
+        taskrun_input = TaskRunInput(id=self.id, state=new_state.to_dict())
+        if isinstance(old_state, Scheduled) and isinstance(new_state, Pending):
+            taskrun_input.__dict__.update({
+                'task_id': flowsaber.context.get('task_id'),
+                'flow_id': flowsaber.context.get('flow_id'),
+                'agent_id': flowsaber.context.get('agent_id'),
+                'flowrun_id': flowsaber.context.get('flowrun_id'),
+                'inputs': {},
+                'context': flowsaber.context.to_dict()
+            })
+
+        return taskrun_input
 
     def initialize_run(self, state) -> State:
         state = super().initialize_run(state)
-        run_info = self.task.get_run_info(state.inputs)
-        state.context.update(run_info)
         return state
 
+    @run_within_context
     @call_state_change_handlers
     @catch_to_failure
-    def run(self, state: State) -> State:
+    def run(self, state: State, **kwargs) -> State:
         state = self.initialize_run(state)
+        state = self.set_state(state, Pending)
         state = self.set_state(state, Running)
         # 1. skip if needed
         state = self.check_skip(state)
@@ -71,16 +76,16 @@ class TaskRunner(Runner):
 
     @call_state_change_handlers
     def check_skip(self, state: State) -> State:
-        if self.task.skip_fn and self.task.need_skip(state.inputs):
+        if self.task.skip_fn and self.task.need_skip(self.inputs):
             state = Skip.copy(state)
             state.result = tuple(state.inputs.arguments.values())
         return state
 
     @call_state_change_handlers
     def read_cache(self, state: State) -> State:
-        run_key = state.context['run_key']
+        run_workdir = self.context['run_workdir']
         no_cache = object()
-        res = self.task.cache.get(run_key, no_cache)
+        res = self.task.cache.get(run_workdir, no_cache)
         use_cache = res is not no_cache
         if use_cache:
             cache_valid = True
@@ -98,14 +103,14 @@ class TaskRunner(Runner):
                 state = Cached.copy(state)
                 state.result = res
             else:
-                self.task.cache.remove(run_key)
+                self.task.cache.remove(run_workdir)
         return state
 
     @call_state_change_handlers
     @catch_to_failure
     def run_task(self, state: State) -> State:
-        with context(state.context), ResourceMonitor() as monitor:
-            res = self.run_task_timeout(**state.inputs.arguments)
+        with ResourceMonitor() as monitor:
+            res = self.run_task_timeout(**self.inputs.arguments)
         state = Success.copy(state)
         state.result = res
         state.context['resource_usage'] = monitor.usage
@@ -115,7 +120,7 @@ class TaskRunner(Runner):
     @call_state_change_handlers
     def write_cache(self, state):
         assert isinstance(state, Success)
-        self.read_cache.put(state.context['run_key'], state.result)
+        self.read_cache.put(self.context['run_key'], state.result)
         return state
 
     def run_task_timeout(self, **kwargs):

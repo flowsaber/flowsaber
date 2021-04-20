@@ -1,8 +1,8 @@
 type State {
+    id: UUID!
     state_type: String!
     inputs: JSON
     result: String
-    context: JSON
     message: String
 }
 
@@ -11,6 +11,5 @@ input StateInput {
     state_type: String!
     inputs: JSON
     result: String
-    context: JSON
     message: String
 }

@@ -177,6 +177,7 @@ class DaskExecutor(Executor):
             self._should_run_event = None
             self._watch_dask_events_task = None
 
+    # TODO async is imconsistent with flowsaber.context
     @asynccontextmanager
     async def start(self) -> Iterator[None]:
         """
@@ -211,10 +212,6 @@ class DaskExecutor(Executor):
                             self._post_start_yield()
         finally:
             self.client = None
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self._post_start_yield()
-        self.client = None
 
     async def run(
             self, fn: Callable, *args: Any, extra_context: dict = None, **kwargs: Any

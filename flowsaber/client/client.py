@@ -4,8 +4,8 @@ from typing import Sequence
 import aiohttp
 from pydantic import validate_arguments
 
-from ..core import Flow
-from ..server.models import *
+from flowsaber.core.flow import Flow
+from flowsaber.server.models import *
 
 
 class GraphqlError(Exception):
@@ -189,6 +189,7 @@ class Client(object, metaclass=ValidateMeta):
                     id
                     flow_id
                     state
+                    context
                 }
             }
         """

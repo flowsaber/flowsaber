@@ -11,19 +11,19 @@ from typing import Callable, Sequence
 from dask.base import tokenize
 
 import flowsaber
+from flowsaber.core.base import Component
+from flowsaber.core.channel import Channel, Consumer, ConstantChannel, Output
 from flowsaber.core.executor import Executor
-from flowsaber.core.utils.cache import get_cache, Cache
-from flowsaber.core.utils.env import Env, EnvCreator
-from flowsaber.core.utils.target import File, Stdout, Stdin, END
-from flowsaber.utility.logtool import get_logger
-from flowsaber.utility.utils import change_cwd, Data, capture_local, Output
-from .base import Component
-from .channel import Channel, Consumer, ConstantChannel
-from .executor import get_executor
-from .runner.task_runner import get_task_runner_cls
-from .scheduler import TaskScheduler
-from .utils.state import *
-from ..server.models import *
+from flowsaber.core.executor import get_executor
+from flowsaber.core.runner.task_runner import get_task_runner_cls
+from flowsaber.core.scheduler import TaskScheduler
+from flowsaber.core.utility.cache import get_cache, Cache
+from flowsaber.core.utility.env import Env, EnvCreator
+from flowsaber.core.utility.state import *
+from flowsaber.core.utility.target import File, Stdout, Stdin, END, Data
+from flowsaber.server.database.models import *
+from flowsaber.utility.logging import get_logger
+from flowsaber.utility.utils import change_cwd, capture_local
 
 logger = get_logger(__name__)
 
@@ -81,18 +81,13 @@ class BaseTask(Component):
         if self.num_out == 1:
             self.output = self.output[0]
 
-    async def execute(self, **kwargs):
-        await super().execute(**kwargs)
-        try:
-            # extract data using consumer
-            res = await self.handle_consumer(self.input, **kwargs)
-            # always sends a END to _output channel
-            end_signal = END if self.num_out == 1 else [END] * self.num_out
-            await self.enqueue_res(end_signal)
-        except Exception as e:
-            raise e
-        finally:
-            self.clean()
+    async def start_execute(self, **kwargs):
+        await super(self).start_execute(**kwargs)
+        res = await self.handle_consumer(self.input, **kwargs)
+        # always sends a END to _output channel
+        end_signal = END if self.num_out == 1 else [END] * self.num_out
+        await self.enqueue_res(end_signal)
+
         return res
 
     async def handle_consumer(self, consumer: Consumer, **kwargs):
@@ -151,9 +146,10 @@ class BaseTask(Component):
         """
         return chs >> self
 
-    @property
-    def source_code(self) -> str:
-        return ""
+    @classmethod
+    def source_code(cls) -> str:
+        import inspect
+        return inspect.getsource(cls)
 
     @classmethod
     def input_signature(cls) -> dict:
@@ -382,12 +378,12 @@ class Task(RunTask, ABC):
             'run_key': run_key,
             'run_workdir': run_workdir
         })
-        state = Pending(inputs=data, context=task.context)
+        state = Scheduled()
         # 1. set _running info and lock key
         # must lock input key to avoid collision in cache and files in _running path
         async with task.run_lock:
-            task_runner = get_task_runner_cls()(task=task)
-            state = await self.executor.run(task_runner.run, state)
+            task_runner = get_task_runner_cls()(task=task, inputs=data)
+            state = await self.executor.run(task_runner.run, state, **kwargs)
         # 3. unset _running info
         return state
 

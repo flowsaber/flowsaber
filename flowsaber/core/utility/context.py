@@ -5,6 +5,10 @@ import contextlib
 import uuid
 from collections.abc import MutableMapping
 from typing import Any, Iterable, Iterator, Union, cast
+from contextvars import ContextVar
+
+
+store = ContextVar('store')
 
 DictLike = Union[dict, "DotDict"]
 
@@ -60,13 +64,11 @@ class DotDict(MutableMapping):
         dotdict.c # set()
         ```
     """
-
-    def __init__(self, init_dict: DictLike = None, write=True, **kwargs: Any):
+    def __init__(self, init_dict: DictLike = None, **kwargs: Any):
         # a DotDict could have a task_hash that shadows `update`
         if init_dict:
             super().update(init_dict)
         super().update(kwargs)
-        self.write = write
 
     def get(self, key: str, default: Any = None) -> Any:
         """
@@ -86,33 +88,25 @@ class DotDict(MutableMapping):
         return self.__dict__[key]  # __dict__ expects string keys
 
     def __setitem__(self, key: str, value: Any) -> None:
-        if not self.write:
-            raise ValueError("This dot_dict can not be edited.")
         self.__dict__[key] = value
 
     def __setattr__(self, attr: str, value: Any) -> None:
-        if not self.write:
-            raise ValueError("This dot_dict can not be edited.")
         self[attr] = value
 
     def __iter__(self) -> Iterator[str]:
         return iter(self.__dict__.keys())
 
     def __delitem__(self, key: str) -> None:
-        if not self.write:
-            raise ValueError("This dot_dict can not be edited.")
         del self.__dict__[key]
 
     def __len__(self) -> int:
         return len(self.__dict__)
 
-    def __repr__(self) -> str:
-        if len(self) > 0:
-            return "<{}: {}>".format(
-                type(self).__name__, ", ".join(sorted(repr(k) for k in self.keys()))
-            )
-        else:
-            return "<{}>".format(type(self).__name__)
+    def __repr__(self):
+        return f"DotDict({self})"
+
+    def __str__(self):
+        return str(self.to_dict())
 
     def copy(self) -> "DotDict":
         """Creates and returns a shallow copy of the current DotDict"""
@@ -170,7 +164,7 @@ class Context(DotDict):
         - **kwargs (Any): any task_hash / _output pairs to initialize this context with
     """
 
-    def __init__(self, *args: Any, write=True, **kwargs: Any) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         init = {}
         # Initialize with config_dict context
         # config_dict = {}
@@ -179,14 +173,17 @@ class Context(DotDict):
         init.update(dict(*args, **kwargs))
         # Merge in config_dict (with explicit args overwriting)
         # init["config_dict"] = merge_dicts(config_dict, init.get("config_dict", {}))
-        super().__init__(write=True)
+        super().__init__()
         self.update(init)
-        self.__context_stack = []
-        self.info = {}
+        self.info = DotDict()
+
+    def __repr__(self):
+        return f"Context({repr(self.__dict__)})"
 
     def update(self, *args, **kwargs) -> None:
-        dot_dict = as_nested_dict(dict(*args, **kwargs), DotDict, write=self.write)
-        super().update(**dot_dict)
+        dot_dict = as_nested_dict(dict(*args, **kwargs), DotDict)
+        merged_dict = merge_dicts(self.__dict__, dot_dict)
+        super().update(**merged_dict)
 
     @property
     def random_id(self) -> str:
@@ -216,9 +213,6 @@ class Context(DotDict):
             "access context as an attribute of the `flowsaber` module, as in `flowsaber.context`"
         )
 
-    def __repr__(self) -> str:
-        return "<Context>"
-
     @contextlib.contextmanager
     def __call__(self, *args: MutableMapping, **kwargs: Any) -> Iterator["Context"]:
         """
@@ -231,18 +225,13 @@ class Context(DotDict):
         """
         # Avoid creating new `Context` object, copy as `dict` instead.
         from copy import deepcopy
-        self.__context_stack.append(deepcopy(self.__dict__))
+        prev_context = deepcopy(self.__dict__)
         try:
-            new_context = dict(*args, **kwargs)
-            # for config_dict-prefixed dict, merge it
-            for k, v in new_context.items():
-                if "config_dict" in k:
-                    new_context[k] = merge_dicts(self.get(k, {}), v)
-            self.update(new_context)  # type: ignore
+            self.update(*args, **kwargs)  # type: ignore
             yield self
         finally:
             self.clear()
-            self.update(self.__context_stack.pop())
+            self.update(prev_context)
 
 
 context = Context()
@@ -252,5 +241,15 @@ context.update({
         'fork': 20,
     },
     'default_task_config': {
+        'test__': {
+            'test__': [1, 2, 3]
+        }
+    },
+    'logging': {
+        'format': "[%(levelname)6s:%(filename)10s:%(lineno)3s-%(funcName)15s()] %(message)s",
+        'datefmt': "%Y-%m-%d %H:%M:%S%z",
+        'level': 0,
+        'buffer_size': 10,
+        'context_attrs': None,
     }
 })

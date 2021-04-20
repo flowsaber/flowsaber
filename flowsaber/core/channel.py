@@ -1,12 +1,13 @@
 import asyncio
+import inspect
 from collections import abc
 from queue import SimpleQueue
 from typing import Union, Sequence, Optional, List
 
 import flowsaber
-from flowsaber.core.utils.target import END, End
-from flowsaber.server.models import ChannelInput
-from flowsaber.utility.logtool import get_logger
+from flowsaber.core.utility.target import END, End
+from flowsaber.server.database.models import ChannelInput
+from flowsaber.utility.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -40,7 +41,7 @@ class Fetcher(object):
 
 
 class ConstantQueue(object):
-    """constant value can only be settled once by using put_nowait or put"""
+    """Like ordinary queue, the first element needs to be enqueued before fetching"""
     NOTSET = object()
 
     def __init__(self):
@@ -191,6 +192,7 @@ class Channel(ChannelBase):
         self.initialized = False
         self.queues: List[LazyAsyncQueue] = []
         self.queue_factory = queue_factory
+        # context info
         self.id = flowsaber.context.random_id
         self.task_id = flowsaber.context.get('task_id')
         self.flow_id = flowsaber.context.get('flow_id')
@@ -223,7 +225,7 @@ class Channel(ChannelBase):
         for q in self.queues:
             await q.put(item)
 
-    def create_queue(self):
+    def create_queue(self) -> LazyAsyncQueue:
         q = LazyAsyncQueue(ch=self, queue_factory=self.queue_factory)
         self.queues.append(q)
         return q
@@ -235,6 +237,8 @@ class ConstantChannel(Channel):
 
 
 class Consumer(Fetcher):
+    """Empty consumer will emit only once
+    """
     def __init__(self, *queues: LazyAsyncQueue, **kwargs):
         super().__init__(**kwargs)
         self.queues: List[LazyAsyncQueue] = list(queues)
@@ -297,3 +301,19 @@ class Consumer(Fetcher):
                                      " the consumer before _running the flow.")
         queues = [ch.create_queue() for ch in channels]
         return cls(*queues, **kwargs)
+
+
+def _a(*args: Union[object, Channel]):
+    pass
+
+
+ARGS_SIG = list(inspect.signature(_a).parameters.values())[0]
+
+Output = Union[Sequence[Channel], Channel]
+
+
+def _b() -> Output:
+    pass
+
+
+OUTPUT_ANNOTATION = inspect.signature(_b).return_annotation

@@ -1,15 +1,16 @@
 import inspect
+from copy import deepcopy
 from enum import Enum
 from pathlib import Path
-from typing import Optional, Union, List, Sequence
+from typing import Optional, Union, List
 
 from makefun import with_signature
 from pydantic import BaseModel
 
 import flowsaber
-from flowsaber.core.channel import Consumer, Channel
-from flowsaber.utility.logtool import get_logger
-from .utils.context import Context
+from flowsaber.core.channel import Consumer, Channel, Output
+from flowsaber.core.utility.context import Context, merge_dicts
+from flowsaber.utility.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -95,9 +96,9 @@ class ComponentMeta(type):
     def update_default_config(mcs, class_name, bases, class_dict):
         # 2. handle default_config update
         from copy import deepcopy
-        default_config: dict = deepcopy(getattr(bases[0], 'default_config', {}))
-        default_config.update(getattr(class_dict, 'default_config', {}))
-        class_dict['default_config'] = default_config
+        config_name = "default_config"
+        default_config: dict = deepcopy(getattr(bases[0], config_name, {}))
+        class_dict[config_name] = merge_dicts(default_config, getattr(class_dict, config_name, {}))
 
         return class_name, bases, class_dict
 
@@ -108,6 +109,10 @@ class Component(object, metaclass=ComponentMeta):
         INITIALIZED = 2
         EXECUTED = 3
 
+    CREATED = State.CREATED
+    INITIALIZED = State.INITIALIZED
+    EXECUTED = State.EXECUTED
+
     default_config = {
         'id': None,
         'name': None,
@@ -117,12 +122,13 @@ class Component(object, metaclass=ComponentMeta):
     }
 
     def __init__(self, **kwargs):
-        self.state: Component.State = Component.State.CREATED
-        self.input_args = Optional[tuple] = None
-        self.input_kwargs = Optional[dict] = None
-        self.input = Optional[Consumer] = None
-        self.output = Optional[Union[Sequence[Channel], Channel]] = None
+        self.state: Component.State = self.CREATED
+        self.input_args: Optional[tuple] = None
+        self.input_kwargs: Optional[dict] = None
+        self.input: Optional[Consumer] = None
+        self.output: Optional[Output] = None
         self.context: Optional[dict] = None
+        self._context: Optional[dict] = None
         self.rest_kwargs = kwargs
 
     @property
@@ -157,7 +163,7 @@ class Component(object, metaclass=ComponentMeta):
             full_name = self.config_dict.get("full_name")
         return full_name or str(self)
 
-    def _get_full_name(self) -> str:
+    def get_full_name(self) -> str:
         """Generate a name like flow1.name|flow2.name|flow3.name|cur_task
         """
         up_flow_names = '|'.join(flow.config['name'] for flow in flowsaber.context.flow_stack)
@@ -169,46 +175,49 @@ class Component(object, metaclass=ComponentMeta):
         raise NotImplementedError
 
     def __copy__(self):
-        from copy import copy, deepcopy
-        new = copy(self)
+        from copy import deepcopy
+        new = deepcopy(self)
         new.call_initialized = False
-        for attr in ['context', 'rest_kwargs']:
-            setattr(new, attr, deepcopy(getattr(self, attr)))
         for attr in ['input_args', 'input_kwargs', 'input', 'output']:
             setattr(new, attr, None)
         return new
 
     def call_initialize(self, *args, **kwargs):
+        # copy a new one and initialize the context
         from copy import copy
         new = copy(self)
-        new.call_initialized = True
+        new.state = self.INITIALIZED
         new.initialize_context()
         return new
 
     def initialize_context(self):
-        self.context = {}
+        # may copied from a task already has context
+        self.context = self.context or {}
         config_name = self.config_name
-        tmp_config = flowsaber.context.get(config_name, {})
-        global_default_config = getattr(flowsaber.context, f'default_{config_name}', {})
         pre_workdir = flowsaber.context.get(config_name, 'workdir', '')
-        # update config
+        # update config in four steps
+        global_default_config = getattr(flowsaber.context, f'default_{config_name}', {})
+        default_config = self.default_config
+        kwargs_config = self.rest_kwargs
+        tmp_config = flowsaber.context.get(config_name, {})
+        # initialize flow/task's context
         # 1: use global default config_dict
         with flowsaber.context({config_name: global_default_config}):
             # 1: use class default config_dict
-            with flowsaber.context({config_name: self.default_config}):
+            with flowsaber.context({config_name: default_config}):
                 # 2. use kwargs settled config_dict
-                with flowsaber.context({config_name: self.rest_kwargs}):
+                with flowsaber.context({config_name: kwargs_config}):
                     # 3. use user temporally settled config_dict
                     with flowsaber.context({config_name: tmp_config}) as context:
                         context_dict = context.to_dict()
-        self.context.update(context_dict)
+        self.context = merge_dicts(self.context, context_dict)
         # set up id, name, full_name
         if not self.config_dict.get('id'):
             self.config_dict['id'] = flowsaber.context.random_id
         if not self.config_dict.get('name'):
             self.config_dict['name'] = str(self)
         if not self.config_dict.get('full_name'):
-            self.config_dict['full_name'] = self._get_full_name()
+            self.config_dict['full_name'] = self.get_full_name()
 
         # set up workdir build from the hierarchy of flows/tasks
         workdir = self.config_dict['workdir']
@@ -223,13 +232,28 @@ class Component(object, metaclass=ComponentMeta):
         self.input_args = args
         self.input_kwargs = kwargs
 
-    async def execute(self, **kwargs):
-        raise NotImplementedError
+    # TODO should we use context manager
+    async def start(self, **kwargs):
+        back_context = deepcopy(self.context)
+        try:
+            self.context = merge_dicts(self.context, kwargs.get('context', {}))
+            res = await self.start_execute(**kwargs)
+            return res
+        finally:
+            await self.end_execute()
+            self.context = back_context
 
-    async def pre_execute_check(self):
-        if not self.initialized:
+    async def start_execute(self, **kwargs):
+        if self.state == self.CREATED:
             raise ValueError("The Task/Flow object is not initialized, "
                              "please use task()/flow() to initialize it.")
+        elif self.state == self.EXECUTED:
+            raise ValueError("The Task/Flow has already been executed once before.")
+
+        self.state = self.EXECUTED
+
+    async def end_execute(self, *args, **kwargs):
+        self.clean()
 
     def clean(self):
         pass

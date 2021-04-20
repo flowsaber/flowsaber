@@ -13,9 +13,7 @@ Done
         Drop
 """
 from inspect import BoundArguments
-from typing import Any
-
-from ...server.models import *
+from typing import Any, Optional
 
 
 class State(object):
@@ -23,27 +21,19 @@ class State(object):
                  state_type: str = None,
                  inputs: BoundArguments = None,
                  result: Any = None,
-                 context: dict = None,
                  message: str = None):
         self.state_type: str = type(self).__name__
-        self.inputs: Optional[BoundArguments] = inputs
-        self.result: Optional[Any] = result
-        self.context: dict = context or {}
+        self.result: Optional[Any] = result or ""
         self.message: str = message or ""
 
-    def to_model(self) -> StateInput:
-        return StateInput(
-            state_type=self.state_type,
-            results=self.result or "",
-            context=self.context,
-            message=self.message
-        )
+    def to_dict(self) -> dict:
+        return self.__dict__
 
     @classmethod
-    def from_model(cls, state_model: StateInput) -> "State":
-        state_cls = globals().get(state_model.state_type)
+    def from_dict(cls, state_dict) -> "State":
+        state_cls = globals().get(state_dict['state_type'])
         assert issubclass(state_cls, State)
-        return state_cls(**state_model.dict())
+        return state_cls(**state_dict)
 
     def __repr__(self):
         message = f":{self.message}" if self.message else ""
@@ -57,6 +47,7 @@ class State(object):
             raise ValueError(f"The copy source's class must be a supper class of {cls}")
         new = cls()
         new.__dict__ = copy(state.__dict__)
+        new.state_type = cls.__name__
         return new
 
 

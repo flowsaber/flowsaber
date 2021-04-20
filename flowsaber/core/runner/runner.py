@@ -5,7 +5,9 @@ Some codes are borrowed from https://github.com/PrefectHQ/prefect/blob/master/sr
 import functools
 from typing import Callable
 
-from ..utils.state import *
+import flowsaber
+from flowsaber.core.utility.state import *
+from flowsaber.server.database.models import *
 
 
 class RunException(Exception):
@@ -39,12 +41,28 @@ def call_state_change_handlers(method: Callable[..., State]) -> Callable[..., St
     return check_and_run
 
 
+def run_within_context(method: Callable[..., Any]) -> Any:
+    @functools.wraps(method)
+    def enter_context(self: "Runner", *args, **kwargs) -> Any:
+        with flowsaber.context(self.context):
+            return method(self, *args, **kwargs)
+
+    return enter_context
+
+
 class Runner(object):
-    def __init__(self, logger=None):
+    def __init__(self, logger=None, id: str = None, name: str = None, labels: list = None, **kwargs):
         self.state_change_handlers = []
         self.logger = logger
+        self.id = id or flowsaber.context.random_id
+        self.name = name or flowsaber.context.random_id
+        self.labels = labels or []
 
-    def serialize(self, old_state: State, new_state: State, state_only=False) -> RunInput:
+    def serialize(self, old_state: State, new_state: State) -> RunInput:
+        raise NotImplementedError
+
+    @property
+    def context(self) -> dict:
         raise NotImplementedError
 
     def initialize_run(self, state) -> State:

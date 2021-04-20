@@ -5,13 +5,13 @@ from ariadne import (
     asgi
 )
 
-from .graphql.graphql import *
+from flowsaber.server.graphql import *
 
 types = [query, mutation,
          agent, flow, task, flowrun,
          log_level, datetime_scalar]
 
-type_defs = load_schema_from_path('graphql/schema/')
+type_defs = load_schema_from_path('graphql_schema/')
 schema = make_executable_schema(type_defs, *types)
 
 app = asgi.GraphQL(schema)

@@ -7,37 +7,23 @@ import types
 from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
-from typing import Sequence
 from typing import Union, Callable
 
 from makefun import with_signature
 
-from flowsaber.core.channel import Channel, End
+from flowsaber.core.channel import ARGS_SIG, OUTPUT_ANNOTATION
 
-Output = Union[Sequence[Channel], Channel]
-Data = Union[tuple, End]
+
+def _self_func(self):
+    pass
+
+
+SELF_SIG = list(inspect.signature(_self_func).parameters.values())[0]
 
 
 def get_sig_param(sig, param_type) -> tuple:
     return tuple(p for p in sig.parameters.values()
                  if p.kind == param_type)
-
-
-def _a(*args: Union[object, Channel]):
-    pass
-
-
-def _c(self):
-    pass
-
-
-def _b() -> TaskOutput:
-    pass
-
-
-ARGS_SIG = list(inspect.signature(_a).parameters.values())[0]
-SELF_SIG = list(inspect.signature(_c).parameters.values())[0]
-OUTPUT_ANNOTATION = inspect.signature(_b).return_annotation
 
 
 def class_to_func(cls: type):

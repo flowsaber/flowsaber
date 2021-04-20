@@ -2,8 +2,8 @@ import hashlib
 from pathlib import Path
 from typing import Union
 
-from flowsaber.core.utils.context import context
-from flowsaber.utility.logtool import get_logger
+from flowsaber.core.utility.context import context
+from flowsaber.utility.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -121,3 +121,4 @@ class End(Target):
 
 
 END = End()
+Data = Union[tuple, End]

@@ -165,19 +165,23 @@ class TaskScheduler(object):
 
 class FlowScheduler(object):
     def __init__(self, executor_cls=ProcessPoolExecutor, executor_kwargs: dict = None):
-        self.executor = executor_cls(**(executor_kwargs or {}))
+        self.executor_cls = executor_cls
+        self.executor_kwargs = executor_cls
+        self.executor: executor_cls = None
         self.futures: Set[Future] = set()
 
     @contextmanager
     def start(self) -> Generator['FlowScheduler']:
         try:
+            self.executor = self.executor_cls(**(self.executor_kwargs or {}))
             yield self
         finally:
             self.executor.shutdown(wait=True)
+            self.executor = None
             self.futures.clear()
 
-    def create_task(self, fn) -> Future:
-        fut = self.executor.submit(fn)
+    def create_task(self, *args, **kwargs) -> Future:
+        fut = self.executor.submit(*args, **kwargs)
         fut.add_done_callback(self.remove_future)
         self.futures.add(fut)
         return fut

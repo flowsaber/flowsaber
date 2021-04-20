@@ -5,9 +5,8 @@ from ariadne import QueryType, MutationType, EnumType, ScalarType, ObjectType
 from graphql import GraphQLResolveInfo
 from starlette.requests import Request
 
-from ..database.api import get_db
-from ..database.models import *
-from ..models import *
+from flowsaber.server.database.api import get_db
+from flowsaber.server.database.models import *
 
 USERNAME = "admin"
 PASSWORD = "admin"

@@ -4,6 +4,8 @@ type FlowRun {
     agent_id: UUID!
     name: String!
     labels: [String!]!
+    inputs: JSON!
+    context: JSON!
     state: State!
     start_time: DateTime!
     end_time: DateTime
@@ -17,6 +19,8 @@ type TaskRun {
     flow_id: UUID!
     agent_id: UUID!
     flowrun_id: UUID!
+    inputs: JSON!
+    context: JSON!
     state: State!
     start_time: DateTime!
     end_time: DateTime
@@ -30,6 +34,8 @@ input TaskRunInput {
     flow_id: UUID
     agent_id: UUID
     flowrun_id: UUID
+    inputs: JSON
+    context: JSON
     state: StateInput
 }
 
@@ -39,6 +45,8 @@ input FlowRunInput {
     agent_id: UUID
     name: String
     labels: [String!]
+    inputs: JSON
+    context: JSON
     state: StateInput
 }
 
