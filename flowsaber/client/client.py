@@ -5,7 +5,7 @@ import aiohttp
 from pydantic import validate_arguments
 
 from flowsaber.core.flow import Flow
-from flowsaber.server.models import *
+from flowsaber.server.database.models import *
 
 
 class GraphqlError(Exception):

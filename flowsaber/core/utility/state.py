@@ -12,14 +12,12 @@ Done
     Failure
         Drop
 """
-from inspect import BoundArguments
 from typing import Any, Optional
 
 
 class State(object):
     def __init__(self,
                  state_type: str = None,
-                 inputs: BoundArguments = None,
                  result: Any = None,
                  message: str = None):
         self.state_type: str = type(self).__name__

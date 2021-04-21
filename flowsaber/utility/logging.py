@@ -10,8 +10,6 @@ from typing import Optional
 
 import flowsaber
 
-from contextvars import ContextVar
-
 
 def inject_context(factory):
     def inner(*args, **kwargs):
@@ -30,10 +28,11 @@ log_record_factory = inject_context(log_record_factory)
 
 
 class ThreadLogManager(logging.Handler):
-    def __init__(self, buffer_size=1, **kwargs):
+    def __init__(self, buffer_size=1, max_buffer_size=2000, **kwargs):
         super().__init__(**kwargs)
         self.log_queue = Queue()
         self.buffer_size = buffer_size
+        self.max_buffer_size = max_buffer_size
         self.buffer = []
         self.record_handlers = []
         self.thread: Optional[threading.Thread] = None
@@ -44,6 +43,8 @@ class ThreadLogManager(logging.Handler):
 
     def emit(self, record: logging.LogRecord) -> None:
         self.log_queue.put_nowait(record)
+        if self.log_queue.qsize() > self.max_buffer_size:
+            self.log_queue.get_nowait()
 
     def start(self):
         def on_shutdown():

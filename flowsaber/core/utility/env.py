@@ -5,10 +5,6 @@ from typing import Tuple
 
 from dask.base import tokenize
 
-from flowsaber.utility.logtool import get_logger
-
-logger = get_logger(__name__)
-
 
 class Env(object):
     def __init__(self, module: str = None, conda_path: str = None, image_file: str = None):

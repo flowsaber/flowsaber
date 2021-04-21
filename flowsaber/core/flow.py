@@ -4,8 +4,6 @@ import cloudpickle
 
 from flowsaber.core.task import *
 
-logger = get_logger(__name__)
-
 
 class Flow(Component):
     FUNC_PAIRS = [('run', '__call__', True)]
@@ -78,19 +76,28 @@ class Flow(Component):
 
     async def start_execute(self, **kwargs):
         await super().start_execute(**kwargs)
-        futures = []
-        for component in self.components:
-            future = asyncio.ensure_future(component.start(**kwargs))
-            futures.append(future)
 
-        # used fo debugging
-        loop = asyncio.get_running_loop()
-        if not hasattr(loop, 'flowsaber_futures'):
-            loop.flowsaber_futures = []
-        loop.flowsaber_futures += list(zip(self.components, futures))
+        async def execute_child_components():
+            futures = []
+            for component in self.components:
+                future = asyncio.ensure_future(component.start(**kwargs))
+                futures.append(future)
 
-        fut = await asyncio.gather(*futures)
-        return fut
+            # used fo debugging
+            loop = asyncio.get_running_loop()
+            if not hasattr(loop, 'flowsaber_futures'):
+                loop.flowsaber_futures = []
+            loop.flowsaber_futures += list(zip(self.components, futures))
+
+            fut = await asyncio.gather(*futures)
+            return fut
+
+        # for the top most flow, initialize executors
+        if self.config_dict['id'] == self.context['flow_id']:
+            async with flowsaber.context:
+                return await execute_child_components()
+        else:
+            return await execute_child_components()
 
     def serialize(self) -> FlowInput:
         config = self.config

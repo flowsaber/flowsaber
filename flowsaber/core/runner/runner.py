@@ -45,15 +45,15 @@ def run_within_context(method: Callable[..., Any]) -> Any:
     @functools.wraps(method)
     def enter_context(self: "Runner", *args, **kwargs) -> Any:
         with flowsaber.context(self.context):
+            flowsaber.context.update(kwargs.get('context', {}))
             return method(self, *args, **kwargs)
 
     return enter_context
 
 
 class Runner(object):
-    def __init__(self, logger=None, id: str = None, name: str = None, labels: list = None, **kwargs):
+    def __init__(self, id: str = None, name: str = None, labels: list = None, **kwargs):
         self.state_change_handlers = []
-        self.logger = logger
         self.id = id or flowsaber.context.random_id
         self.name = name or flowsaber.context.random_id
         self.labels = labels or []
@@ -65,7 +65,7 @@ class Runner(object):
     def context(self) -> dict:
         raise NotImplementedError
 
-    def initialize_run(self, state) -> State:
+    def initialize_run(self, state, **kwargs) -> State:
         return state
 
     def handle_state_change(self, prev_state, cur_state):
@@ -75,8 +75,7 @@ class Runner(object):
                 cur_state = handler(self, prev_state, cur_state) or cur_state
         except Exception as exc:
             e_str = f"Unexpected error: {exc} when calling state_handler: {handler}"
-            if self.logger:
-                self.logger.exception(e_str)
+            flowsaber.context.logger.exception(e_str)
             cur_state = Failure(result=exc, message=e_str)
         return cur_state
 

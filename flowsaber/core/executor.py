@@ -9,14 +9,11 @@ import sys
 import uuid
 import weakref
 from concurrent.futures import Future
-from contextlib import asynccontextmanager
 from io import StringIO
-from typing import Union, Callable, Optional, Any, Iterator
+from typing import Union, Callable, Optional, Any
 
+import flowsaber
 from flowsaber.utility.importtools import import_object
-from flowsaber.utility.logtool import get_logger
-
-logger = get_logger(__name__)
 
 
 class CaptureTerminal(object):
@@ -48,12 +45,14 @@ class Executor(object):
     def __init__(self, **kwargs):
         pass
 
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        pass
+
     async def run(self, fn, *args, **kwargs):
         raise NotImplementedError
-
-    @asynccontextmanager
-    async def start(self):
-        yield self
 
 
 class Local(Executor):
@@ -151,67 +150,53 @@ class DaskExecutor(Executor):
                 raise ValueError(
                     "Cannot specify both `address` and `cluster_class`/`cluster_kwargs`"
                 )
-        else:
-            from distributed import Client
-            from distributed.deploy.local import LocalCluster
-            if isinstance(cluster_class, str):
-                cluster_class = import_object(cluster_class)
-            elif not cluster_class:
-                cluster_class = LocalCluster
-
-            self.cluster_class = cluster_class
-
-            self.cluster_kwargs = {} if not cluster_kwargs else cluster_kwargs.copy()
-            if cluster_class == LocalCluster:
-                self.cluster_kwargs.setdefault(
-                    'silence_logs', logging.CRITICAL if not debug else logging.WARNING
-                )
-
-            self.adapt_kwargs = {} if not adapt_kwargs else adapt_kwargs.copy()
-            self.client_kwargs = {} if not client_kwargs else client_kwargs.copy()
-            self.client_kwargs.setdefault('set_as_default', False)
-            self.client: Optional[Client] = None
-
-            self.address = address
-            self._futures = None
-            self._should_run_event = None
-            self._watch_dask_events_task = None
-
-    # TODO async is imconsistent with flowsaber.context
-    @asynccontextmanager
-    async def start(self) -> Iterator[None]:
-        """
-        Context manager for initializing execution.
-
-        Creates a `dask.distributed.Client` and yields it.
-        """
         from distributed import Client
+        from distributed.deploy.local import LocalCluster
+        if isinstance(cluster_class, str):
+            cluster_class = import_object(cluster_class)
+        elif not cluster_class:
+            cluster_class = LocalCluster
 
-        try:
-            if self.address is not None:
-                async with Client(self.address, **self.client_kwargs, asynchronous=True) as client:
-                    self.client = client
-                    try:
-                        self._pre_start_yield()
-                        yield self
-                    finally:
-                        self._post_start_yield()
-            else:
-                # fk, all this two class need set asynchronous=True and use async with
-                async with self.cluster_class(**self.cluster_kwargs,
+        self.cluster_class = cluster_class
+
+        self.cluster_kwargs = {} if not cluster_kwargs else cluster_kwargs.copy()
+        if cluster_class == LocalCluster:
+            self.cluster_kwargs.setdefault(
+                'silence_logs', logging.CRITICAL if not debug else logging.WARNING
+            )
+
+        self.adapt_kwargs = {} if not adapt_kwargs else adapt_kwargs.copy()
+        self.client_kwargs = {} if not client_kwargs else client_kwargs.copy()
+        self.client_kwargs.setdefault('set_as_default', False)
+        self.client: Optional[Client] = None
+        self.cluster: Optional[str, LocalCluster] = None
+
+        self.address = address
+        self._futures = None
+        self._should_run_event = None
+        self._watch_dask_events_task = None
+
+    async def __aenter__(self):
+        from distributed import Client
+        if self.address is None:
+            self.cluster = self.cluster_class(**self.cluster_kwargs,
                                               asynchronous=True,
-                                              threads_per_worker=1) as cluster:  # type: ignore
-                    if self.adapt_kwargs:
-                        cluster.adapt(**self.adapt_kwargs)
-                    async with Client(cluster, **self.client_kwargs, asynchronous=True) as client:
-                        self.client = client
-                        try:
-                            self._pre_start_yield()
-                            yield self
-                        finally:
-                            self._post_start_yield()
-        finally:
-            self.client = None
+                                              threads_per_worker=1)
+            await self.cluster.__aenter__()
+            if self.adapt_kwargs:
+                self.cluster.adapt(**self.adapt_kwargs)
+        else:
+            self.cluster = self.address
+        self.client = Client(self.cluster, **self.client_kwargs, asynchronous=True)
+        await self.client.__aenter__()
+        self._pre_start_yield()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        self._post_start_yield()
+        if not isinstance(self.cluster, str):
+            await self.cluster.__aexit__(exc_type, exc_val, exc_tb)
+        await self.client.__aexit__(exc_type, exc_val, exc_tb)
 
     async def run(
             self, fn: Callable, *args: Any, extra_context: dict = None, **kwargs: Any
@@ -266,13 +251,13 @@ class DaskExecutor(Executor):
                 for op, msg in msgs:
                     if op == "add":
                         for worker in msg.get("workers", ()):
-                            logger.debug("Worker %s added", worker)
+                            flowsaber.context.logger.debug("Worker %s added", worker)
                     elif op == "remove":
-                        logger.debug("Worker %s removed", msg)
+                        flowsaber.context.logger.debug("Worker %s removed", msg)
         except asyncio.CancelledError:
             pass
         except Exception:
-            logger.debug(
+            flowsaber.context.logger.debug(
                 "Failure while watching dask worker events", exc_info=True
             )
         finally:
@@ -320,7 +305,7 @@ class DaskExecutor(Executor):
             try:
                 futures = [f for f in list(self._futures) if not f.done()]  # type: ignore
                 if futures:
-                    logger.info(
+                    flowsaber.context.logger.info(
                         "Stopping executor, waiting for %d active tasks to complete",
                         len(futures),
                     )
@@ -414,11 +399,11 @@ class DaskExecutor(Executor):
             return fn(*args, **kwargs)
 
 
-def get_executor(executor: str = 'dask', *args, **kwargs):
+def get_executor(executor_type: str = 'dask', *args, **kwargs):
     executors = {
         'local': Local,
         'dask': DaskExecutor
     }
-    if executor not in executors:
-        raise ValueError(f"{executor} not supported, please choose one of {executors.keys()}")
-    return executors[executor](*args, **kwargs)
+    if executor_type not in executors:
+        raise ValueError(f"{executor_type} not supported, please choose one of {executors.keys()}")
+    return executors[executor_type](*args, **kwargs)

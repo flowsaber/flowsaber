@@ -7,9 +7,6 @@ from typing import Union, Sequence, Optional, List
 import flowsaber
 from flowsaber.core.utility.target import END, End
 from flowsaber.server.database.models import ChannelInput
-from flowsaber.utility.logging import get_logger
-
-logger = get_logger(__name__)
 
 
 class Fetcher(object):
@@ -239,6 +236,7 @@ class ConstantChannel(Channel):
 class Consumer(Fetcher):
     """Empty consumer will emit only once
     """
+
     def __init__(self, *queues: LazyAsyncQueue, **kwargs):
         super().__init__(**kwargs)
         self.queues: List[LazyAsyncQueue] = list(queues)

@@ -10,9 +10,6 @@ from pydantic import BaseModel
 import flowsaber
 from flowsaber.core.channel import Consumer, Channel, Output
 from flowsaber.core.utility.context import Context, merge_dicts
-from flowsaber.utility.logging import get_logger
-
-logger = get_logger(__name__)
 
 """
 flow_config: {}
@@ -201,16 +198,18 @@ class Component(object, metaclass=ComponentMeta):
         kwargs_config = self.rest_kwargs
         tmp_config = flowsaber.context.get(config_name, {})
         # initialize flow/task's context
-        # 1: use global default config_dict
-        with flowsaber.context({config_name: global_default_config}):
+        with flowsaber.context() as context:
+            # 1: use global default config_dict
+            flowsaber.context.update({config_name: global_default_config})
             # 1: use class default config_dict
-            with flowsaber.context({config_name: default_config}):
-                # 2. use kwargs settled config_dict
-                with flowsaber.context({config_name: kwargs_config}):
-                    # 3. use user temporally settled config_dict
-                    with flowsaber.context({config_name: tmp_config}) as context:
-                        context_dict = context.to_dict()
+            flowsaber.context.update({config_name: default_config})
+            # 2. use kwargs settled config_dict
+            flowsaber.context.update({config_name: kwargs_config})
+            # 3. use user temporally settled config_dict
+            flowsaber.context.update({config_name: tmp_config})
+            context_dict = context.to_dict()
         self.context = merge_dicts(self.context, context_dict)
+
         # set up id, name, full_name
         if not self.config_dict.get('id'):
             self.config_dict['id'] = flowsaber.context.random_id
@@ -235,13 +234,15 @@ class Component(object, metaclass=ComponentMeta):
     # TODO should we use context manager
     async def start(self, **kwargs):
         back_context = deepcopy(self.context)
-        try:
-            self.context = merge_dicts(self.context, kwargs.get('context', {}))
-            res = await self.start_execute(**kwargs)
-            return res
-        finally:
-            await self.end_execute()
-            self.context = back_context
+        # update context
+        self.context = merge_dicts(self.context, kwargs.get('context', {}))
+        with flowsaber.context(self.context):
+            try:
+                res = await self.start_execute(**kwargs)
+                return res
+            finally:
+                await self.end_execute()
+                self.context = back_context
 
     async def start_execute(self, **kwargs):
         if self.state == self.CREATED:

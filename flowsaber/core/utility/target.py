@@ -2,10 +2,8 @@ import hashlib
 from pathlib import Path
 from typing import Union
 
+import flowsaber
 from flowsaber.core.utility.context import context
-from flowsaber.utility.logging import get_logger
-
-logger = get_logger(__name__)
 
 
 class Target(object):
@@ -29,7 +27,7 @@ class File(Target):
         self._hash_key = None
 
         if not self.path.is_file():
-            logger.debug(f"File {self.path} does not exists.")
+            flowsaber.context.logger.debug(f"File {self.path} does not exists.")
 
     def __getattr__(self, item):
         return getattr(self.path, item)

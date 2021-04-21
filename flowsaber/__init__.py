@@ -1,9 +1,10 @@
 __version__ = '0.1.3.3'
 
+from flowsaber.utility.logtool import *
+
 from flowsaber.core import *
 from flowsaber.core.operators import *
 from flowsaber.core.utility.context import context
-from flowsaber.utility.logtool import *
 from flowsaber.utility.utils import *
 
 

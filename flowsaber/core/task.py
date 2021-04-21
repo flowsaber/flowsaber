@@ -3,7 +3,7 @@ import inspect
 import os
 import subprocess
 from abc import ABC
-from collections import abc, defaultdict
+from collections import abc
 from inspect import Parameter
 from pathlib import Path
 from typing import Callable, Sequence
@@ -13,19 +13,13 @@ from dask.base import tokenize
 import flowsaber
 from flowsaber.core.base import Component
 from flowsaber.core.channel import Channel, Consumer, ConstantChannel, Output
-from flowsaber.core.executor import Executor
-from flowsaber.core.executor import get_executor
 from flowsaber.core.runner.task_runner import get_task_runner_cls
 from flowsaber.core.scheduler import TaskScheduler
-from flowsaber.core.utility.cache import get_cache, Cache
 from flowsaber.core.utility.env import Env, EnvCreator
 from flowsaber.core.utility.state import *
 from flowsaber.core.utility.target import File, Stdout, Stdin, END, Data
 from flowsaber.server.database.models import *
-from flowsaber.utility.logging import get_logger
 from flowsaber.utility.utils import change_cwd, capture_local
-
-logger = get_logger(__name__)
 
 
 class BaseTask(Component):
@@ -168,16 +162,13 @@ class BaseTask(Component):
             outputs = [self.output]
         return TaskInput(
             id=config.id,
-            flow_id=flowsaber.context.flow_id,
+            flow_id=self.context['flow_id'],
             name=config.name,
             labels=config.labels,
             input_signature=self.input_signature(),
             outputs=[ch.serialize() for ch in outputs],
             source_code=inspect.getsource(type(self))
         )
-
-    def logger(self, context: dict):
-        return NotImplementedError
 
 
 class RunTask(BaseTask):
@@ -198,28 +189,12 @@ class RunTask(BaseTask):
         'time': 1,
         'io': 1,
         'executor_type': 'dask',
-        'executor_address': None,
-        'executor_cluster_class': None,
-        'executor_cluster_kwargs': None,
-        'executor_adapt_kwargs': None,
-        'executor_client_kwargs': None,
-        'executor_debug': False
     }
-
-    @property
-    def executor(self) -> Executor:
-        """Note: The executor can not use threads, otherwise functions relies
-        on `os.getcwd()` may change at any time"""
-        executors = flowsaber.context.info.setdefault('__executors', {})
-        executor_kwargs = {k.rstrip("executor_"): v for k, v in self.config_dict.items()
-                           if k.startswith("executor_")}
-        executor_hash = tokenize(**executor_kwargs)
-        if executor_hash not in executors:
-            executors[executor_hash] = get_executor(**executor_kwargs)
-        return executors[executor_hash]
 
     async def handle_consumer(self, consumer: Consumer, **kwargs):
         scheduler: TaskScheduler = kwargs.get("scheduler")
+        # pop it, do not pass into task runner
+        kwargs.pop('scheduler')
         futures = []
 
         async for data in consumer:
@@ -249,9 +224,10 @@ class RunTask(BaseTask):
         return run_data
 
     async def handle_run_data(self, data: BoundArguments, **kwargs):
-        data: BoundArguments = await self.check_run_data(data, **kwargs)
-        res = await self.call_run(data, **kwargs)
-        await self.handle_res(res)
+        with flowsaber.context(self.context):
+            data: BoundArguments = await self.check_run_data(data, **kwargs)
+            res = await self.call_run(data, **kwargs)
+            await self.handle_res(res)
 
     async def check_run_data(self, data: BoundArguments, **kwargs):
         run_params = dict(inspect.signature(self.run).parameters)
@@ -276,7 +252,7 @@ class RunTask(BaseTask):
             values = [value] if not isinstance(value, (list, tuple, set)) else value
             for f in [v for v in values if isinstance(v, File)]:
                 if not f.initialized:
-                    new_hash = await self.executor.run(f.calculate_hash)
+                    new_hash = await flowsaber.context.executor.run(f.calculate_hash)
                     f.hash = new_hash
         return data
 
@@ -286,16 +262,11 @@ class RunTask(BaseTask):
         """
         from copy import copy
         clean_task = copy(self)
-        res = clean_task.run_in_context(data, **kwargs)
+        res = clean_task.run(**data.arguments)
         return res
 
     async def handle_res(self, res):
         await self.enqueue_res(res)
-
-    def run_in_context(self, data: BoundArguments, **kwargs):
-        with flowsaber.context(self.context):
-            with flowsaber.context(kwargs.get('context', {})):
-                return self.run(**data.arguments)
 
     def run(self, *args, **kwargs):
         raise NotImplementedError("Please implement this method.")
@@ -312,20 +283,6 @@ class Task(RunTask, ABC):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.skip_fn: Optional[Callable] = None
-
-    @property
-    def cache(self, ) -> Cache:
-        caches = flowsaber.context.info.setdefault('__caches', {})
-        task_workdir = self.task_workdir
-        if task_workdir not in caches:
-            caches[task_workdir] = get_cache(cache=self.config_dict['cache'])
-        return caches[task_workdir]
-
-    @property
-    def run_lock(self):
-        run_workdir = str(self.run_workdir)
-        locks = flowsaber.context.info.setdefault('__run_locks', defaultdict(asyncio.Lock))
-        return locks[run_workdir]
 
     @property
     def task_hash(self) -> str:
@@ -371,19 +328,21 @@ class Task(RunTask, ABC):
 
     async def call_run(self, data: BoundArguments, **kwargs) -> State:
         from copy import copy
-        run_key = self.cache.hash(data, **self.input_hash_source)
+        run_key = flowsaber.context.cache.hash(data, **self.input_hash_source)
         run_workdir = self.run_workdir
         task = copy(self)
-        task.context.update({
+        context_update = {
             'run_key': run_key,
             'run_workdir': run_workdir
-        })
+        }
+        task.context.update(context_update)
+        flowsaber.context.update(context_update)
         state = Scheduled()
         # 1. set _running info and lock key
         # must lock input key to avoid collision in cache and files in _running path
-        async with task.run_lock:
+        async with flowsaber.context.run_lock:
             task_runner = get_task_runner_cls()(task=task, inputs=data)
-            state = await self.executor.run(task_runner.run, state, **kwargs)
+            state = await flowsaber.context.executor.run(task_runner.run, state, **kwargs)
         # 3. unset _running info
         return state
 

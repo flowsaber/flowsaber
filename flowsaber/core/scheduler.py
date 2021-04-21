@@ -1,14 +1,9 @@
 import asyncio
 import inspect
 from concurrent.futures import ProcessPoolExecutor, Future
-from contextlib import asynccontextmanager, contextmanager
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Set, Callable, Awaitable, Any, Sequence, Optional, Coroutine, Generator, AsyncGenerator
-
-from flowsaber.utility.logtool import get_logger
-
-logger = get_logger(__name__)
+from typing import Set, Callable, Awaitable, Any, Sequence, Optional, Coroutine
 
 AsyncFunc = Callable[[Any], Awaitable[None]]
 
@@ -79,19 +74,19 @@ class TaskScheduler(object):
         self.solver = GaSolver(score_func=score_func)
         self.error_jobs = []
         self.wait_time = wait_time
+        self.loop_fut: Optional[Future] = None
 
         self._running: Optional[asyncio.Event] = None
 
-    @asynccontextmanager
-    async def start(self) -> AsyncGenerator['TaskScheduler']:
-        try:
-            loop_fut = asyncio.ensure_future(self.start_loop())
-            yield self
-        finally:
-            if self._running is not None:
-                self._running.clear()
+    async def __aenter__(self):
+        self.loop_fut = asyncio.ensure_future(self.start_loop())
+        return self
 
-            await loop_fut
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        if self._running is not None:
+            self._running.clear()
+        await self.loop_fut
+        self.loop_fut = None
 
     def create_task(self, coro: Coroutine, cost: Callable = None) -> "TaskScheduler.Job":
         job = self.Job(coro, cost=cost)
@@ -170,15 +165,14 @@ class FlowScheduler(object):
         self.executor: executor_cls = None
         self.futures: Set[Future] = set()
 
-    @contextmanager
-    def start(self) -> Generator['FlowScheduler']:
-        try:
-            self.executor = self.executor_cls(**(self.executor_kwargs or {}))
-            yield self
-        finally:
-            self.executor.shutdown(wait=True)
-            self.executor = None
-            self.futures.clear()
+    def __enter__(self):
+        self.executor = self.executor_cls(**(self.executor_kwargs or {}))
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.executor.shutdown(wait=True)
+        self.executor = None
+        self.futures.clear()
 
     def create_task(self, *args, **kwargs) -> Future:
         fut = self.executor.submit(*args, **kwargs)

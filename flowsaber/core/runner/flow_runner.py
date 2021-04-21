@@ -31,15 +31,24 @@ class FlowRunner(Runner):
 
         return flowrun_input
 
-    # @run_within_context,  Now context is not merged with server supplied context
+    @run_within_context
     @call_state_change_handlers
     @catch_to_failure
     def run(self, state: State, **kwargs) -> State:
-        state = self.initialize_run(state)
+        state = self.initialize_run(state, **kwargs)
         state = self.set_state(state, Pending)
         state = self.set_state(state, Running)
         state = self.run_flow(state, **kwargs)
 
+        return state
+
+    def initialize_run(self, state, **kwargs) -> State:
+        super().initialize_run(state, **kwargs)
+        # this is redundant, keep it for uniformity
+        self.context.update(flowrun_id=self.id)
+        if 'context' in kwargs:
+            kwargs['context'].update(flowrun_id=self.id)
+        flowsaber.context.update(flowrun_id=self.id)
         return state
 
     @call_state_change_handlers
@@ -51,6 +60,6 @@ class FlowRunner(Runner):
         return state
 
     async def async_run_flow(self, **kwargs):
-        async with TaskScheduler().start() as scheduler:
+        async with TaskScheduler() as scheduler:
             res = await self.flow.start(scheduler=scheduler, **kwargs)
         return res

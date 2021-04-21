@@ -41,6 +41,8 @@ class RunLogInput(Model):
     id: str
     level: LogLevel
     time: datetime = Field(default_factory=datetime.utcnow)
+    task_id: str = None
+    flow_id: str = None
     taskrun_id: str = None
     flowrun_id: str = None
     agent_id: str = None

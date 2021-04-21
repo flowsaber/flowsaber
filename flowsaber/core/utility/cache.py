@@ -4,9 +4,7 @@ from pathlib import Path
 
 from dask.base import tokenize
 
-from flowsaber.utility.logtool import get_logger
-
-logger = get_logger(__name__)
+import flowsaber
 
 
 class Serializer(object):
@@ -71,7 +69,7 @@ class LocalCache(Cache):
         return self
 
     def hash(self, input_args: BoundArguments, **kwargs):
-        logger.debug("hash input", input_args, kwargs)
+        flowsaber.context.logger.debug("hash input", input_args, kwargs)
         # we do not count for parameter names, we only care about orders
         if not self.enable:
             return ""
@@ -96,11 +94,11 @@ class LocalCache(Cache):
     def get(self, run_key: str, default=NO_CACHE) -> object:
         if not self.enable:
             self.remove(run_key)
-            logger.debug(f"Clean cache: {run_key} since cache set to False")
+            flowsaber.context.logger.debug(f"Clean cache: {run_key} since cache set to False")
             return default
         # case 1, in memory cache
         if run_key in self.cache:
-            logger.debug(f"{self.task} read cache:{run_key} succeed from memory.")
+            flowsaber.context.logger.debug(f"{self.task} read cache:{run_key} succeed from memory.")
         else:
             # case 2, in disk cache
             value_path = Path(run_key, self.VALUE_FILE)
@@ -109,23 +107,23 @@ class LocalCache(Cache):
                     value = self.serializer.load(f)
             except Exception as e:
                 self.remove(run_key)
-                logger.debug(f"{self.task} read cache:{run_key} failed from disk with error: {e}")
+                flowsaber.context.logger.debug(f"{self.task} read cache:{run_key} failed from disk with error: {e}")
                 return default
             self.cache[run_key] = value
-            logger.debug(f"{self.task} read cache:{run_key} succeed from disk.")
+            flowsaber.context.logger.debug(f"{self.task} read cache:{run_key} succeed from disk.")
         return self.cache[run_key]
 
     def put(self, run_key: str, output):
         if not self.enable:
             return
-        logger.debug(f"set cache:{run_key} with: {output}")
+        flowsaber.context.logger.debug(f"set cache:{run_key} with: {output}")
         self.cache[run_key] = output
 
     def persist(self):
         """
         This should be called before python program ends
         """
-        logger.debug(f"Persist cache data: {self.cache}")
+        flowsaber.context.logger.debug(f"Persist cache data: {self.cache}")
         for key, value in self.cache.items():
             f = Path(key, self.VALUE_FILE)
             f.parent.mkdir(parents=True, exist_ok=True)

@@ -1,7 +1,6 @@
 import signal
 import time
 
-import flowsaber
 from flowsaber.core.runner.runner import Runner, call_state_change_handlers, catch_to_failure, run_within_context
 from flowsaber.core.utility.state import *
 from flowsaber.core.utility.target import *
@@ -33,8 +32,12 @@ class TaskRunner(Runner):
 
         return taskrun_input
 
-    def initialize_run(self, state) -> State:
+    def initialize_run(self, state, **kwargs) -> State:
         state = super().initialize_run(state)
+        self.context.update(taskrun_id=self.id)
+        if 'context' in kwargs:
+            kwargs['context'].update(taskrun_id=self.id)
+        flowsaber.context.update(taskrun_id=self.id)
         return state
 
     @run_within_context
@@ -55,11 +58,11 @@ class TaskRunner(Runner):
             if isinstance(state, Cached):
                 return state
             # 3. run the task
-            state = self.run_task(state)
+            state = self.run_task(state, **kwargs)
             if isinstance(state, Failure):
                 if retry > 0:
-                    self.logger.info(f"Run task: {self.task} failed, try to retry."
-                                     f"with {retry - 1} retrying left.")
+                    flowsaber.context.logger.info(f"Run task: {self.task} failed, try to retry."
+                                                  f"with {retry - 1} retrying left.")
                     state = self.set_state(state, Retrying)
                     time.sleep(self.task.config_dict.get('retry_wait_time', 3))
                     state = self.set_state(state, Running)
@@ -96,7 +99,7 @@ class TaskRunner(Runner):
                     if check_hash != f.hash:
                         msg = f"Task {self.task.task_name} read cache failed from disk " \
                               f"because file content task_hash changed."
-                        self.logger.debug(msg)
+                        flowsaber.context.logger.debug(msg)
                         cache_valid = False
                         break
             if cache_valid:
@@ -108,7 +111,7 @@ class TaskRunner(Runner):
 
     @call_state_change_handlers
     @catch_to_failure
-    def run_task(self, state: State) -> State:
+    def run_task(self, state: State, **kwargs) -> State:
         with ResourceMonitor() as monitor:
             res = self.run_task_timeout(**self.inputs.arguments)
         state = Success.copy(state)
@@ -126,7 +129,7 @@ class TaskRunner(Runner):
     def run_task_timeout(self, **kwargs):
         timeout = self.task.config_dict.get("timeout")
         if not timeout:
-            return self.task.run_in_context(**kwargs)
+            return self.task.run(**kwargs)
 
         def error_handler(signum, frame):
             raise TimeoutError(f"Execution timout out of {timeout}")
@@ -134,9 +137,9 @@ class TaskRunner(Runner):
         try:
             signal.signal(signal.SIGALRM, error_handler)
             # Raise the alarm if `timeout` seconds pass
-            self.logger.debug(f"Sending alarm with {timeout}s timeout...")
+            flowsaber.context.logger.debug(f"Sending alarm with {timeout}s timeout...")
             signal.alarm(timeout)
-            self.logger.debug(f"Executing function in main thread...")
+            flowsaber.context.logger.debug(f"Executing function in main thread...")
             return self.task.run_in_context(**kwargs)
 
         finally:

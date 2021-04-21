@@ -24,7 +24,7 @@ class Agent(object):
         )
         agent_id = await self.client.register_agent(agent_input)
         assert agent_id == self.id
-        with FlowScheduler().start() as scheduler:
+        with FlowScheduler() as scheduler:
             # retrieve scheduled flowruns endlessly
             while True:
                 # fetch flowrun ids
@@ -40,7 +40,10 @@ class Agent(object):
                     # use flow_runner to run the flow
                     flow_runner = FlowRunner(flow)
                     flow_run_kwargs = {
-                        'context': flow_run['context']
+                        'context': {
+                            **flow_run['context'],
+                            'agent_id': self.id
+                        }
                     }
                     fut = scheduler.create_task(flow_runner.run, state, **flow_run_kwargs)
                     self.flowruns[flowrun_id] = fut
