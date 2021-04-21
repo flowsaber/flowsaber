@@ -1,7 +1,10 @@
+"""
+Expose all variables in core sub-package.
+"""
+
 from flowsaber.core.context import *
 from flowsaber.core.flow import *
 from flowsaber.core.task import *
-from flowsaber.core.utility.target import *
 from flowsaber.core.utils import *
 
 task = class_deco(Task, 'run')

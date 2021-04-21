@@ -11,10 +11,14 @@ from concurrent.futures import Future
 from typing import Union, Callable, Optional, Any
 
 import flowsaber
-from flowsaber.utility.importtools import import_object
+from flowsaber.utility.utils import import_object
 
 
 class Executor(object):
+    """Async Executor is aimed for running submitted jobs in an asynchronous way. Executor need to implement three
+    __aenter__/__aexit__/run async functions for initializing/running/cleaning.
+    """
+
     def __init__(self, **kwargs):
         pass
 
@@ -29,6 +33,9 @@ class Executor(object):
 
 
 class Local(Executor):
+    """Executor run jobs in the main loop of the current thread,
+    """
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 

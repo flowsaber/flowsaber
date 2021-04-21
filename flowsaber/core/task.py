@@ -6,22 +6,25 @@ from abc import ABC
 from collections import abc
 from inspect import Parameter, BoundArguments
 from pathlib import Path
-from typing import Callable, Sequence
+from typing import Callable, Sequence, Optional
 
 from dask.base import tokenize
 
 import flowsaber
 from flowsaber.core.base import Component
 from flowsaber.core.channel import Channel, Consumer, ConstantChannel, Output
+from flowsaber.core.engine.task_runner import TaskRunner
 from flowsaber.core.utility.env import Env, EnvCreator
-from flowsaber.core.utility.state import *
+from flowsaber.core.utility.state import State, Scheduled, Done, Success
 from flowsaber.core.utility.target import File, Stdout, Stdin, END, Data
-from flowsaber.engine.task_runner import TaskRunner
-from flowsaber.server.database import *
+from flowsaber.server.database.models import EdgeInput, TaskInput
 from flowsaber.utility.utils import change_cwd, capture_local
 
 
 class BaseTask(Component):
+    """Base class of all Tasks, internally, BaseTask iteratively fetch items emitted by Channel inputs asynchronously.
+    And then push the processed result of each item into the output channels. All items are handled in sequence.
+    """
     default_config = {
         'workdir': 'work'
     }
@@ -51,16 +54,25 @@ class BaseTask(Component):
         return task.output
 
     def initialize_context(self):
+        """Initialize some attributes of self.config into self.context
+        """
         super().initialize_context()
         # only expose the info of the outermost flow
         self.context.update({
             'task_id': self.config_dict['id'],
             'task_name': self.config_dict['name'],
             'task_full_name': self.config_dict['full_name'],
-            'task_labels': self.config_dict['labels']
+            'task_labels': self.config_dict['labels'],
         })
 
     def initialize_input(self, *args, **kwargs):
+        """Wrap all input channels into a consumer object for simultaneous data ferching,
+
+        Parameters
+        ----------
+        args
+        kwargs
+        """
         super().initialize_input(*args, **kwargs)
         channels = list(args) + list(kwargs.values())
         self.input = Consumer.from_channels(channels, task=self)
@@ -70,6 +82,8 @@ class BaseTask(Component):
             flowsaber.context.top_flow.edges.apend(edge)
 
     def initialize_output(self):
+        """Create output channels according to self.num_output
+        """
         self.output = tuple(Channel(task=self) for i in range(self.num_out))
         if self.num_out == 1:
             self.output = self.output[0]
@@ -84,15 +98,35 @@ class BaseTask(Component):
         return res
 
     async def handle_consumer(self, consumer: Consumer, **kwargs):
+        """Iteratively fetch data from consumer and then call processing function
+
+        Parameters
+        ----------
+        consumer
+        kwargs
+        """
         async for data in consumer:
             await self.handle_input(data)
         await self.handle_input(END)
 
     async def handle_input(self, data, *args, **kwargs):
+        """Do nothing, send the input data directly to output channel
+        Parameters
+        ----------
+        data
+        args
+        kwargs
+        """
         if data is not END:
             await self.enqueue_res(data)
 
     async def enqueue_res(self, data, index=None):
+        """Enqueue processed data into output channels.
+        Parameters
+        ----------
+        data
+        index
+        """
         # enqueue data into the output channel
         if self.num_out != 1 and isinstance(self.output, Sequence):
             try:
@@ -171,7 +205,8 @@ class BaseTask(Component):
 
 
 class RunTask(BaseTask):
-    """RunTask represents tasks with run method.
+    """RunTask is subclass of BaseTask, representing tasks with run method exposed to users to implement specific item processing logics.
+    Compared to BaseTask:
     1. Runs of multiple inputs will be executed in parallel.
     2. Runs will be executed in the main loop.
     """
@@ -179,7 +214,6 @@ class RunTask(BaseTask):
     default_config = {
         'publish_dirs': [],
         'drop_error': False,
-        'cache': 'local',
         'retry': 0,
         'fork': 7,
         'cpu': 1,
@@ -187,11 +221,32 @@ class RunTask(BaseTask):
         'memory': 0.2,
         'time': 1,
         'io': 1,
+        'cache_type': 'local',
         'executor_type': 'dask',
     }
 
+    def initialize_context(self):
+        """Expose cache_type and executor_type into self.context
+        """
+        super().initialize_context()
+        self.context.update({
+            'cache_type': self.config_dict['cache_type'],
+            'executor_type': self.config_dict['executor_type']
+        })
+
     async def handle_consumer(self, consumer: Consumer, **kwargs):
-        scheduler: 'flowsaber.core.engine.TaskScheduler' = kwargs.get("scheduler")
+        """Run processing functions in parallel by submitting jobs into schedulers that
+        return awaitable Future-like objects.
+        Parameters
+        ----------
+        consumer
+        kwargs
+
+        Returns
+        -------
+
+        """
+        scheduler: 'flowsaber.core.engine.scheduler.TaskScheduler' = kwargs.get("scheduler")
         # pop it, do not pass into task runner
         kwargs.pop('scheduler')
         futures = []
@@ -211,6 +266,15 @@ class RunTask(BaseTask):
         return fut
 
     def create_run_data(self, data: Data) -> BoundArguments:
+        """Wrap consumer fetched data tuple into a BoundArgument paired with self.run's signature.
+        Parameters
+        ----------
+        data
+
+        Returns
+        -------
+
+        """
         # 1. build BoundArgument
         len_args = len(self.input_args)
         args = data[:len_args]
@@ -223,12 +287,28 @@ class RunTask(BaseTask):
         return run_data
 
     async def handle_run_data(self, data: BoundArguments, **kwargs):
+        """This coroutine will be executed in parallel, thus need to re-enter self.context.
+        Parameters
+        ----------
+        data
+        kwargs
+        """
         with flowsaber.context(self.context):
             data: BoundArguments = await self.check_run_data(data, **kwargs)
             res = await self.call_run(data, **kwargs)
             await self.handle_res(res)
 
     async def check_run_data(self, data: BoundArguments, **kwargs):
+        """Match types of input datas into self.run's annotations by type conversion. Check file integrity.
+        Parameters
+        ----------
+        data
+        kwargs
+
+        Returns
+        -------
+
+        """
         run_params = dict(inspect.signature(self.run).parameters)
         arguments = data.arguments
         for arg, param in run_params.items():
@@ -256,8 +336,7 @@ class RunTask(BaseTask):
         return data
 
     async def call_run(self, data: BoundArguments, **kwargs):
-        """
-        RunTask.run should be run within the context of task.context
+        """Create a fresh task object and call it's run method for real data processing.
         """
         from copy import copy
         clean_task = copy(self)
@@ -268,6 +347,12 @@ class RunTask(BaseTask):
         await self.enqueue_res(res)
 
     def run(self, *args, **kwargs):
+        """The method users need to implement for processing the data emited by input channels.
+        Parameters
+        ----------
+        args
+        kwargs
+        """
         raise NotImplementedError("Please implement this method.")
 
 
@@ -285,7 +370,12 @@ class Task(RunTask, ABC):
 
     @property
     def task_hash(self) -> str:
-        # get the task_hash of this task defined by the real source code of self.run
+        """get the task_hash of this task defined by the real source code of self.run
+
+        Returns
+        -------
+
+        """
         fn = self.run
         # for wrapped func, use __source_func__ as a link
         while hasattr(fn, '__source_func__'):
@@ -326,6 +416,16 @@ class Task(RunTask, ABC):
         return Path(self.task_workdir, self.context['run_key'])
 
     async def call_run(self, data: BoundArguments, **kwargs) -> State:
+        """Call self.run within the control of a asyncio.Lock identified by run_workdir
+        Parameters
+        ----------
+        data
+        kwargs
+
+        Returns
+        -------
+
+        """
         from copy import copy
         run_key = flowsaber.context.cache.hash(data, **self.input_hash_source)
         run_workdir = self.run_workdir
@@ -346,11 +446,26 @@ class Task(RunTask, ABC):
         return state
 
     async def handle_res(self, res):
+        """Only push Success state result into output channels. Some state may be skipped in case of
+        Exceptions occurred within the task runner and thus return a Drop(Failure) state as a signal.
+        Parameters
+        ----------
+        res
+        """
         assert isinstance(res, Done)
         if isinstance(res, Success):
             await self.enqueue_res(res.result)
 
     def need_skip(self, bound_args: BoundArguments) -> bool:
+        """ Check if the input can be directly passed into output channels by predicate of user specified self.skip_fn
+        Parameters
+        ----------
+        bound_args
+
+        Returns
+        -------
+
+        """
         if self.skip_fn:
             return self.skip_fn(**bound_args.arguments)
         else:
@@ -358,18 +473,34 @@ class Task(RunTask, ABC):
 
     @property
     def input_hash_source(self) -> dict:
+        """Other infos needs to be passed into cache.hash function for fecthing a unique input/run key.
+        Returns
+        -------
+
+        """
         return {}
 
     def skip(self, skip_fn: Callable):
+        """A decorator/function exposed for users to specify skip function.
+
+        Parameters
+        ----------
+        skip_fn
+        """
         assert callable(skip_fn)
         self.skip_fn = skip_fn
 
     def clean(self):
+        """Functions called after the execution of task. For example, LocalCache need to write caches onto the disk for
+        cache persistence.
+        """
         if hasattr(self, 'cache'):
             self.cache.persist()
 
 
 class ShellTask(Task):
+    """Task that execute bash command by using subprocess.
+    """
 
     def run(self, cmd: str, output=None, env: Env = None):
         env = env or Env()
@@ -454,12 +585,51 @@ class ShellTask(Task):
 
 
 class CommandTask(RunTask):
+    """Task used for composing bash command based on outputs data of channels. Users need to implement the
+    command method.
+    Note that the output Channel of this task simply emits composed bash command in str type, and this
+    bash command needs to be actually executed by ShellTask.
+    """
     FUNC_PAIRS = [('command', 'run')]
 
     def __init__(self, **kwargs):
         super().__init__(num_out=3, **kwargs)
 
     def command(self, *args, **kwargs) -> str:
+        """Users need to implement this function to compose the final bash command.
+
+        The returned value of this method represents the expected outputs after executing the
+        composed bash command in shell:
+            1. None represents the output is stdout.
+            2. str variables represents glob syntax for files in the working directory.
+
+        To tell flowsaber what's the composed bash command, users has two options:
+            1: Assign the composed command to a vriable named CMD.
+            2: Write virtual fstring as the docstring of command method. All variables in the command method
+                scoped can be used freely.
+
+        Here are some examples:
+
+            class A(CommandTask):
+                def command(self, fa, fasta):
+                    "bwa map -t {self.context.cpu} {fa} {fasta} -o {bam_file}"
+                    bam_file = "test.bam"
+                    return bam_file
+
+            class B(CommandTask):
+                def command(self, file):
+                    a = "xxxx"
+                    b = 'xxxx'
+                    CMD = f"echo {a}\n"
+                          f"echo {b}\n"
+                          f"cat {file}"
+                    # here implicitly returned a None, represents the output of cmd is stdout
+
+        Parameters
+        ----------
+        args
+        kwargs
+        """
         raise NotImplementedError("Please implement this function and return a bash script.")
 
     def run(self, *args, **kwargs):
@@ -518,6 +688,9 @@ class EnvTask(ShellTask):
 
 
 class Edge(object):
+    """A edge represents a dependency between a channel and a task. the Task consumes data emited by the channel.
+    """
+
     def __init__(self, channel: Channel, task: BaseTask):
         self.channel: Channel = channel
         self.task: BaseTask = task

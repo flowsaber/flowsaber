@@ -2,14 +2,21 @@ import signal
 import time
 from inspect import BoundArguments
 
-from flowsaber.core.utility.state import *
-from flowsaber.core.utility.target import *
-from flowsaber.engine.runner import *
+import flowsaber
+from flowsaber.core.engine.runner import Runner, catch_to_failure, call_state_change_handlers, run_within_context
+from flowsaber.core.utility.state import (
+    State, Scheduled, Pending, Running, Retrying, Failure, Cached, Success, Skip, Drop
+)
+from flowsaber.core.utility.target import File
 from flowsaber.server.database import TaskRunInput
 from flowsaber.utility.statutils import ResourceMonitor
 
 
 class TaskRunner(Runner):
+    """The task runner moves the task state forward through a complicated process including:
+    retry, cache read/write, skip, drop ...
+    """
+
     def __init__(self, task, inputs: BoundArguments, **kwargs):
         super().__init__(**kwargs)
         self.task = task
@@ -128,6 +135,15 @@ class TaskRunner(Runner):
         return state
 
     def run_task_timeout(self, **kwargs):
+        """Call task.run with timeout handling by using signal.
+        Parameters
+        ----------
+        kwargs
+
+        Returns
+        -------
+
+        """
         timeout = self.task.config_dict.get("timeout")
         if not timeout:
             return self.task.run(**kwargs)

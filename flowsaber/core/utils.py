@@ -2,6 +2,7 @@ import builtins
 import inspect
 import types
 from functools import partial
+from typing import Union, Callable
 
 from makefun import with_signature
 

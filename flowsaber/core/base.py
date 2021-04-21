@@ -9,27 +9,7 @@ from pydantic import BaseModel
 
 import flowsaber
 from flowsaber.core.channel import Consumer, Channel, Output
-from flowsaber.core.context import Context, merge_dicts
-
-"""
-flow_config: {}
-task_config: {}
-
-flow_id
-flow_name
-flow_full_name
-flow_labels
-
-task_id
-task_name
-task_full_name
-task_labels
-
-flowrun_id
-flowrun_name
-
-taskrun_id
-"""
+from flowsaber.utility.context import Context, merge_dicts
 
 
 class ComponentMeta(type):
@@ -90,6 +70,17 @@ class ComponentMeta(type):
 
     @classmethod
     def update_default_config(mcs, class_name, bases, class_dict):
+        """Automatically merge and update class-scoped `default_config` dict from parent class.
+        Parameters
+        ----------
+        class_name
+        bases
+        class_dict
+
+        Returns
+        -------
+
+        """
         # 2. handle default_config update
         from copy import deepcopy
         config_name = "default_config"
@@ -100,6 +91,9 @@ class ComponentMeta(type):
 
 
 class Component(object, metaclass=ComponentMeta):
+    """Base class of Flow and Task
+    """
+
     class State(Enum):
         CREATED = 1
         INITIALIZED = 2
@@ -179,6 +173,16 @@ class Component(object, metaclass=ComponentMeta):
         return new
 
     def call_initialize(self, *args, **kwargs):
+        """Copy a new one and initialize some attributes.
+        Parameters
+        ----------
+        args
+        kwargs
+
+        Returns
+        -------
+
+        """
         # copy a new one and initialize the context
         from copy import copy
         new = copy(self)
@@ -187,6 +191,8 @@ class Component(object, metaclass=ComponentMeta):
         return new
 
     def initialize_context(self):
+        """Called by call_initialize, merge and update self.config dict of self.context from different sources.
+        """
         # may copied from a task already has context
         self.context = self.context or {}
         config_name = self.config_name
@@ -232,6 +238,16 @@ class Component(object, metaclass=ComponentMeta):
 
     # TODO should we use context manager
     async def start(self, **kwargs):
+        """Start running the Flow/Task in the context of self.context, before setting the context,
+        self.context will be merged/updated from kwargs.get('context', {})
+        Parameters
+        ----------
+        kwargs
+
+        Returns
+        -------
+
+        """
         back_context = deepcopy(self.context)
         # update context
         self.context = merge_dicts(self.context, kwargs.get('context', {}))

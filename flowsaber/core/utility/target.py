@@ -6,7 +6,7 @@ import flowsaber
 
 
 class Target(object):
-    """Theoretically all item emitted by Channel should be wrapped by a Target
+    """Target represents item emitted by Channel. Theoretically all item emitted by Channel should be wrapped by a Target
     """
 
     def __init__(self, **kwargs):
@@ -16,6 +16,9 @@ class Target(object):
 
 
 class File(Target):
+    """Wrapping of `pathlib.Path`, with features including integrity checking ...
+    """
+
     def __new__(cls, *args, **kwargs):
         obj = super().__new__(cls)
         obj.path = Path(*args).expanduser().resolve()
@@ -77,7 +80,7 @@ class File(Target):
 
 
 class Stdout(File):
-    """Ugly way, use file to store stdout.
+    """Ugly way, Use File to store stdout.
     In the idealist implementation, stdout and _stdin can be piped/linked across machines over network.
     """
 
@@ -87,6 +90,9 @@ class Stdout(File):
 
 
 class Stdin(Target):
+    """Represents stdin from a string or File.
+    """
+
     def __init__(self, src: Union[str, File], **kwargs):
         assert isinstance(src, (str, File)), "Only string and File-like object can be converted to Stdin"
         super().__init__(**kwargs)
@@ -106,6 +112,9 @@ class Stdin(Target):
 
 
 class End(Target):
+    """End signal of a Channel.
+    """
+
     def __repr__(self):
         return "[END]"
 

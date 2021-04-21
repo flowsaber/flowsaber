@@ -2,13 +2,17 @@ import asyncio
 
 import flowsaber
 from flowsaber.client.client import Client
+from flowsaber.core.engine.flow_runner import FlowRunner
+from flowsaber.core.engine.scheduler import FlowScheduler
 from flowsaber.core.utility.state import *
-from flowsaber.engine.flow_runner import FlowRunner
-from flowsaber.engine.scheduler import FlowScheduler
 from flowsaber.server.database.models import *
 
 
 class Agent(object):
+    """Agent fetches available flowruns in Scheduled state, and use FlowScheduler and Flowrunner
+    for executing flow in processes.
+    """
+
     def __init__(self, client: Client, agent_id: str = None, name: str = None, labels: list = None):
         self.client = client
         self.flowruns = {}
@@ -48,7 +52,7 @@ class Agent(object):
                     fut = scheduler.create_task(flow_runner.run, state, **flow_run_kwargs)
                     self.flowruns[flowrun_id] = fut
 
-                    def remove_flowrun(fut):
+                    def remove_flowrun(*args):
                         del self.flowruns[flowrun_id]
 
                     fut.add_done_callback(remove_flowrun)

@@ -1,11 +1,39 @@
 # TODO try to make things more simple for ease of pickle problems
 
+import importlib
 import os
 import sys
 from contextlib import contextmanager
 from io import StringIO
 from pathlib import Path
+from typing import Any
 from typing import Union
+
+
+def import_object(name: str) -> Any:
+    """Import an object given a fully-qualified name.
+
+    Args:
+        - name (string): The fully-qualified name of the object to import.
+
+    Returns:
+        - obj: The object that was imported.
+
+    Example:
+
+    ```python
+    >>> obj = import_object("random.randint")
+    >>> import random
+    >>> obj == random.randint
+    True
+    ```
+    """
+    try:
+        mod_name, attr_name = name.rsplit(".", 1)
+        mod = importlib.import_module(mod_name)
+        return getattr(mod, attr_name)
+    except ValueError:
+        return importlib.import_module(name)
 
 
 @contextmanager

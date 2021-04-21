@@ -33,6 +33,9 @@ NO_CACHE = object()
 
 
 class Cache(object):
+    """Cache is used for persisting results of met inputs. The cache should produce unique keys for unique inputs by
+    implementing `hash` method. Hash of inputs can be further used to write/read related data.
+    """
 
     def __init__(self, task=None, cache: bool = True):
         self.task = task
@@ -55,6 +58,8 @@ class Cache(object):
 
 
 class LocalCache(Cache):
+    """LocalCache treat hash keys as directories in disk and dump/load python objects in the corresponding directories.
+    """
     VALUE_FILE = ".__Cache_value__"
 
     def __init__(self, serializer: Serializer = CloudPickleSerializer(), **kwargs):

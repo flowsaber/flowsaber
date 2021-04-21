@@ -13,6 +13,10 @@ from flowsaber.server.database import FlowInput
 
 
 class Flow(Component):
+    """Represents the organizer of tasks, flows can also be used as components. Except for the top-most flow
+    which represents the whole running unit, all flows within are simply virtual flows and don't have running state
+    like flowrun or taskrun. However, flows and tasks all can have personalized configs.
+    """
     FUNC_PAIRS = [('run', '__call__', True)]
 
     default_config = {
@@ -61,6 +65,8 @@ class Flow(Component):
         return new
 
     def initialize_context(self):
+        """Expose some attributes of self.config into self.context.
+        """
         # a task's workdir == context.flow_workdir / context.flow_config.workdir / context.task_config.workdir
         # If any of the above dirs is absolute dir, then use it instead
         super().initialize_context()
@@ -82,6 +88,15 @@ class Flow(Component):
         raise NotImplementedError("Not implemented. Users are supposed to compose flow/task in this method.")
 
     async def start_execute(self, **kwargs):
+        """The up most flow needd to initialize executors.
+        Parameters
+        ----------
+        kwargs
+
+        Returns
+        -------
+
+        """
         await super().start_execute(**kwargs)
 
         async def execute_child_components():

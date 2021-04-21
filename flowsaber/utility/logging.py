@@ -12,6 +12,16 @@ import flowsaber
 
 
 def inject_context(factory):
+    """Inject context attrs into the log record.
+    Parameters
+    ----------
+    factory
+
+    Returns
+    -------
+
+    """
+
     def inner(*args, **kwargs):
         record = factory(*args, **kwargs)
         context_attrs = flowsaber.context.logging.context_attrs or flowsaber.context.keys()
@@ -28,6 +38,10 @@ log_record_factory = inject_context(log_record_factory)
 
 
 class ThreadLogManager(logging.Handler):
+    """A logger handler can be registered with log handlers, logs in batch will be passed to registered handlers and
+    processed in another thread.
+    """
+
     def __init__(self, buffer_size=1, max_buffer_size=2000, **kwargs):
         super().__init__(**kwargs)
         self.log_queue = Queue()

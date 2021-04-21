@@ -17,6 +17,9 @@ class ServerError(Exception):
 
 
 class ValidateMeta(type):
+    """Metaclass that automatically wrap method with pydantic.validate_arguemnts decorator.
+    """
+
     def __new__(cls, clsname, bases, clsdict: dict):
         for k, v in clsdict.items():
             if inspect.isfunction(v):
@@ -25,6 +28,9 @@ class ValidateMeta(type):
 
 
 class Client(object, metaclass=ValidateMeta):
+    """The Graphql client used for communicating with server by sending HTTP post reqeuests data.
+    """
+
     def __init__(self, server_url: str = None, retry: int = 3):
         self.server_url = server_url
         self.retry = retry

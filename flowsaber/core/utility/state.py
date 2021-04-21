@@ -1,21 +1,26 @@
 """
-
-FlowRun:
-    Scheduled Pending Running Done
-TaskRun:
-    Pending Running Retrying Running Done
-
-Done
-    Success
-        Cached
-        Skip
-    Failure
-        Drop
 """
 from typing import Any, Optional
 
 
 class State(object):
+    """State represents status of flowrun/taskrun.
+
+    State flows and state hierarchy:
+
+        FlowRun:
+            Scheduled Pending Running Done
+        TaskRun:
+            Pending Running Retrying Running Done
+
+        Done
+            Success
+                Cached
+                Skip
+            Failure
+                Drop
+    """
+
     def __init__(self,
                  state_type: str = None,
                  result: Any = None,

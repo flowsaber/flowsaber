@@ -3,11 +3,11 @@ Some codes are borrowed from https://github.com/PrefectHQ/prefect/blob/master/sr
 """
 
 import functools
-from typing import Callable
+from typing import Callable, Any
 
 import flowsaber
-from flowsaber.core.utility.state import *
-from flowsaber.server.database.models import *
+from flowsaber.core.utility.state import State, Failure
+from flowsaber.server.database.models import RunInput
 
 
 class RunException(Exception):
@@ -16,6 +16,17 @@ class RunException(Exception):
 
 
 def catch_to_failure(method: Callable[..., State]) -> Callable[..., State]:
+    """A decorator that wraps method into a method that automatically capture exceptions into Failure state.
+
+    Parameters
+    ----------
+    method
+
+    Returns
+    -------
+
+    """
+
     @functools.wraps(method)
     def catch_exception_to_failure(self: "Runner", *args, **kwargs) -> State:
         try:
@@ -29,6 +40,18 @@ def catch_to_failure(method: Callable[..., State]) -> Callable[..., State]:
 
 
 def call_state_change_handlers(method: Callable[..., State]) -> Callable[..., State]:
+    """A decorator checks the difference between input and output state of the wrapped method, if two states are
+    not identical, trigger runner's handle_state_change method for calling all state change handlers.
+
+    Parameters
+    ----------
+    method
+
+    Returns
+    -------
+
+    """
+
     @functools.wraps(method)
     def check_and_run(self: "Runner", state: State, *args, **kwargs) -> State:
         new_state = method(self, state, *args, **kwargs)
@@ -42,6 +65,17 @@ def call_state_change_handlers(method: Callable[..., State]) -> Callable[..., St
 
 
 def run_within_context(method: Callable[..., Any]) -> Any:
+    """A decorator runs the wrapped method within a new context composed of runner.context and kwargs' context.
+
+    Parameters
+    ----------
+    method
+
+    Returns
+    -------
+
+    """
+
     @functools.wraps(method)
     def enter_context(self: "Runner", *args, **kwargs) -> Any:
         with flowsaber.context(self.context):
@@ -52,6 +86,12 @@ def run_within_context(method: Callable[..., Any]) -> Any:
 
 
 class Runner(object):
+    """Base runner class, intended to be the state manager of runnable object like flow and task.
+
+    Users need to add state change handlers in order to be informed when meeting state changes of some method. Methods of runner
+     should both accept and return state, and need to be decorated with `call_state_change_handlers` decorator.
+    """
+
     def __init__(self, id: str = None, name: str = None, labels: list = None, **kwargs):
         self.state_change_handlers = []
         self.id = id or flowsaber.context.random_id
@@ -69,6 +109,17 @@ class Runner(object):
         return state
 
     def handle_state_change(self, prev_state, cur_state):
+        """Call all registered state change handlers with parameter of old_state and new_state.
+
+        Parameters
+        ----------
+        prev_state
+        cur_state
+
+        Returns
+        -------
+
+        """
         handler = None
         try:
             for handler in self.state_change_handlers:

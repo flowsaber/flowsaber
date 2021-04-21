@@ -9,11 +9,19 @@ AsyncFunc = Callable[[Any], Awaitable[None]]
 
 
 class Solver(object):
+    """Multiple knapsack problem solver.
+
+    """
+
     def solve(self, *args, **kwargs):
         raise NotImplementedError
 
 
 class GaSolver(Solver):
+    """Use genetic algorithm supplied by pyeasyga package to solve the mkp problem.
+
+    """
+
     def __init__(self, score_func: Callable = None):
         self.score_func = score_func
 
@@ -41,7 +49,21 @@ class GaSolver(Solver):
         return score_func(total)
 
 
-class TaskScheduler(object):
+class Scheduler(object):
+    """Scheduler object should support create_task method that returns a Future object.
+
+    """
+
+    def create_task(self, *args, **kwargs) -> Future:
+        raise NotImplementedError
+
+
+class TaskScheduler(Scheduler):
+    """A async task scheduler initialized with a scoring function. Each submited task is associated with a cost
+    function, submited tasks will be selected and runned to ensure a maximum score.
+
+    """
+
     @dataclass
     class Job(asyncio.Future):
         coro: Coroutine
@@ -158,7 +180,10 @@ class TaskScheduler(object):
         return job
 
 
-class FlowScheduler(object):
+class FlowScheduler(Scheduler):
+    """Internally it's a ProcessExecutor, the wrapping is mainly used for uniformity with TaskScheduler.
+    """
+
     def __init__(self, executor_cls=ProcessPoolExecutor, executor_kwargs: dict = None):
         self.executor_cls = executor_cls
         self.executor_kwargs = executor_cls

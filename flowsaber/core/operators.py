@@ -14,6 +14,9 @@ NEG_INF = float("-inf")
 
 
 class Operator(BaseTask):
+    """Base class for all operators, subclass of BaseTask, all operators runs in the main loop in sequence
+    and do not have runners and run states.
+    """
     pass
 
 

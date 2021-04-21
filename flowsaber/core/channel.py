@@ -6,7 +6,7 @@ from typing import Union, Sequence, Optional, List
 
 import flowsaber
 from flowsaber.core.utility.target import END, End
-from flowsaber.server.database import ChannelInput
+from flowsaber.server.database.models import ChannelInput
 
 
 class Fetcher(object):
