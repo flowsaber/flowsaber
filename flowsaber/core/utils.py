@@ -2,7 +2,7 @@ import builtins
 import inspect
 import types
 from functools import partial
-from typing import Union, Callable
+from typing import Union, Callable, List, Tuple, Any
 
 from makefun import with_signature
 
@@ -93,15 +93,15 @@ def extend_method(cls):
         funcs = []
         if inspect.isclass(obj):
             for name, func in inspect.getmembers(obj):
-                if not name.startswith('__'):
-                    funcs.append(func)
+                if not name.startswith('_'):
+                    funcs.append((name, func))
         elif inspect.isfunction(obj):
-            funcs.append(obj)
+            funcs.append((None, obj))
         else:
             raise ValueError("Should be a class or function")
 
-        for func in funcs:
-            setattr(cls, func.__name__, func)
+        for func_name, func in funcs:
+            setattr(cls, func_name or func.__name__, func)
 
     return set_method
 
@@ -169,3 +169,43 @@ def class_deco(base_cls: type, method_name: str):
 
     deco.__name__ = deco.__qualname__ = base_cls.__name__.lower()
     return deco
+
+
+def check_cycle(edges: List[Tuple[Any, Any]]) -> bool:
+    """Given a list of edges, check if the corresponding graph contains cycle by finding a topological sorting
+
+    Parameters
+    ----------
+    edges
+
+    Returns
+    -------
+
+    """
+    from collections import defaultdict, deque
+    # convert node to index
+    nodes = set(node for edge in edges for node in edge)
+    nodes2id = dict(zip(nodes, range(len(nodes))))
+    edges = [(nodes2id[n1], nodes2id[n2]) for n1, n2 in edges]
+
+    # build adjacency graph and in-degree vector
+    G, indegree = defaultdict(list), [0] * len(nodes)
+    for src, tgt in edges:
+        indegree[tgt] += 1
+        G[src].append(tgt)
+
+    zero_dq = deque()
+    for node, ind in enumerate(indegree):
+        if ind == 0:
+            zero_dq.append(node)
+    # iteratively find zero in-degree node
+    path = []
+    while len(zero_dq):
+        cur = zero_dq.popleft()
+        path.append(cur)
+        for out in G[cur]:
+            indegree[out] -= 1
+            if indegree[out] == 0:
+                zero_dq.append(out)
+
+    return len(path) != len(nodes)

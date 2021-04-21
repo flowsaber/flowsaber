@@ -2,7 +2,6 @@ import asyncio
 import inspect
 import os
 import subprocess
-from abc import ABC
 from collections import abc
 from inspect import Parameter, BoundArguments
 from pathlib import Path
@@ -49,7 +48,7 @@ class BaseTask(Component):
         top_flow.tasks.append(task)
         # register to up flow for execution
         up_flow = flowsaber.context.up_flow
-        up_flow.compoments.append(task)
+        up_flow.components.append(task)
 
         return task.output
 
@@ -75,11 +74,11 @@ class BaseTask(Component):
         """
         super().initialize_input(*args, **kwargs)
         channels = list(args) + list(kwargs.values())
-        self.input = Consumer.from_channels(channels, task=self)
+        self.input = Consumer.from_channels(*channels, task=self)
         # register edges into the up-most flow
         for input_q in self.input.queues:
             edge = Edge(channel=input_q.ch, task=self)
-            flowsaber.context.top_flow.edges.apend(edge)
+            flowsaber.context.top_flow.edges.append(edge)
 
     def initialize_output(self):
         """Create output channels according to self.num_output
@@ -222,7 +221,7 @@ class RunTask(BaseTask):
         'time': 1,
         'io': 1,
         'cache_type': 'local',
-        'executor_type': 'dask',
+        'executor_type': 'local',
     }
 
     def initialize_context(self):
@@ -356,7 +355,7 @@ class RunTask(BaseTask):
         raise NotImplementedError("Please implement this method.")
 
 
-class Task(RunTask, ABC):
+class Task(RunTask):
     """Task is subclass of RunTask:
     1. Each Task will have a unique task_key/task_workdir
     2. Each input's run will have a unique run_key/task_workdir.

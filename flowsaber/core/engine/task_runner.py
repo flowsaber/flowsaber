@@ -40,19 +40,11 @@ class TaskRunner(Runner):
 
         return taskrun_input
 
-    def initialize_run(self, state, **kwargs) -> State:
-        state = super().initialize_run(state)
-        self.context.update(taskrun_id=self.id)
-        if 'context' in kwargs:
-            kwargs['context'].update(taskrun_id=self.id)
-        flowsaber.context.update(taskrun_id=self.id)
-        return state
-
     @run_within_context
     @call_state_change_handlers
     @catch_to_failure
-    def run(self, state: State, **kwargs) -> State:
-        state = self.initialize_run(state)
+    def run(self, state: State = None, **kwargs) -> State:
+        state = self.initialize_run(state, **kwargs)
         state = self.set_state(state, Pending)
         state = self.set_state(state, Running)
         # 1. skip if needed
@@ -86,6 +78,15 @@ class TaskRunner(Runner):
         return state
 
     @call_state_change_handlers
+    def initialize_run(self, state, **kwargs) -> State:
+        state = super().initialize_run(state)
+        self.context.update(taskrun_id=self.id)
+        if 'context' in kwargs:
+            kwargs['context'].update(taskrun_id=self.id)
+        flowsaber.context.update(taskrun_id=self.id)
+        return state
+
+    @call_state_change_handlers
     def check_skip(self, state: State) -> State:
         if self.task.skip_fn and self.task.need_skip(self.inputs):
             state = Skip.copy(state)
@@ -103,7 +104,7 @@ class TaskRunner(Runner):
             values = [res] if not isinstance(res, (list, tuple, set)) else res
             for f in [v for v in values if isinstance(v, File)]:
                 if f.initialized:
-                    check_hash = await self.task.executor.run(f.calculate_hash)
+                    check_hash = f.calculate_hash()
                     if check_hash != f.hash:
                         msg = f"Task {self.task.task_name} read cache failed from disk " \
                               f"because file content task_hash changed."

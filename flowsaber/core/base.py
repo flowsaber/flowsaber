@@ -39,7 +39,7 @@ class ComponentMeta(type):
             func_pairs += base_func_pairs
 
         if func_pairs:
-            assert all(len(item) == 2 for item in func_pairs)
+            assert all(len(item) >= 2 for item in func_pairs)
             for src_fn, tgt_fn, *options in func_pairs:
                 if src_fn == tgt_fn:
                     raise ValueError(f"src {src_fn} and tgt {tgt_fn} can not be the same.")
@@ -56,7 +56,8 @@ class ComponentMeta(type):
                     src_sigs = inspect.Signature(src_sig_params, return_annotation=src_sigs.return_annotation)
                 # handle return annotation, if tgt already has return annotation, keep it
                 if tgt_sigs.return_annotation is not EMPTY_ANNOTATION:
-                    src_sigs.return_annotation = tgt_sigs.return_annotation
+                    src_sig_params = list(src_sigs.parameters.values())
+                    src_sigs = inspect.Signature(src_sig_params, return_annotation=tgt_sigs.return_annotation)
 
                 @with_signature(src_sigs, func_name=tgt.__name__, qualname=tgt.__qualname__, doc=src.__doc__)
                 def new_tgt_fn(*args, **kwargs):
@@ -85,7 +86,7 @@ class ComponentMeta(type):
         from copy import deepcopy
         config_name = "default_config"
         default_config: dict = deepcopy(getattr(bases[0], config_name, {}))
-        class_dict[config_name] = merge_dicts(default_config, getattr(class_dict, config_name, {}))
+        class_dict[config_name] = merge_dicts(default_config, class_dict.get(config_name, {}))
 
         return class_name, bases, class_dict
 
@@ -135,7 +136,7 @@ class Component(object, metaclass=ComponentMeta):
     @property
     def config(self) -> Context:
         """return a non-editable context"""
-        return Context(self.config, write=False)
+        return Context(self.config_dict)
 
     @property
     def initialized(self):
@@ -156,12 +157,23 @@ class Component(object, metaclass=ComponentMeta):
     def get_full_name(self) -> str:
         """Generate a name like flow1.name|flow2.name|flow3.name|cur_task
         """
-        up_flow_names = '|'.join(flow.config['name'] for flow in flowsaber.context.flow_stack)
+        up_flow_names = '|'.join(flow.config_dict['name'] for flow in flowsaber.context.flow_stack)
         if up_flow_names:
             up_flow_names += '|'
         return f"{up_flow_names}{type(self).__name__}[{id(self)}]"
 
     def __call__(self, *args, **kwargs) -> Union[List[Channel], Channel, None]:
+        """ This is where the flow/task build dependency graph
+
+        Parameters
+        ----------
+        args
+        kwargs
+
+        Returns
+        -------
+
+        """
         raise NotImplementedError
 
     def __copy__(self):
@@ -196,7 +208,7 @@ class Component(object, metaclass=ComponentMeta):
         # may copied from a task already has context
         self.context = self.context or {}
         config_name = self.config_name
-        pre_workdir = flowsaber.context.get(config_name, 'workdir', '')
+        pre_workdir = flowsaber.context.get(config_name, {}).get('workdir', '')
         # update config in four steps
         global_default_config = getattr(flowsaber.context, f'default_{config_name}', {})
         default_config = self.default_config
@@ -224,7 +236,11 @@ class Component(object, metaclass=ComponentMeta):
             self.config_dict['full_name'] = self.get_full_name()
 
         # set up workdir build from the hierarchy of flows/tasks
-        workdir = self.config_dict['workdir']
+        try:
+            workdir = self.config_dict['workdir']
+        except Exception as e:
+            print(self.context, global_default_config, default_config, kwargs_config, tmp_config)
+            raise e
         workdir = Path(workdir).expanduser().resolve()
         if workdir.is_absolute():
             workdir = str(workdir)

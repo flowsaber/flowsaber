@@ -3,7 +3,6 @@ Some functions come from prefect.utilities.context
 """
 import contextlib
 import contextvars
-import uuid
 from collections import UserDict
 from collections.abc import MutableMapping
 from typing import Any, Iterable, Iterator, Union, cast
@@ -84,7 +83,7 @@ class DotBase(UserDict):
     def __setattr__(self, key, value):
         if key.startswith('_') or key in self.PASS_ARGS:
             # __setattr__ prevail property.__set__
-            if key in type(self).__dict__:
+            if hasattr(type(self), key):
                 object.__setattr__(self, key, value)
             else:
                 self.__dict__[key] = value
@@ -140,8 +139,8 @@ class Context(DotBase):
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        self.__data = contextvars.ContextVar(f"data-{id(self)}")
-        self.__info = DotDict()
+        self._data = contextvars.ContextVar(f"data-{id(self)}")
+        self._info = DotDict()
         super().__init__(*args, **kwargs)
 
     def __repr__(self):
@@ -152,30 +151,14 @@ class Context(DotBase):
 
     @property
     def data(self) -> MergingDotDict:
-        return self.__data.get()
+        return self._data.get()
 
     @data.setter
     def data(self, dic: DictLike):
         # this is the main point
         if not isinstance(dic, MergingDotDict):
             dic = MergingDotDict(dic)
-        self.__data.set(dic)
-
-    @property
-    def random_id(self) -> str:
-        return str(uuid.uuid4())
-
-    @property
-    def flow_stack(self):
-        return self.__info.setdefault('__flow_stack', [])
-
-    @property
-    def top_flow(self):
-        return self.flow_stack[0] if self.flow_stack else None
-
-    @property
-    def up_flow(self):
-        return self.flow_stack[-1] if self.flow_stack else None
+        self._data.set(dic)
 
     def __getstate__(self) -> None:
         """

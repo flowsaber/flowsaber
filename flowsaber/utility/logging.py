@@ -2,6 +2,7 @@
 Modified from prefect
 """
 import atexit
+import inspect
 import logging
 import sys
 import threading
@@ -9,6 +10,35 @@ from queue import Queue
 from typing import Optional
 
 import flowsaber
+from flowsaber.core.context import FlowSaberContext
+from flowsaber.core.utils import extend_method
+
+
+@extend_method(FlowSaberContext)
+class _(object):
+    """Prevent circular import
+    """
+
+    @property
+    def logger(self) -> logging.Logger:
+        """Get a child logger of `flowsaber` logger with name of:
+        `callee.__name__.agent_id.flow_id.flowrun_id.task_id.taskrun_id`
+
+        Returns
+        -------
+
+        """
+        # find callee
+        callee_frame = inspect.currentframe().f_back
+        callee_module_name = callee_frame.f_globals['__name__']
+        # find running info
+        run_infos = [self.get(attr, 'NULL') for attr in
+                     ['agent_id', 'flow_id', 'flowrun_id', 'task_id', 'taskrun_id']]
+        run_name = '.'.join(run_infos)
+
+        logger_name = f"{callee_module_name}.{run_name}".rstrip('.')
+
+        return get_logger(logger_name)
 
 
 def inject_context(factory):
@@ -112,7 +142,7 @@ def create_logger(name: str) -> logging.Logger:
     return logger
 
 
-log_manager = ThreadLogManager(buffer_size=flowsaber.context.buffer_size)
+log_manager = ThreadLogManager(buffer_size=flowsaber.context.logging.buffer_size)
 logger = create_logger("flowsaber")
 
 

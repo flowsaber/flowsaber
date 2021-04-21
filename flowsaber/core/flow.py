@@ -1,7 +1,8 @@
 import asyncio
 import inspect
+import uuid
 from pathlib import Path
-from typing import Union, List, Optional
+from typing import Union, List, Optional, Tuple
 
 import cloudpickle
 
@@ -9,6 +10,7 @@ import flowsaber
 from flowsaber.core.base import Component
 from flowsaber.core.channel import Channel, Output
 from flowsaber.core.task import BaseTask, Edge
+from flowsaber.core.utils import check_cycle
 from flowsaber.server.database import FlowInput
 
 
@@ -26,9 +28,9 @@ class Flow(Component):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.components = Optional[List[Component]] = None
-        self.tasks = Optional[List[BaseTask]] = None
-        self.edges = Optional[List[Edge]] = None
+        self.components: Optional[List[Component]] = None
+        self.tasks: Optional[List[BaseTask]] = None
+        self.edges: Optional[List[Edge]] = None
 
     @property
     def config_name(self) -> str:
@@ -46,12 +48,17 @@ class Flow(Component):
         flow = self.call_initialize()
         # enter flow context
         with flow, flowsaber.context(flow.context):
+            # TODO in case of None return, make a channel yield a end when all components run done
             flow.output = flow.run(*args, **kwargs) or Channel.end()
 
+        # in order to check up_flow, can not run within with statement
+        # now the dependency has been built
         if flowsaber.context.up_flow:
             flowsaber.context.up_flow.components.append(flow)
             return flow.output
         else:
+            if check_cycle(flow.task_id_edges):
+                raise ValueError("The dependency graph has cycle.")
             # in the top level flow, just return the flow itself
             return flow
 
@@ -120,6 +127,15 @@ class Flow(Component):
                 return await execute_child_components()
         else:
             return await execute_child_components()
+
+    @property
+    def task_id_edges(self) -> List[Tuple[str, str]]:
+        edges = []
+        for edge in self.edges:
+            src_task = getattr(edge.channel, 'task', None)
+            src_task_id = src_task.config_dict['id'] if src_task else str(uuid.uuid4())
+            edges.append((src_task_id, edge.task.config_dict['id']))
+        return edges
 
     def serialize(self) -> FlowInput:
         config = self.config

@@ -45,7 +45,7 @@ class EnvCreator(object):
         md5hash.update(src.encode())
         return md5hash.hexdigest()
 
-    def gen_cmd_env(self) -> Tuple[str, Env]:
+    def gen_cmd_env(self) -> Tuple[str, 'Env']:
         create_conda_cmd = ""
         create_image_cmd = ""
         module = self.module

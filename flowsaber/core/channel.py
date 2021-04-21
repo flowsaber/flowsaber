@@ -10,6 +10,11 @@ from flowsaber.server.database.models import ChannelInput
 
 
 class Fetcher(object):
+    def __init__(self, **kwargs):
+        for k, v in kwargs.items():
+            if not hasattr(self, k):
+                setattr(self, k, v)
+
     def __aiter__(self):
         return self
 

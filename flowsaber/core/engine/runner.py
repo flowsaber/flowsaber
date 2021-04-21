@@ -1,12 +1,13 @@
 """
 Some codes are borrowed from https://github.com/PrefectHQ/prefect/blob/master/src/prefect/engine/runner.py
 """
+import traceback
 
 import functools
-from typing import Callable, Any
+from typing import Callable, Any, Union
 
 import flowsaber
-from flowsaber.core.utility.state import State, Failure
+from flowsaber.core.utility.state import State, Failure, Scheduled
 from flowsaber.server.database.models import RunInput
 
 
@@ -32,7 +33,8 @@ def catch_to_failure(method: Callable[..., State]) -> Callable[..., State]:
         try:
             new_state = method(self, *args, **kwargs)
         except Exception as exc:
-            e_str = f"Unexpected error: {exc} when calling method: {method}"
+            tb = traceback.format_exc()
+            e_str = f"Unexpected error: {exc} when calling method: {method} with traceback: {tb}"
             new_state = Failure(result=exc, message=e_str)
         return new_state
 
@@ -53,7 +55,7 @@ def call_state_change_handlers(method: Callable[..., State]) -> Callable[..., St
     """
 
     @functools.wraps(method)
-    def check_and_run(self: "Runner", state: State, *args, **kwargs) -> State:
+    def check_and_run(self: "Runner", state: State = None, *args, **kwargs) -> State:
         new_state = method(self, state, *args, **kwargs)
 
         if new_state is not state:
@@ -93,10 +95,17 @@ class Runner(object):
     """
 
     def __init__(self, id: str = None, name: str = None, labels: list = None, **kwargs):
-        self.state_change_handlers = []
+        self.state_change_handlers = [self.logging_state_chaneg_chandler]
         self.id = id or flowsaber.context.random_id
         self.name = name or flowsaber.context.random_id
         self.labels = labels or []
+
+    @staticmethod
+    def logging_state_chaneg_chandler(runner: "Runner", old_state, new_state):
+        flow_full_name = flowsaber.context.get('flow_full_name')
+        task_full_name = flowsaber.context.get('task_full_name')
+        flowsaber.context.logger.info(f"{flow_full_name}-{task_full_name} state change from [{old_state}] to [{new_state}]")
+        print(f"{flow_full_name}-{task_full_name} state change from [{old_state}] to [{new_state}]")
 
     def serialize(self, old_state: State, new_state: State) -> RunInput:
         raise NotImplementedError
@@ -105,7 +114,9 @@ class Runner(object):
     def context(self) -> dict:
         raise NotImplementedError
 
-    def initialize_run(self, state, **kwargs) -> State:
+    def initialize_run(self, state: Union[State, None], **kwargs) -> State:
+        if state is None:
+            state = Scheduled()
         return state
 
     def handle_state_change(self, prev_state, cur_state):
@@ -130,7 +141,7 @@ class Runner(object):
             cur_state = Failure(result=exc, message=e_str)
         return cur_state
 
-    def run(self, state: State) -> State:
+    def run(self, state: State, **kwargs) -> State:
         raise NotImplementedError
 
     @call_state_change_handlers

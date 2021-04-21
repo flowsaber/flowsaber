@@ -40,25 +40,26 @@ class State(object):
 
     def __repr__(self):
         message = f":{self.message}" if self.message else ""
-        return f"<{self.state_type}>{message}"
+        return f"<{self.state_type}>({message})"
 
     @classmethod
     def copy(cls, state: 'State'):
         # TODO, use copy or construction?
         from copy import copy
-        if not issubclass(cls, type(state)):
-            raise ValueError(f"The copy source's class must be a supper class of {cls}")
+        # TODO carefully handle inheritance
+        # if not issubclass(cls, type(state)):
+        #     raise ValueError(f"The copy source's class: {state} must be a supper class of {cls}")
         new = cls()
         new.__dict__ = copy(state.__dict__)
         new.state_type = cls.__name__
         return new
 
 
-class Pending(State):
+class Scheduled(State):
     pass
 
 
-class Scheduled(Pending):
+class Pending(Scheduled):
     pass
 
 
