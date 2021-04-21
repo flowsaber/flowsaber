@@ -9,7 +9,7 @@ from pydantic import BaseModel
 
 import flowsaber
 from flowsaber.core.channel import Consumer, Channel, Output
-from flowsaber.core.utility.context import Context, merge_dicts
+from flowsaber.core.context import Context, merge_dicts
 
 """
 flow_config: {}
@@ -31,8 +31,6 @@ flowrun_name
 taskrun_id
 """
 
-EMPTY_ANNOTATION = inspect._empty
-
 
 class ComponentMeta(type):
     PAIR_ARG_NAME = 'FUNC_PAIRS'
@@ -53,6 +51,7 @@ class ComponentMeta(type):
             [src_method_name, target_method_name]
             [src_method_name, target_method_name, is_call_boolean]: signature of int will change to Channel[int]
         """
+        EMPTY_ANNOTATION = inspect._empty
         # 1. handle copying method signature
         func_pairs = class_dict.get(mcs.PAIR_ARG_NAME, [])
         for base_cls in bases:

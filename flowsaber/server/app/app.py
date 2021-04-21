@@ -5,7 +5,7 @@ from ariadne import (
     asgi
 )
 
-from flowsaber.server.graphql import *
+from flowsaber.server.app.graphql import *
 
 types = [query, mutation,
          agent, flow, task, flowrun,

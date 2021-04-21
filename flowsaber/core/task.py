@@ -4,7 +4,7 @@ import os
 import subprocess
 from abc import ABC
 from collections import abc
-from inspect import Parameter
+from inspect import Parameter, BoundArguments
 from pathlib import Path
 from typing import Callable, Sequence
 
@@ -13,12 +13,11 @@ from dask.base import tokenize
 import flowsaber
 from flowsaber.core.base import Component
 from flowsaber.core.channel import Channel, Consumer, ConstantChannel, Output
-from flowsaber.core.runner.task_runner import get_task_runner_cls
-from flowsaber.core.scheduler import TaskScheduler
 from flowsaber.core.utility.env import Env, EnvCreator
 from flowsaber.core.utility.state import *
 from flowsaber.core.utility.target import File, Stdout, Stdin, END, Data
-from flowsaber.server.database.models import *
+from flowsaber.engine.task_runner import TaskRunner
+from flowsaber.server.database import *
 from flowsaber.utility.utils import change_cwd, capture_local
 
 
@@ -192,7 +191,7 @@ class RunTask(BaseTask):
     }
 
     async def handle_consumer(self, consumer: Consumer, **kwargs):
-        scheduler: TaskScheduler = kwargs.get("scheduler")
+        scheduler: 'flowsaber.core.engine.TaskScheduler' = kwargs.get("scheduler")
         # pop it, do not pass into task runner
         kwargs.pop('scheduler')
         futures = []
@@ -341,7 +340,7 @@ class Task(RunTask, ABC):
         # 1. set _running info and lock key
         # must lock input key to avoid collision in cache and files in _running path
         async with flowsaber.context.run_lock:
-            task_runner = get_task_runner_cls()(task=task, inputs=data)
+            task_runner = TaskRunner(task=task, inputs=data)
             state = await flowsaber.context.executor.run(task_runner.run, state, **kwargs)
         # 3. unset _running info
         return state

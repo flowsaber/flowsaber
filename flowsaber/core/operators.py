@@ -6,7 +6,7 @@ from typing import Callable, Any, Union
 from flowsaber.core.channel import ConstantChannel, END, Consumer, LazyAsyncQueue, ChannelBase
 from flowsaber.core.task import BaseTask
 from flowsaber.core.utility.target import Data
-from flowsaber.utility.utils import extend_method, class_to_method
+from flowsaber.core.utils import extend_method, class_to_method
 
 Predicate = Callable[[Any], bool]
 POS_INF = float("inf")

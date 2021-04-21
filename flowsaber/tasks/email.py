@@ -8,7 +8,7 @@ import ssl
 from email.message import EmailMessage
 from typing import Any
 
-from flowsaber import Task
+from flowsaber.core.task import Task
 
 
 class EmailTask(Task):

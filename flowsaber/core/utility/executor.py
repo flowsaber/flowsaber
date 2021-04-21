@@ -5,40 +5,13 @@ Borrowed from prefect.executors.dask
 import asyncio
 import inspect
 import logging
-import sys
 import uuid
 import weakref
 from concurrent.futures import Future
-from io import StringIO
 from typing import Union, Callable, Optional, Any
 
 import flowsaber
 from flowsaber.utility.importtools import import_object
-
-
-class CaptureTerminal(object):
-    def __init__(self, stdout=None, stderr=None):
-        if isinstance(stdout, str):
-            stdout = open(stdout, 'a')
-        if isinstance(stderr, str):
-            stderr = open(stderr, 'a')
-        self.stdout = stdout
-        self.stderr = stderr
-        self.stringio_stdout = StringIO()
-        self.stringio_stderr = StringIO()
-
-    def __enter__(self):
-        self._stdout = sys.stdout
-        self._stderr = sys.stderr
-        sys.stdout = self.stdout or self.stringio_stdout
-        sys.stderr = self.stderr or self.stringio_stderr
-        return self
-
-    def __exit__(self, *args):
-        self.stringio_stdout = StringIO()
-        self.stringio_stderr = StringIO()
-        sys.stdout = self._stdout
-        sys.stderr = self._stderr
 
 
 class Executor(object):

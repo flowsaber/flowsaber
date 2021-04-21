@@ -1,5 +1,5 @@
 """
-Modified from prefect.utilities.context
+Some functions come from prefect.utilities.context
 """
 import asyncio
 import contextlib
@@ -11,13 +11,11 @@ from collections import UserDict, defaultdict
 from collections.abc import MutableMapping
 from typing import Any, Iterable, Iterator, Union, cast
 
-from flowsaber.core.executor import Executor, get_executor
 from flowsaber.core.utility.cache import Cache, get_cache
+from flowsaber.core.utility.executor import Executor, get_executor
 from flowsaber.utility.logging import get_logger
 
 DictLike = Union[dict, "DotBase"]
-
-__all__ = ['DotDict', 'Context', 'context']
 
 
 def merge_dicts(d1: DictLike, d2: DictLike) -> DictLike:

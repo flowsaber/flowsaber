@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Union
 
 import flowsaber
-from flowsaber.core.utility.context import context
 
 
 class Target(object):
@@ -64,8 +63,7 @@ class File(Target):
 
     async def check_hash(self) -> bool:
         assert self.initialized
-        executor = context['__executor__']
-        new_hash = await executor.run(self.calculate_hash)
+        new_hash = await flowsaber.context.executor.run(self.calculate_hash)
         return new_hash == self.hash
 
     def initialize_hash(self):

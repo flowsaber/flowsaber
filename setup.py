@@ -1,15 +1,14 @@
-from setuptools import setup, find_packages
 import re
+
+from setuptools import setup, find_packages
 
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Operating System :: POSIX",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.6",
     "Programming Language :: Python :: 3.7",
-    "Programming Language :: Python :: 3.8",
-    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "License :: OSI Approved :: MIT",
     "Intended Audience :: Science/Research",
 ]
 
@@ -39,15 +38,6 @@ def get_install_requires():
     return requirements
 
 
-requirements = [
-    'makefun',
-    'graphviz',
-    'rich',
-    'cloudpickle',
-    'dask',
-    'distributed',
-]
-
 setup(
     name='flowsaber',
     author='bakezq',
@@ -63,22 +53,30 @@ setup(
     include_package_data=True,
     zip_safe=False,
     classifiers=classifiers,
-    install_requires=requirements,
+    install_requires=[
+        'makefun',
+        'cloudpickle',
+        'dask',
+        'distributed',
+        'psutil',
+        'aiohttp',
+        'pydantic'
+    ],
     extras_require={
-      'test': [
-          'pytest',
-          'pytest-cov',
-          'httpimport',
-          'autodocsumm',
-          'pysam',
-          'matplotlib'
-      ],
-      'server': [
-          "graphql-core",
-          'ariadne',
-          'pydantic',
-          'uvicorn',
+        'test': [
+            'pytest',
+            'pytest-cov',
+            'httpimport',
+            'autodocsumm',
+            'pysam',
+            'matplotlib'
+        ],
+        'server': [
+            "graphql-core",
+            'ariadne',
+            'uvicorn',
+            'starlette',
         ]
     },
-    python_requires='>=3.6, <4',
+    python_requires='>=3.7, <4',
 )
