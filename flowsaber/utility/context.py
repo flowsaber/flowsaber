@@ -5,6 +5,7 @@ import contextlib
 import contextvars
 from collections import UserDict
 from collections.abc import MutableMapping
+from copy import deepcopy
 from typing import Any, Iterable, Iterator, Union, cast
 
 DictLike = Union[dict, "DotBase"]
@@ -100,6 +101,8 @@ class DotBase(UserDict):
 
 
 class DotDict(DotBase):
+    """To make all levels of dict to be type(self), must use update to initialize
+    """
 
     def __init__(self, *args, **kwargs: Any):
         # a DotDict could have a task_hash that shadows `update`
@@ -151,14 +154,22 @@ class Context(DotBase):
 
     @property
     def data(self) -> MergingDotDict:
-        return self._data.get()
+        try:
+            return self._data.get()
+        except LookupError as e:
+            # TODO No idea what's happened, the error shows up only in dask mode
+            self._data = contextvars.ContextVar(f"data-{id(self)}")
+            self.data = MergingDotDict()
+            return self._data.get()
 
     @data.setter
     def data(self, dic: DictLike):
         # this is the main point
         if not isinstance(dic, MergingDotDict):
-            dic = MergingDotDict(dic)
-        self._data.set(dic)
+            self._data.set(MergingDotDict())
+            self.update(dic)
+        else:
+            self._data.set(dic)
 
     def __getstate__(self) -> None:
         """
@@ -185,8 +196,7 @@ class Context(DotBase):
         # Avoid creating new `Context` object, copy as `dict` instead.
         prev_context = self.to_dict()
         try:
-            new_context = MergingDotDict(prev_context)
-            new_context.update(*args, **kwargs)
+            new_context = merge_dicts(deepcopy(prev_context), dict(*args, **kwargs))
             self.data = new_context
             yield self
         finally:

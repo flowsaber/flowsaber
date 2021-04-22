@@ -81,23 +81,23 @@ class Success(Done):
     pass
 
 
-class Cached(Success):
-    """The result of the input is cached."""
-    pass
-
-
 class Failure(Done):
     """Means some Exception has been raised."""
     pass
 
 
-class Skip(Success):
-    """This state means this output should be skipped and directly send to the output channel"""
+class Cached(Success):
+    """The result of the _input is cached."""
     pass
 
 
-class Drop(Failure):
-    """This state means the output should be dropped and will not be passed to the output channel.
+class Skip(Success):
+    """This state means this _output should be skipped and directly send to the _output channel"""
+    pass
+
+
+class Drop(Done):
+    """This state means the _output should be dropped and will not be passed to the _output channel.
     Usually this is caused by settled skip on error option in task.config_dict"""
     pass
 

@@ -10,7 +10,7 @@ def test_snakemake_workflow():
     EnvTask.DEFAULT_CONFIG = {'task_workdir': '/tmp/Env', 'retry': 3}  # make the EnvTask cache at a global place
 
     @shell(conda="bwa=0.7.17 samtools=1.9")
-    def bwa(self, fa: File, fastq: File):  # input will be automatically converted if has type annotation
+    def bwa(self, fa: File, fastq: File):  # _input will be automatically converted if has type annotation
         """bwa mem -t {self.cpu} {fa} {fastq} | samtools view -Sb - > {fastq.stem}.bam"""
         return "*.bam"  # for ShellTask, str variable in the return will be treated as File and globed
 

@@ -109,7 +109,7 @@ config_dict.update({
     }
 })
 
-# set input
+# set _input
 num_ch = Channel.values(1, 2, 3, 4, 5, 6, 7, 8)
 # resolve dependencies
 workflow = my_flow(num=num_ch)

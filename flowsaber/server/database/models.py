@@ -1,4 +1,4 @@
-import enum
+import uuid
 from datetime import datetime
 from typing import List, Optional
 
@@ -7,14 +7,6 @@ from pydantic import BaseModel, Field
 
 class Model(BaseModel):
     pass
-
-
-class LogLevel(enum.IntEnum):
-    DEBUG = 1
-    INFO = 2
-    WARNING = 3
-    ERROR = 4
-    CRITICAL = 5
 
 
 class SuccessPayload(Model):
@@ -28,8 +20,10 @@ class IdsPaload(Model):
 
 class RunLog(Model):
     id: str
-    level: LogLevel
+    level: str
     time: datetime
+    task_id: str
+    flow_id: str
     taskrun_id: str
     flowrun_id: str
     agent_id: str
@@ -38,8 +32,8 @@ class RunLog(Model):
 
 
 class RunLogInput(Model):
-    id: str
-    level: LogLevel
+    id: str = Field(default_factory=uuid.uuid4)
+    level: str
     time: datetime = Field(default_factory=datetime.utcnow)
     task_id: str = None
     flow_id: str = None
@@ -55,7 +49,7 @@ class GetRunLogsInput(Model):
     taskrun_id: List[str] = Field(default_factory=list)
     flowrun_id: List[str] = Field(default_factory=list)
     agent_id: List[str] = Field(default_factory=list)
-    level: List[LogLevel] = Field(default_factory=list)
+    level: List[str] = Field(default_factory=list)
     before: datetime = None
     after: datetime = None
 

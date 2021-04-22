@@ -1,20 +1,32 @@
 """
 Expose all variables in core sub-package.
 """
-
-from flowsaber.core.utility.cache import *
-from flowsaber.core.utility.env import *
-from flowsaber.core.utility.state import *
-from flowsaber.core.utility.target import *
-from flowsaber.core.context import *
-from flowsaber.core.flow import *
-from flowsaber.core.task import *
-from flowsaber.core.utils import *
-from flowsaber.core.operators import *
-from flowsaber.core.engine.scheduler import *
-from flowsaber.core.engine.task_runner import *
+# noinspection PyUnresolvedReferences
+import flowsaber
+# noinspection PyUnresolvedReferences
+from flowsaber.core.channel import *
+# noinspection PyUnresolvedReferences
 from flowsaber.core.engine.flow_runner import *
-
+# noinspection PyUnresolvedReferences
+from flowsaber.core.engine.task_runner import *
+# noinspection PyUnresolvedReferences
+from flowsaber.core.flow import *
+# noinspection PyUnresolvedReferences
+from flowsaber.core.operators import *
+# noinspection PyUnresolvedReferences
+from flowsaber.core.task import *
+# noinspection PyUnresolvedReferences
+from flowsaber.core.task import *
+# noinspection PyUnresolvedReferences
+from flowsaber.core.utility.cache import *
+# noinspection PyUnresolvedReferences
+from flowsaber.core.utility.executor import *
+# noinspection PyUnresolvedReferences
+from flowsaber.core.utility.state import *
+# noinspection PyUnresolvedReferences
+from flowsaber.core.utility.target import *
+# noinspection PyUnresolvedReferences
+from flowsaber.core.utils import *
 
 task = class_deco(Task, 'run')
 command_task = command = class_deco(CommandTask, 'run')
@@ -33,7 +45,7 @@ def shell(command_fn: Callable = None, **kwargs) -> Union[Callable, Flow]:
                 compose_cmd = command(fn)
                 cmd_ch, cmd_output_ch = compose_cmd(param1, param2)
                 env = Env()
-                return shell_task(cmd=cmd_ch, output=cmd_output_chd)
+                return shell_task(cmd=cmd_ch, _output=cmd_output_chd)
         _flow = _Flow()
     """
     if command_fn is None:
@@ -51,8 +63,11 @@ def shell(command_fn: Callable = None, **kwargs) -> Union[Callable, Flow]:
         compose_cmd = command(command_fn)
         cmd_ch, cmd_output_ch = compose_cmd(*args, **kwargs)
 
-        if context.module or context.conda or context.image:
-            env = EnvTask(context.module, context.conda, context.image)()
+        module = self.context.get('module', None)
+        conda = self.context.get('conda', None)
+        image = self.context.get('image', None)
+        if module or conda or image:
+            env = EnvTask(module, conda, image)()
             output_ch = shell_task(cmd_ch, cmd_output_ch, env=env)
         else:
             output_ch = shell_task(cmd_ch, cmd_output_ch)

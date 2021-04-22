@@ -71,8 +71,8 @@ class Client(object, metaclass=ValidateMeta):
 
     async def register_agent(self, agent_input: AgentInput) -> int:
         query = """
-            mutation($input: agent_input!) {
-                register_agent(input: $input) {
+            mutation($_input: agent_input!) {
+                register_agent(_input: $_input) {
                     id
                 }
             }
@@ -83,8 +83,8 @@ class Client(object, metaclass=ValidateMeta):
 
     async def delete_agent(self, agent_id: int) -> dict:
         query = """
-            mutation($input: UUID!) {
-                delete_agent(agent_id: $input) {
+            mutation($_input: UUID!) {
+                delete_agent(agent_id: $_input) {
                     success
                     message
                 }
@@ -96,8 +96,8 @@ class Client(object, metaclass=ValidateMeta):
 
     async def create_flow(self, flow_input: FlowInput) -> int:
         query = """
-            mutation($input: FlowInput!) {
-                create_flow(input: $input) {
+            mutation($_input: FlowInput!) {
+                create_flow(_input: $_input) {
                     id
                 }
             }
@@ -108,8 +108,8 @@ class Client(object, metaclass=ValidateMeta):
 
     async def delete_flow(self, flow_id: int) -> dict:
         query = """
-            mutation($input: UUID!) {
-                delete_flow(flow_id: $input) {
+            mutation($_input: UUID!) {
+                delete_flow(flow_id: $_input) {
                     success
                     message
                 }
@@ -121,8 +121,8 @@ class Client(object, metaclass=ValidateMeta):
 
     async def update_flowrun(self, flowrun_input: FlowRunInput) -> int:
         query = """
-            mutation($input: FlowRunInput!) {
-                update_flowrun(input: $input) {
+            mutation($_input: FlowRunInput!) {
+                update_flowrun(_input: $_input) {
                     id
                 }    
             }
@@ -134,8 +134,8 @@ class Client(object, metaclass=ValidateMeta):
 
     async def update_taskrun(self, taskrun_input: TaskRunInput) -> int:
         query = """
-            mutation($input: TaskRunInput!) {
-                update_taskrun(input: $input) {
+            mutation($_input: TaskRunInput!) {
+                update_taskrun(_input: $_input) {
                     id
                 }    
             }
@@ -147,8 +147,8 @@ class Client(object, metaclass=ValidateMeta):
 
     async def write_run_logs(self, runlogs: Sequence[RunLogInput]) -> dict:
         query = """
-            mutation($input: [RunLogInput!]!) {
-                write_runlogs(logs: $input) {
+            mutation($_input: [RunLogInput!]!) {
+                write_runlogs(logs: $_input) {
                     success
                     message
                 }
@@ -161,8 +161,8 @@ class Client(object, metaclass=ValidateMeta):
 
     async def get_flow(self, flow_id: int) -> Flow:
         query = """
-            query($input: UUID!) {
-                get_flow(flow_id: $input) {
+            query($_input: UUID!) {
+                get_flow(flow_id: $_input) {
                     serialized_flow
                 }
             }
@@ -177,8 +177,8 @@ class Client(object, metaclass=ValidateMeta):
 
     async def get_flows(self, get_flows_input: GetFlowsInput) -> Sequence[int]:
         query = """
-            query($input: GetFlowsInput!) {
-                get_flows(input: $input) {
+            query($_input: GetFlowsInput!) {
+                get_flows(_input: $_input) {
                     id
                 }
             }
@@ -190,8 +190,8 @@ class Client(object, metaclass=ValidateMeta):
 
     async def get_flowrun(self, flowrun_id: int) -> dict:
         query = """
-            query($input: UUID!) {
-                get_flowrun(flowrun_id: $input) {
+            query($_input: UUID!) {
+                get_flowrun(flowrun_id: $_input) {
                     id
                     flow_id
                     state
@@ -206,8 +206,8 @@ class Client(object, metaclass=ValidateMeta):
 
     async def get_flowruns(self, get_flowruns_input: GetFlowRunsInput) -> Sequence[int]:
         query = """
-            query($input: GetFlowRunsInput!) {
-                get_flowruns(input: $input) {
+            query($_input: GetFlowRunsInput!) {
+                get_flowruns(_input: $_input) {
                     id
                 }
             }

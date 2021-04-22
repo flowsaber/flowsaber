@@ -1,15 +1,19 @@
+import functools
 import inspect
 from copy import deepcopy
 from enum import Enum
 from pathlib import Path
-from typing import Optional, Union, List
+from typing import Optional, Union, List, TYPE_CHECKING, Callable, Any
 
 from makefun import with_signature
 from pydantic import BaseModel
 
 import flowsaber
-from flowsaber.core.channel import Consumer, Channel, Output
+from flowsaber.core.channel import Consumer, Output
 from flowsaber.utility.context import Context, merge_dicts
+
+if TYPE_CHECKING:
+    import asyncio
 
 
 class ComponentMeta(type):
@@ -31,7 +35,7 @@ class ComponentMeta(type):
             [src_method_name, target_method_name]
             [src_method_name, target_method_name, is_call_boolean]: signature of int will change to Channel[int]
         """
-        EMPTY_ANNOTATION = inspect._empty
+        empty_annotation = getattr(inspect, '_empty')
         # 1. handle copying method signature
         func_pairs = class_dict.get(mcs.PAIR_ARG_NAME, [])
         for base_cls in bases:
@@ -51,11 +55,11 @@ class ComponentMeta(type):
                 if len(options) and options[0]:
                     src_sig_params = list(src_sigs.parameters.values())
                     for i, param in enumerate(src_sig_params):
-                        if param.annotation is not EMPTY_ANNOTATION:
+                        if param.annotation is not empty_annotation:
                             src_sig_params[i] = param.replace(annotation=f"Channel[{param.annotation}]")
                     src_sigs = inspect.Signature(src_sig_params, return_annotation=src_sigs.return_annotation)
                 # handle return annotation, if tgt already has return annotation, keep it
-                if tgt_sigs.return_annotation is not EMPTY_ANNOTATION:
+                if tgt_sigs.return_annotation is not empty_annotation:
                     src_sig_params = list(src_sigs.parameters.values())
                     src_sigs = inspect.Signature(src_sig_params, return_annotation=tgt_sigs.return_annotation)
 
@@ -91,6 +95,58 @@ class ComponentMeta(type):
         return class_name, bases, class_dict
 
 
+def enter_context(method: Callable[..., Any]) -> Any:
+    """A decorator runs the wrapped method within a new context composed of runner.context and kwargs' context.
+
+    Parameters
+    ----------
+    method
+
+    Returns
+    -------
+
+    """
+
+    @functools.wraps(method)
+    def _enter_context(self, *args, **kwargs) -> Any:
+        with flowsaber.context(self.context):
+            flowsaber.context.update(kwargs.get('context', {}))
+            return method(self, *args, **kwargs)
+
+    return _enter_context
+
+
+def aenter_context(method: Callable[..., Any]) -> Any:
+    """A decorator runs the wrapped method within a new context composed of runner.context and kwargs' context.
+
+    Parameters
+    ----------
+    method
+
+    Returns
+    -------
+
+    """
+
+    @functools.wraps(method)
+    async def _aenter_context(self, *args, **kwargs) -> Any:
+        with flowsaber.context(self.context):
+            flowsaber.context.update(kwargs.get('context', {}))
+            return await method(self, *args, **kwargs)
+
+    return _aenter_context
+
+
+class ComponentExecuteError(RuntimeError):
+    def __init__(self, *args, futures=None):
+        super().__init__(*args)
+        self.futures = futures or []
+
+
+class ComponentCallError(RuntimeError):
+    pass
+
+
 class Component(object, metaclass=ComponentMeta):
     """Base class of Flow and Task
     """
@@ -113,14 +169,30 @@ class Component(object, metaclass=ComponentMeta):
     }
 
     def __init__(self, **kwargs):
-        self.state: Component.State = self.CREATED
-        self.input_args: Optional[tuple] = None
-        self.input_kwargs: Optional[dict] = None
-        self.input: Optional[Consumer] = None
-        self.output: Optional[Output] = None
-        self.context: Optional[dict] = None
-        self._context: Optional[dict] = None
         self.rest_kwargs = kwargs
+        self.state: Component.State = self.CREATED
+        self.context: Optional[dict] = None
+
+        self._input_args: Optional[tuple] = None
+        self._input_kwargs: Optional[dict] = None
+        self._input: Optional[Consumer] = None
+        self._output: Optional[Output] = None
+
+    @property
+    def input(self) -> Optional[Consumer]:
+        return self._input
+
+    @input.setter
+    def input(self, value: Consumer):
+        self._input = value
+
+    @property
+    def output(self) -> Optional[Output]:
+        return self._output
+
+    @output.setter
+    def output(self, value: Output):
+        self._output = value
 
     @property
     def config_name(self) -> str:
@@ -162,7 +234,7 @@ class Component(object, metaclass=ComponentMeta):
             up_flow_names += '|'
         return f"{up_flow_names}{type(self).__name__}[{id(self)}]"
 
-    def __call__(self, *args, **kwargs) -> Union[List[Channel], Channel, None]:
+    def __call__(self, *args, **kwargs) -> Union[Output, 'Component']:
         """ This is where the flow/task build dependency graph
 
         Parameters
@@ -174,14 +246,25 @@ class Component(object, metaclass=ComponentMeta):
         -------
 
         """
-        raise NotImplementedError
+        try:
+            from copy import copy
+            new = copy(self)
+            new.call_initialize(*args, **kwargs)
+            build_output = new.call_build(*args, **kwargs)
+            return build_output
+        except ComponentCallError as e:
+            raise e
+        except Exception as e:
+            raise ComponentCallError from e
 
     def __copy__(self):
-        from copy import deepcopy
-        new = deepcopy(self)
-        new.call_initialized = False
-        for attr in ['input_args', 'input_kwargs', 'input', 'output']:
-            setattr(new, attr, None)
+        cls = type(self)
+        new = cls.__new__(cls)
+        for k, v in self.__dict__.items():
+            if k.startswith('_'):
+                new.__dict__[k] = None
+            else:
+                new.__dict__[k] = deepcopy(v)
         return new
 
     def call_initialize(self, *args, **kwargs):
@@ -196,11 +279,11 @@ class Component(object, metaclass=ComponentMeta):
 
         """
         # copy a new one and initialize the context
-        from copy import copy
-        new = copy(self)
-        new.state = self.INITIALIZED
-        new.initialize_context()
-        return new
+        self.state = self.INITIALIZED
+        self.initialize_context()
+
+    def call_build(self, *args, **kwargs) -> Union[Output, 'Component']:
+        raise NotImplementedError
 
     def initialize_context(self):
         """Called by call_initialize, merge and update self.config dict of self.context from different sources.
@@ -210,20 +293,20 @@ class Component(object, metaclass=ComponentMeta):
         config_name = self.config_name
         pre_workdir = flowsaber.context.get(config_name, {}).get('workdir', '')
         # update config in four steps
-        global_default_config = getattr(flowsaber.context, f'default_{config_name}', {})
         default_config = self.default_config
+        global_default_config = getattr(flowsaber.context, f'default_{config_name}', {})
         kwargs_config = self.rest_kwargs
         tmp_config = flowsaber.context.get(config_name, {})
         # initialize flow/task's context
         with flowsaber.context() as context:
-            # 1: use global default config_dict
-            flowsaber.context.update({config_name: global_default_config})
             # 1: use class default config_dict
-            flowsaber.context.update({config_name: default_config})
-            # 2. use kwargs settled config_dict
-            flowsaber.context.update({config_name: kwargs_config})
-            # 3. use user temporally settled config_dict
-            flowsaber.context.update({config_name: tmp_config})
+            context.update({config_name: default_config})
+            # 2: use global default config_dict
+            context.update({config_name: global_default_config})
+            # 3. use kwargs settled config_dict
+            context.update({config_name: kwargs_config})
+            # 4. use user temporally settled config_dict
+            context.update({config_name: tmp_config})
             context_dict = context.to_dict()
         self.context = merge_dicts(self.context, context_dict)
 
@@ -249,10 +332,11 @@ class Component(object, metaclass=ComponentMeta):
         self.config_dict['workdir'] = workdir
 
     def initialize_input(self, *args, **kwargs):
-        self.input_args = args
-        self.input_kwargs = kwargs
+        self._input_args = args
+        self._input_kwargs = kwargs
 
     # TODO should we use context manager
+    @aenter_context
     async def start(self, **kwargs):
         """Start running the Flow/Task in the context of self.context, before setting the context,
         self.context will be merged/updated from kwargs.get('context', {})
@@ -264,16 +348,19 @@ class Component(object, metaclass=ComponentMeta):
         -------
 
         """
-        back_context = deepcopy(self.context)
         # update context
+        back_context = deepcopy(self.context)
         self.context = merge_dicts(self.context, kwargs.get('context', {}))
-        with flowsaber.context(self.context):
-            try:
-                res = await self.start_execute(**kwargs)
-                return res
-            finally:
-                await self.end_execute()
-                self.context = back_context
+        try:
+            res = await self.start_execute(**kwargs)
+            return res
+        except ComponentExecuteError as e:
+            raise e
+        except Exception as e:
+            raise ComponentExecuteError from e
+        finally:
+            await self.end_execute()
+            self.context = back_context
 
     async def start_execute(self, **kwargs):
         if self.state == self.CREATED:
@@ -289,6 +376,12 @@ class Component(object, metaclass=ComponentMeta):
 
     def clean(self):
         pass
+
+    def check_future_exceptions(self, futures: List['asyncio.Future']):
+        # wrap into a ComponentExecuteError with record of all futures
+        first_exception = next((fut.exception() for fut in futures if fut.exception() is not None), None)
+        if first_exception:
+            raise ComponentExecuteError(futures=futures) from first_exception
 
     def serialize(self) -> BaseModel:
         raise NotImplementedError

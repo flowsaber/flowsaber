@@ -5,24 +5,27 @@ import subprocess
 from collections import abc
 from inspect import Parameter, BoundArguments
 from pathlib import Path
-from typing import Callable, Sequence, Optional
+from typing import Callable, Sequence, Optional, TYPE_CHECKING
 
 from dask.base import tokenize
 
 import flowsaber
-from flowsaber.core.base import Component
+from flowsaber.core.base import Component, aenter_context
 from flowsaber.core.channel import Channel, Consumer, ConstantChannel, Output
 from flowsaber.core.engine.task_runner import TaskRunner
 from flowsaber.core.utility.env import Env, EnvCreator
-from flowsaber.core.utility.state import State, Scheduled, Done, Success
+from flowsaber.core.utility.state import State, Done, Success, Failure
 from flowsaber.core.utility.target import File, Stdout, Stdin, END, Data
 from flowsaber.server.database.models import EdgeInput, TaskInput
 from flowsaber.utility.utils import change_cwd, capture_local
 
+if TYPE_CHECKING:
+    from flowsaber.core.engine.scheduler import TaskScheduler
+
 
 class BaseTask(Component):
     """Base class of all Tasks, internally, BaseTask iteratively fetch items emitted by Channel inputs asynchronously.
-    And then push the processed result of each item into the output channels. All items are handled in sequence.
+    And then push the processed result of each item into the _output channels. All items are handled in sequence.
     """
     default_config = {
         'workdir': 'work'
@@ -36,22 +39,6 @@ class BaseTask(Component):
     def config_name(self) -> str:
         return "task_config"
 
-    def __call__(self, *args, **kwargs) -> Output:
-        # update context and store to task.context
-        task = self.call_initialize(*args, **kwargs)
-        # enter task context
-        with flowsaber.context(task.context):
-            task.initialize_input(*args, **kwargs)
-            task.initialize_output()
-        # register to top flow for serializing
-        top_flow = flowsaber.context.top_flow
-        top_flow.tasks.append(task)
-        # register to up flow for execution
-        up_flow = flowsaber.context.up_flow
-        up_flow.components.append(task)
-
-        return task.output
-
     def initialize_context(self):
         """Initialize some attributes of self.config into self.context
         """
@@ -64,8 +51,22 @@ class BaseTask(Component):
             'task_labels': self.config_dict['labels'],
         })
 
+    def call_build(self, *args, **kwargs) -> Output:
+        with flowsaber.context(self.context):
+            self.initialize_input(*args, **kwargs)
+            self.initialize_output()
+        # enter task context
+        # register to top flow for serializing
+        top_flow = flowsaber.context.top_flow
+        top_flow.tasks.append(self)
+        # register to up flow for execution
+        up_flow = flowsaber.context.up_flow
+        up_flow.components.append(self)
+
+        return self.output
+
     def initialize_input(self, *args, **kwargs):
-        """Wrap all input channels into a consumer object for simultaneous data ferching,
+        """Wrap all _input channels into a consumer object for simultaneous data ferching,
 
         Parameters
         ----------
@@ -81,14 +82,14 @@ class BaseTask(Component):
             flowsaber.context.top_flow.edges.append(edge)
 
     def initialize_output(self):
-        """Create output channels according to self.num_output
+        """Create _output channels according to self.num_output
         """
         self.output = tuple(Channel(task=self) for i in range(self.num_out))
         if self.num_out == 1:
             self.output = self.output[0]
 
     async def start_execute(self, **kwargs):
-        await super(self).start_execute(**kwargs)
+        await super().start_execute(**kwargs)
         res = await self.handle_consumer(self.input, **kwargs)
         # always sends a END to _output channel
         end_signal = END if self.num_out == 1 else [END] * self.num_out
@@ -109,7 +110,7 @@ class BaseTask(Component):
         await self.handle_input(END)
 
     async def handle_input(self, data, *args, **kwargs):
-        """Do nothing, send the input data directly to output channel
+        """Do nothing, send the _input data directly to _output channel
         Parameters
         ----------
         data
@@ -120,22 +121,22 @@ class BaseTask(Component):
             await self.enqueue_res(data)
 
     async def enqueue_res(self, data, index=None):
-        """Enqueue processed data into output channels.
+        """Enqueue processed data into _output channels.
         Parameters
         ----------
         data
         index
         """
-        # enqueue data into the output channel
+        # enqueue data into the _output channel
         if self.num_out != 1 and isinstance(self.output, Sequence):
             try:
                 if index is None:
                     for ch, _res in zip(self.output, data):
                         await ch.put(_res)
                 else:
-                    self.output[index].put(data)
+                    await self.output[index].put(data)
             except TypeError as e:
-                raise RuntimeError(f"The output: {data} can't be split into {self.num_out} channels."
+                raise RuntimeError(f"The _output: {data} can't be split into {self.num_out} channels."
                                    f"The error is {e}")
         else:
             await self.output.put(data)
@@ -221,7 +222,7 @@ class RunTask(BaseTask):
         'time': 1,
         'io': 1,
         'cache_type': 'local',
-        'executor_type': 'local',
+        'executor_type': 'dask',
     }
 
     def initialize_context(self):
@@ -245,11 +246,11 @@ class RunTask(BaseTask):
         -------
 
         """
-        scheduler: 'flowsaber.core.engine.scheduler.TaskScheduler' = kwargs.get("scheduler")
-        # pop it, do not pass into task runner
+        # get the custom scheduler and pop it, do not pass into task runner
+        scheduler: 'TaskScheduler' = kwargs.get("scheduler")
         kwargs.pop('scheduler')
-        futures = []
 
+        futures = []
         async for data in consumer:
             run_data = (data,) if self.input.single else data
             # split run data and dependent data
@@ -261,8 +262,16 @@ class RunTask(BaseTask):
             else:
                 fut = asyncio.create_task(job_coro)
             futures.append(fut)
-        fut = asyncio.gather(*futures)
-        return fut
+        # wait for the first exception and cancel all functions
+        done, pending = await asyncio.wait(futures, return_when=asyncio.FIRST_EXCEPTION)
+        for fut in pending:
+            # TODO wait for truely cancelled
+            fut.cancel()
+
+        res_futures = list(done) + list(pending)
+        self.check_future_exceptions(res_futures)
+
+        return res_futures
 
     def create_run_data(self, data: Data) -> BoundArguments:
         """Wrap consumer fetched data tuple into a BoundArgument paired with self.run's signature.
@@ -275,16 +284,17 @@ class RunTask(BaseTask):
 
         """
         # 1. build BoundArgument
-        len_args = len(self.input_args)
+        len_args = len(self._input_args)
         args = data[:len_args]
         kwargs = {
-            k: data[len_args + i] for i, k in enumerate(self.input_kwargs.keys())
+            k: data[len_args + i] for i, k in enumerate(self._input_kwargs.keys())
         }
 
         run_data = inspect.signature(self.run).bind(*args, **kwargs)
         run_data.apply_defaults()
         return run_data
 
+    @aenter_context
     async def handle_run_data(self, data: BoundArguments, **kwargs):
         """This coroutine will be executed in parallel, thus need to re-enter self.context.
         Parameters
@@ -292,13 +302,12 @@ class RunTask(BaseTask):
         data
         kwargs
         """
-        with flowsaber.context(self.context):
-            data: BoundArguments = await self.check_run_data(data, **kwargs)
-            res = await self.call_run(data, **kwargs)
-            await self.handle_res(res)
+        data: BoundArguments = await self.check_run_data(data, **kwargs)
+        res = await self.call_run(data, **kwargs)
+        await self.handle_res(res)
 
     async def check_run_data(self, data: BoundArguments, **kwargs):
-        """Match types of input datas into self.run's annotations by type conversion. Check file integrity.
+        """Match types of _input datas into self.run's annotations by type conversion. Check file integrity.
         Parameters
         ----------
         data
@@ -319,8 +328,8 @@ class RunTask(BaseTask):
                     try:
                         arguments[arg] = ano_type(value)
                     except Exception as e:
-                        raise TypeError(f"The input argument `{arg}` has annotation `{ano_type}`, but "
-                                        f"the input value `{value}` can not be converted.")
+                        raise TypeError(f"The _input argument `{arg}` has annotation `{ano_type}`, but "
+                                        f"the _input value `{value}` can not be converted.")
                 # 2. if has File annotation, make sure it exists
                 if ano_type is File and not arguments[arg].is_file():
                     raise ValueError(f"The argument {arg} has a File annotation but "
@@ -346,7 +355,7 @@ class RunTask(BaseTask):
         await self.enqueue_res(res)
 
     def run(self, *args, **kwargs):
-        """The method users need to implement for processing the data emited by input channels.
+        """The method users need to implement for processing the data emited by _input channels.
         Parameters
         ----------
         args
@@ -358,7 +367,7 @@ class RunTask(BaseTask):
 class Task(RunTask):
     """Task is subclass of RunTask:
     1. Each Task will have a unique task_key/task_workdir
-    2. Each input's run will have a unique run_key/task_workdir.
+    2. Each _input's run will have a unique run_key/task_workdir.
     3. Task's run will be executed in executor and handled by a task runner.
     4. Within the task runner, task will pass through a state machine, callbacks can be registered to each state changes.
     """
@@ -426,26 +435,30 @@ class Task(RunTask):
 
         """
         from copy import copy
-        run_key = flowsaber.context.cache.hash(data, **self.input_hash_source)
-        run_workdir = self.run_workdir
+        # get input hash, we do not count for parameter names, we only care about orders
+        run_key = flowsaber.context.cache.hash(
+            data=data.arguments.values(),
+            info=self.input_hash_source
+        )
+
+        # create a fresh new task
         task = copy(self)
+        task.context['run_key'] = run_key  # task.run_workdir need this
         context_update = {
             'run_key': run_key,
-            'run_workdir': run_workdir
+            'run_workdir': task.run_workdir
         }
+        # safe to update, flowsaber.context belongs to this run since we call handle_run_data
         task.context.update(context_update)
         flowsaber.context.update(context_update)
-        state = Scheduled()
-        # 1. set _running info and lock key
-        # must lock input key to avoid collision in cache and files in _running path
+        # must lock _input key to avoid collision in cache and files in _running path
         async with flowsaber.context.run_lock:
             task_runner = TaskRunner(task=task, inputs=data)
-            state = await flowsaber.context.executor.run(task_runner.run, state, **kwargs)
-        # 3. unset _running info
+            state = await flowsaber.context.executor.run(task_runner.run, **kwargs)
         return state
 
     async def handle_res(self, res):
-        """Only push Success state result into output channels. Some state may be skipped in case of
+        """Only push Success state result into _output channels. Some state may be skipped in case of
         Exceptions occurred within the task runner and thus return a Drop(Failure) state as a signal.
         Parameters
         ----------
@@ -454,9 +467,12 @@ class Task(RunTask):
         assert isinstance(res, Done)
         if isinstance(res, Success):
             await self.enqueue_res(res.result)
+        elif isinstance(res, Failure):
+            raise res.result
+        # for Drop, just ignore it
 
     def need_skip(self, bound_args: BoundArguments) -> bool:
-        """ Check if the input can be directly passed into output channels by predicate of user specified self.skip_fn
+        """ Check if the _input can be directly passed into _output channels by predicate of user specified self.skip_fn
         Parameters
         ----------
         bound_args
@@ -472,7 +488,7 @@ class Task(RunTask):
 
     @property
     def input_hash_source(self) -> dict:
-        """Other infos needs to be passed into cache.hash function for fecthing a unique input/run key.
+        """Other infos needs to be passed into cache.hash function for fecthing a unique _input/run key.
         Returns
         -------
 
@@ -586,7 +602,7 @@ class ShellTask(Task):
 class CommandTask(RunTask):
     """Task used for composing bash command based on outputs data of channels. Users need to implement the
     command method.
-    Note that the output Channel of this task simply emits composed bash command in str type, and this
+    Note that the _output Channel of this task simply emits composed bash command in str type, and this
     bash command needs to be actually executed by ShellTask.
     """
     FUNC_PAIRS = [('command', 'run')]
@@ -599,7 +615,7 @@ class CommandTask(RunTask):
 
         The returned value of this method represents the expected outputs after executing the
         composed bash command in shell:
-            1. None represents the output is stdout.
+            1. None represents the _output is stdout.
             2. str variables represents glob syntax for files in the working directory.
 
         To tell flowsaber what's the composed bash command, users has two options:
@@ -622,7 +638,7 @@ class CommandTask(RunTask):
                     CMD = f"echo {a}\n"
                           f"echo {b}\n"
                           f"cat {file}"
-                    # here implicitly returned a None, represents the output of cmd is stdout
+                    # here implicitly returned a None, represents the _output of cmd is stdout
 
         Parameters
         ----------

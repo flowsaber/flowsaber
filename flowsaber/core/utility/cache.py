@@ -1,6 +1,7 @@
 import shutil
 from inspect import BoundArguments
 from pathlib import Path
+from typing import Any
 
 from dask.base import tokenize
 
@@ -37,10 +38,6 @@ class Cache(object):
     implementing `hash` method. Hash of inputs can be further used to write/read related data.
     """
 
-    def __init__(self, task=None, cache: bool = True):
-        self.task = task
-        self.enable = cache
-
     def hash(self, input_args: BoundArguments, **kwargs):
         raise NotImplementedError
 
@@ -73,19 +70,11 @@ class LocalCache(Cache):
     def __deepcopy__(self, memodict={}):
         return self
 
-    def hash(self, input_args: BoundArguments, **kwargs):
-        flowsaber.context.logger.debug("hash input", input_args, kwargs)
-        # we do not count for parameter names, we only care about orders
-        if not self.enable:
-            return ""
-        hash_dict = {
-            'data': tuple(input_args.arguments.values()),
-            **kwargs,
-        }
-        return tokenize(hash_dict)
+    def hash(self, **kwargs) -> str:
+        return tokenize(kwargs)
 
-    def remove(self, run_key):
-        path = Path(run_key)
+    def remove(self, key):
+        path = Path(key)
         if path.exists():
             for f in path.glob('*'):
                 if not f.name.startswith('._'):
@@ -94,35 +83,29 @@ class LocalCache(Cache):
                     else:
                         shutil.rmtree(f, ignore_errors=True)
 
-            return self.cache.pop(run_key, None)
+            return self.cache.pop(key, None)
 
-    def get(self, run_key: str, default=NO_CACHE) -> object:
-        if not self.enable:
-            self.remove(run_key)
-            flowsaber.context.logger.debug(f"Clean cache: {run_key} since cache set to False")
-            return default
+    def get(self, key: str, default=NO_CACHE) -> object:
         # case 1, in memory cache
-        if run_key in self.cache:
-            flowsaber.context.logger.debug(f"{self.task} read cache:{run_key} succeed from memory.")
+        if key in self.cache:
+            flowsaber.context.logger.debug(f"Read cache:{key} succeed from memory.")
         else:
             # case 2, in disk cache
-            value_path = Path(run_key, self.VALUE_FILE)
+            value_path = Path(key, self.VALUE_FILE)
             try:
                 with value_path.open('rb') as f:
                     value = self.serializer.load(f)
             except Exception as e:
-                self.remove(run_key)
-                flowsaber.context.logger.debug(f"{self.task} read cache:{run_key} failed from disk with error: {e}")
+                self.remove(key)
+                flowsaber.context.logger.debug(f"Read cache:{key} failed from disk with error: {e}")
                 return default
-            self.cache[run_key] = value
-            flowsaber.context.logger.debug(f"{self.task} read cache:{run_key} succeed from disk.")
-        return self.cache[run_key]
+            self.cache[key] = value
+            flowsaber.context.logger.debug(f"Read cache:{key} succeed from disk.")
+        return self.cache[key]
 
-    def put(self, run_key: str, output):
-        if not self.enable:
-            return
-        flowsaber.context.logger.debug(f"set cache:{run_key} with: {output}")
-        self.cache[run_key] = output
+    def put(self, key: str, data: Any):
+        flowsaber.context.logger.debug(f"set cache:{key} with: {data}")
+        self.cache[key] = data
 
     def persist(self):
         """

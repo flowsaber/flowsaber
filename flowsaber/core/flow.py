@@ -43,33 +43,13 @@ class Flow(Component):
     def __exit__(self, exc_type, exc_val, exc_tb):
         flowsaber.context.flow_stack.pop(-1)
 
-    def __call__(self, *args, **kwargs) -> Union[Output, 'Flow']:
-        # update context and store to flow.context
-        flow = self.call_initialize()
-        # enter flow context
-        with flow, flowsaber.context(flow.context):
-            # TODO in case of None return, make a channel yield a end when all components run done
-            flow.output = flow.run(*args, **kwargs) or Channel.end()
-
-        # in order to check up_flow, can not run within with statement
-        # now the dependency has been built
-        if flowsaber.context.up_flow:
-            flowsaber.context.up_flow.components.append(flow)
-            return flow.output
-        else:
-            if check_cycle(flow.task_id_edges):
-                raise ValueError("The dependency graph has cycle.")
-            # in the top level flow, just return the flow itself
-            return flow
-
     def call_initialize(self, *args, **kwargs):
-        new: "Flow" = super().call_initialize(*args, **kwargs)
+        super().call_initialize(*args, **kwargs)
         # only the up-most flow record infos
         if not flowsaber.context.up_flow:
-            new.components = []
-            new.tasks = []
-            new.edges = []
-        return new
+            self.components = []
+            self.tasks = []
+            self.edges = []
 
     def initialize_context(self):
         """Expose some attributes of self.config into self.context.
@@ -91,6 +71,23 @@ class Flow(Component):
                 'top_flow_config': self.config_dict
             })
 
+    def call_build(self, *args, **kwargs) -> Union[Output, 'Flow']:
+        # enter flow context
+        with self, flowsaber.context(self.context):
+            # TODO in case of None return, make a channel yield a end when all components run done
+            self.output = self.run(*args, **kwargs) or Channel.end()
+
+        # in order to check up_flow, can not run within with statement
+        # now the dependency has been built
+        if flowsaber.context.up_flow:
+            flowsaber.context.up_flow.components.append(self)
+            return self.output
+        else:
+            if check_cycle(self.task_id_edges):
+                raise ValueError("The dependency graph has cycle.")
+            # in the top level flow, just return the flow itself
+            return self
+
     def run(self, *args, **kwargs) -> Channel:
         raise NotImplementedError("Not implemented. Users are supposed to compose flow/task in this method.")
 
@@ -109,7 +106,7 @@ class Flow(Component):
         async def execute_child_components():
             futures = []
             for component in self.components:
-                future = asyncio.ensure_future(component.start(**kwargs))
+                future = asyncio.create_task(component.start(**kwargs))
                 futures.append(future)
 
             # used fo debugging
@@ -118,15 +115,24 @@ class Flow(Component):
                 loop.flowsaber_futures = []
             loop.flowsaber_futures += list(zip(self.components, futures))
 
-            fut = await asyncio.gather(*futures)
-            return fut
+            done, pending = await asyncio.wait(futures, return_when=asyncio.FIRST_EXCEPTION)
+            # TODO wait for truely cancelled
+            for fut in pending:
+                fut.cancel()
+
+            res_futures = list(done) + list(pending)
+            self.check_future_exceptions(res_futures)
+
+            return res_futures
 
         # for the top most flow, initialize executors
         if self.config_dict['id'] == self.context['flow_id']:
             async with flowsaber.context:
-                return await execute_child_components()
+                res = await execute_child_components()
         else:
-            return await execute_child_components()
+            res = await execute_child_components()
+
+        return res
 
     @property
     def task_id_edges(self) -> List[Tuple[str, str]]:

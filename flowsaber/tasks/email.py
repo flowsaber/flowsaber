@@ -77,7 +77,7 @@ class EmailTask(Task):
         Args:
             Args will not be used.
         Returns:
-            - None, Means the output channel is a END channel
+            - None, Means the _output channel is a END channel
         """
 
         username = self.username

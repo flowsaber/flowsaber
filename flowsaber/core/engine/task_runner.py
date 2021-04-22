@@ -3,9 +3,11 @@ import time
 from inspect import BoundArguments
 
 import flowsaber
-from flowsaber.core.engine.runner import Runner, catch_to_failure, call_state_change_handlers, run_within_context
+from flowsaber.core.base import enter_context
+from flowsaber.core.engine.runner import Runner, catch_to_failure, call_state_change_handlers
 from flowsaber.core.utility.state import (
-    State, Scheduled, Pending, Running, Retrying, Failure, Cached, Success, Skip, Drop
+    State, Scheduled, Pending, Running, Retrying,
+    Failure, Cached, Success, Skip, Drop
 )
 from flowsaber.core.utility.target import File
 from flowsaber.server.database import TaskRunInput
@@ -40,10 +42,10 @@ class TaskRunner(Runner):
 
         return taskrun_input
 
-    @run_within_context
+    @enter_context
     @call_state_change_handlers
     @catch_to_failure
-    def run(self, state: State = None, **kwargs) -> State:
+    def start_run(self, state: State = None, **kwargs) -> State:
         state = self.initialize_run(state, **kwargs)
         state = self.set_state(state, Pending)
         state = self.set_state(state, Running)
@@ -52,19 +54,21 @@ class TaskRunner(Runner):
         if isinstance(state, Skip):
             return state
         retry = self.task.config_dict.get("retry", 1)
+        cache_type = self.context.get('cache_type')
         while True:
             # 2. use cached result if needed
-            state = self.read_cache(state)
-            if isinstance(state, Cached):
-                return state
+            if cache_type:
+                state = self.read_cache(state)
+                if isinstance(state, Cached):
+                    return state
             # 3. run the task
             state = self.run_task(state, **kwargs)
             if isinstance(state, Failure):
                 if retry > 0:
-                    flowsaber.context.logger.info(f"Run task: {self.task} failed, try to retry."
-                                                  f"with {retry - 1} retrying left.")
+                    flowsaber.context.logger.warning(f"Run task: {self.task} failed, try to retry "
+                                                     f"with {retry - 1} retrying left.")
                     state = self.set_state(state, Retrying)
-                    time.sleep(self.task.config_dict.get('retry_wait_time', 3))
+                    time.sleep(self.task.config_dict.get('retry_wait_time', 2))
                     state = self.set_state(state, Running)
                     retry -= 1
                     continue
@@ -73,7 +77,8 @@ class TaskRunner(Runner):
             break
         # 4. write to cache if needed
         if isinstance(state, Success):
-            state = self.write_cache(state)
+            if cache_type:
+                state = self.write_cache(state)
 
         return state
 
@@ -97,7 +102,7 @@ class TaskRunner(Runner):
     def read_cache(self, state: State) -> State:
         run_workdir = self.context['run_workdir']
         no_cache = object()
-        res = self.task.cache.get(run_workdir, no_cache)
+        res = flowsaber.context.cache.get(run_workdir, no_cache)
         use_cache = res is not no_cache
         if use_cache:
             cache_valid = True
@@ -108,7 +113,7 @@ class TaskRunner(Runner):
                     if check_hash != f.hash:
                         msg = f"Task {self.task.task_name} read cache failed from disk " \
                               f"because file content task_hash changed."
-                        flowsaber.context.logger.debug(msg)
+                        flowsaber.context.logger.warning(msg)
                         cache_valid = False
                         break
             if cache_valid:
@@ -125,14 +130,18 @@ class TaskRunner(Runner):
             res = self.run_task_timeout(**self.inputs.arguments)
         state = Success.copy(state)
         state.result = res
-        state.context['resource_usage'] = monitor.usage
+        run_info = {
+            'resource_usage': monitor.usage
+        }
+        self.context.update(run_info)
+        flowsaber.context.update(run_info)
 
         return state
 
     @call_state_change_handlers
     def write_cache(self, state):
         assert isinstance(state, Success)
-        self.read_cache.put(self.context['run_key'], state.result)
+        flowsaber.context.cache.put(self.context['run_workdir'], state.result)
         return state
 
     def run_task_timeout(self, **kwargs):

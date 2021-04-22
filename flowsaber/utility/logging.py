@@ -1,150 +1,101 @@
 """
 Modified from prefect
 """
-import atexit
-import inspect
 import logging
 import sys
-import threading
-from queue import Queue
-from typing import Optional
+from datetime import datetime
+from logging import LogRecord
+from logging.handlers import MemoryHandler, QueueListener
+from queue import SimpleQueue
+from typing import List, Tuple
 
-import flowsaber
-from flowsaber.core.context import FlowSaberContext
-from flowsaber.core.utils import extend_method
+from flowsaber.server.database import RunLogInput
 
 
-@extend_method(FlowSaberContext)
-class _(object):
-    """Prevent circular import
-    """
+class BatchQueueHandler(MemoryHandler):
+    def __init__(self, queue=None, **kwargs):
+        super().__init__(**kwargs)
+        self.queue = queue or SimpleQueue()
 
-    @property
-    def logger(self) -> logging.Logger:
-        """Get a child logger of `flowsaber` logger with name of:
-        `callee.__name__.agent_id.flow_id.flowrun_id.task_id.taskrun_id`
-
-        Returns
-        -------
-
+    def flush(self):
         """
-        # find callee
-        callee_frame = inspect.currentframe().f_back
-        callee_module_name = callee_frame.f_globals['__name__']
-        # find running info
-        run_infos = [self.get(attr, 'NULL') for attr in
-                     ['agent_id', 'flow_id', 'flowrun_id', 'task_id', 'taskrun_id']]
-        run_name = '.'.join(run_infos)
+        For a MemoryHandler, flushing means just sending the buffered
+        records to the target, if there is one. Override if you want
+        different behaviour.
 
-        logger_name = f"{callee_module_name}.{run_name}".rstrip('.')
+        The record buffer is also cleared by this operation.
+        """
+        self.acquire()
+        try:
+            batch_records = [
+                self.prepare(record) for record in self.buffer
+            ]
+            if batch_records:
+                self.queue.put_nowait(batch_records)
+            self.buffer = []
+        finally:
+            self.release()
 
-        return get_logger(logger_name)
-
-
-def inject_context(factory):
-    """Inject context attrs into the log record.
-    Parameters
-    ----------
-    factory
-
-    Returns
-    -------
-
-    """
-
-    def inner(*args, **kwargs):
-        record = factory(*args, **kwargs)
-        context_attrs = flowsaber.context.logging.context_attrs or flowsaber.context.keys()
-        for attr in context_attrs:
-            setattr(record, attr, flowsaber.context.get(attr))
-
+    def prepare(self, record: LogRecord) -> LogRecord:
+        msg = self.format(record)
+        record.message = record.msg = msg
         return record
 
-    return inner
 
+class LogManager(QueueListener):
+    def prepare(self, records: List[LogRecord]) -> List[RunLogInput]:
+        run_logs = []
+        for record in records:
+            record_dict = {
+                'level': record.levelname,
+                'time': datetime.fromtimestamp(record.created),
+                'task_id': getattr(record, 'task_id', None),
+                'flow_id': getattr(record, 'flow_id', None),
+                'taskrun_id': getattr(record, 'taskrun_id', None),
+                'flowrun_id': getattr(record, 'flowrun_id', None),
+                'agent_id': getattr(record, 'agent_id', None),
+                'message': record.message
+            }
+            run_log = RunLogInput(**record_dict)
+            run_logs.append(run_log)
 
-log_record_factory = logging.getLogRecordFactory()
-log_record_factory = inject_context(log_record_factory)
+        return run_logs
 
-
-class ThreadLogManager(logging.Handler):
-    """A logger handler can be registered with log handlers, logs in batch will be passed to registered handlers and
-    processed in another thread.
-    """
-
-    def __init__(self, buffer_size=1, max_buffer_size=2000, **kwargs):
-        super().__init__(**kwargs)
-        self.log_queue = Queue()
-        self.buffer_size = buffer_size
-        self.max_buffer_size = max_buffer_size
-        self.buffer = []
-        self.record_handlers = []
-        self.thread: Optional[threading.Thread] = None
-        self.stopped = threading.Event()
-
-    def add_handlers(self, handler):
-        self.record_handlers.append(handler)
-
-    def emit(self, record: logging.LogRecord) -> None:
-        self.log_queue.put_nowait(record)
-        if self.log_queue.qsize() > self.max_buffer_size:
-            self.log_queue.get_nowait()
-
-    def start(self):
-        def on_shutdown():
-            for _ in range(3):
-                try:
-                    self.stop()
-                    return
-                except SystemExit:
-                    pass
-
-        if self.thread is None:
-            self.thread = threading.Thread(target=self.loop, daemon=True)
-            self.thread.start()
-            atexit.register(on_shutdown)
+    def start(self) -> None:
+        if self._thread is None:
+            super().start()
 
     def stop(self):
-        if self.thread is not None:
-            self.stopped.set()
-            self.thread.join()
-            self.call_handlers()
-            self.thread = None
-            self.stopped.clear()
+        if self._thread is not None:
+            super().stop()
 
-    def loop(self):
-        while not self.stopped.wait(3):
-            while len(self.buffer) < self.buffer_size:
-                self.buffer.append(self.log_queue.get())
-            self.call_handlers()
-            self.buffer.clear()
-
-    def call_handlers(self):
-        for handler in self.record_handlers:
-            handler(self.buffer)
+    def add_handler(self, handler: logging.Handler):
+        if isinstance(self.handlers, tuple):
+            self.handlers = list(self.handlers)
+        self.handlers.append(handler)
 
 
-def create_logger(name: str) -> logging.Logger:
+def create_logger(name: str, log_record_factory, logging_options) -> Tuple[logging.Logger, LogManager]:
     """
     comes from https://github.com/GangCaoLab/CoolBox/blob/master/coolbox/utilities/logtools.py
     """
+    formatter = logging.Formatter(
+        fmt=logging_options.fmt,
+        datefmt=logging_options.datefmt,
+        style=logging_options.style
+    )
+
     logging.setLogRecordFactory(log_record_factory)
     logger = logging.getLogger(name)
-    handler = logging.StreamHandler(sys.stdout)
-    formatter = logging.Formatter(
-        flowsaber.context.logging.format, flowsaber.context.logging.datefmt
-    )
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-    logger.addHandler(log_manager)
-    logger.setLevel(flowsaber.context.logging.level)
 
-    return logger
+    stream_handler = logging.StreamHandler(sys.stdout)
+    stream_handler.setFormatter(formatter)
+    batch_handler = BatchQueueHandler(capacity=logging_options.buffer_size, flushLevel=logging.DEBUG)
+    batch_handler.setFormatter(formatter)
+    log_manager = LogManager(queue=batch_handler.queue)
 
+    logger.addHandler(stream_handler)
+    logger.addHandler(batch_handler)
+    logger.setLevel(logging_options.level)
 
-log_manager = ThreadLogManager(buffer_size=flowsaber.context.logging.buffer_size)
-logger = create_logger("flowsaber")
-
-
-def get_logger(name: str) -> logging.Logger:
-    return logger.getChild(name)
+    return logger, log_manager

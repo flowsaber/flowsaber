@@ -75,7 +75,7 @@ var Search = {
       var params = $.getQueryParameters();
       if (params.q) {
           var query = params.q[0];
-          $('input[name="q"]')[0].value = query;
+          $('_input[name="q"]')[0].value = query;
           this.performSearch(query);
       }
   },

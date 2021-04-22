@@ -1,12 +1,12 @@
 import asyncio
 
 import flowsaber
-from flowsaber.core.engine.runner import Runner, catch_to_failure, call_state_change_handlers, run_within_context
+from flowsaber.core.base import enter_context
+from flowsaber.core.engine.runner import Runner, catch_to_failure, call_state_change_handlers
 from flowsaber.core.engine.scheduler import TaskScheduler
+from flowsaber.core.flow import Flow
 from flowsaber.core.utility.state import State, Scheduled, Pending, Running, Success
 from flowsaber.server.database.models import FlowRunInput, RunInput
-from flowsaber.core.flow import Flow
-
 
 
 class FlowRunner(Runner):
@@ -37,14 +37,17 @@ class FlowRunner(Runner):
 
         return flowrun_input
 
-    @run_within_context
+    @enter_context
     @call_state_change_handlers
     @catch_to_failure
-    def run(self, state: State = None, **kwargs) -> State:
+    def start_run(self, state: State = None, **kwargs) -> State:
+        print("come here0")
         state = self.initialize_run(state, **kwargs)
+        print("come here1")
         state = self.set_state(state, Pending)
+        print("come here2")
         state = self.set_state(state, Running)
-        print("come here")
+        print("come here3")
         state = self.run_flow(state, **kwargs)
         print("leave herer")
 

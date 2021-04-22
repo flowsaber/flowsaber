@@ -1,7 +1,6 @@
 import asyncio
-import inspect
 from concurrent.futures import ProcessPoolExecutor, Future
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from functools import partial
 from typing import Set, Callable, Awaitable, Any, Sequence, Optional, Coroutine
 
@@ -68,20 +67,12 @@ class TaskScheduler(Scheduler):
     class Job(asyncio.Future):
         coro: Coroutine
         task: Optional[asyncio.Task] = None
-        async_done_callbacks: list = field(default_factory=list)
         cost: Callable = None
 
-        def add_async_done_callback(self, callback: AsyncFunc):
-            assert inspect.iscoroutinefunction(callback)
-            self.async_done_callbacks.append(callback)
-
-        def remove_async_done_callback(self, callback):
-            self.async_done_callbacks.remove(callback)
-
-        def cancel(self, msg: Optional[str] = ...) -> bool:
+        def cancel(self, *args, **kwargs) -> bool:
             if self.task:
-                self.task.cancel(msg=msg)
-            return super().cancel(msg=msg)
+                self.task.cancel(*args, **kwargs)
+            return super().cancel(*args, **kwargs)
 
         def __post_init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
@@ -101,13 +92,23 @@ class TaskScheduler(Scheduler):
         self._running: Optional[asyncio.Event] = None
 
     async def __aenter__(self):
+        """Becarefull, there may be situation in which error raised in async with, but the loop has
+        not been started yet. For this situation, we leave the async within only after the loop has been ran
+
+        Returns
+        -------
+
+        """
+        self._running = asyncio.Event()
         self.loop_fut = asyncio.ensure_future(self.start_loop())
+        await self._running.wait()
+
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        if self._running is not None:
-            self._running.clear()
+        self._running.clear()
         await self.loop_fut
+        self._running = None
         self.loop_fut = None
 
     def create_task(self, coro: Coroutine, cost: Callable = None) -> "TaskScheduler.Job":
@@ -118,7 +119,7 @@ class TaskScheduler(Scheduler):
         return job
 
     async def start_loop(self, **kwargs):
-        self._running = asyncio.Event()
+        assert self._running is not None, "Please use `async with scheduler` statement to start the scheduler"
         self._running.set()
 
         while True:
@@ -130,20 +131,14 @@ class TaskScheduler(Scheduler):
                 max_score, selected = self.solver.solve([job.cost() for job in maydo])
                 jobs = [job for i, job in enumerate(maydo) if selected[i]] + mustdo
             except Exception:
-                jobs = pending_jobs
+                jobs = tuple(self.pending_jobs)
 
             for job in jobs:
                 job = self.run_job(job)
-            # handle error
-            if len(self.error_jobs):
-                for job in self.error_jobs:
-                    raise job.exception()
             # break if not _running and no pending and _running jobs
             if not self._running.is_set() and len(self.running_jobs) + len(self.pending_jobs) == 0:
                 break
             await asyncio.sleep(self.wait_time)
-
-        self._running = None
 
     def run_job(self, job: "TaskScheduler.Job"):
         async def _run_job():
@@ -156,17 +151,14 @@ class TaskScheduler(Scheduler):
             finally:
                 # always move to done
                 self.running_jobs.remove(job)
-                self.done_jobs.add(job)
-            # call awaitable callbacks
-            for callback in job.async_done_callbacks:
-                await callback(res)
+                # self.done_jobs.add(job) # no need to store it
             return res
 
         # remove from pending to _running
         self.pending_jobs.remove(job)
         self.running_jobs.add(job)
 
-        # float up exception or result
+        # propogate exception or result
         def run_job_done_callback(f: asyncio.Future):
             if f.exception():
                 job.set_exception(f.exception())
