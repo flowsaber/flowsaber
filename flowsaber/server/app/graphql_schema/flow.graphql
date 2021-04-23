@@ -1,27 +1,25 @@
 type Flow {
     id: String!
     name: String!
+    full_name: String!
     labels: [String!]!
-    config: JSON!
-    docstring: String!
-    source_code: String!
-    serialized_flow: String!
     tasks: [Task!]!
     edges: [Edge!]!
+    docstring: String!
+    serialized_flow: String!
+    context: JSON!
     flowruns: [FlowRun!]!
 }
 
 type Task {
     id: UUID!
-    flow_id: UUID!
     name: String!
-    config: JSON!
-    input_signature: JSON!
-    output_signature: String!
-    outputs: [Channel]!
+    full_name: String!
+    labels: [String!]!
+    flow_id: UUID!
+    output: [Channel!]!
     docstring: String!
-    source_code: String!
-    taskruns: [TaskRun!]!
+    context: JSON!
 }
 
 
@@ -49,25 +47,25 @@ input ChannelInput {
 
 input TaskInput {
     id: UUID!
-    flow_id: UUID!
     name: String!
-    config: JSON!
-    input_signature: JSON!
-    output_signature: String!
-    outputs: [ChannelInput]!
-    source_code: String!
-    command: String
+    full_name: String!
+    labels: [String!]!
+    flow_id: UUID!
+    output: [ChannelInput!]!
+    docstring: String!
+    context: JSON!
 }
 
 input FlowInput {
     id: String!
     name: String!
+    full_name: String!
     labels: [String!]!
-    config: JSON!
-    source_code: String!
-    serialized_flow: String!
     tasks: [TaskInput!]!
     edges: [EdgeInput!]!
+    docstring: String!
+    context: JSON!
+    serialized_flow: String!
 }
 
 

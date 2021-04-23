@@ -189,18 +189,20 @@ class BaseTask(Component):
         return call_signature
 
     def serialize(self) -> TaskInput:
+        # TODO can not fetch source code of type(self), if it's due to makefun ?
         config = self.config
-        outputs = self.output
+        output = self.output
         if self.num_out == 1:
-            outputs = [self.output]
+            output = [self.output]
         return TaskInput(
             id=config.id,
             flow_id=self.context['flow_id'],
             name=config.name,
+            full_name=config.full_name,
             labels=config.labels,
-            input_signature=self.input_signature(),
-            outputs=[ch.serialize() for ch in outputs],
-            source_code=inspect.getsource(type(self))
+            output=[ch.serialize() for ch in output],
+            docstring=type(self).__doc__ or "",
+            context=self.context
         )
 
 
@@ -713,5 +715,5 @@ class Edge(object):
     def serialize(self) -> EdgeInput:
         return EdgeInput(
             channel_id=self.channel.id,
-            task_id=self.task.context['task_id']
+            task_id=self.task.config_dict['id']
         )

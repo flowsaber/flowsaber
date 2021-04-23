@@ -1,5 +1,4 @@
 import asyncio
-import inspect
 import uuid
 from pathlib import Path
 from typing import Union, List, Optional, Tuple
@@ -144,17 +143,30 @@ class Flow(Component):
         return edges
 
     def serialize(self) -> FlowInput:
+        import base64
+        import zlib
+        # TODO can not fetch source code of type(self), if it's due to makefun ?
+        assert self.initialized
         config = self.config
+        compressed_flow = zlib.compress(cloudpickle.dumps(self))
+        serialized_flow = base64.encodebytes(compressed_flow).decode()
         return FlowInput(
             id=config.id,
             name=config.name,
+            full_name=config.full_name,
             labels=config.labels,
             tasks=[task.serialize() for task in self.tasks],
             edges=[edge.serialize() for edge in self.edges],
-            source_code=inspect.getsource(type(self)),
-            serialized_flow=str(cloudpickle.dumps(self))
+            docstring=type(self).__doc__ or "",
+            context=self.context,
+            serialized_flow=serialized_flow
         )
 
     @classmethod
-    def deserialize(cls, flow: str) -> "Flow":
-        return cloudpickle.loads(bytes(flow))
+    def deserialize(cls, serialized_flow: str) -> "Flow":
+        import base64
+        import zlib
+        compressed_flow = base64.decodebytes(serialized_flow.encode())
+        initialized_flow: 'Flow' = cloudpickle.loads(zlib.decompress(compressed_flow))
+        assert initialized_flow.initialized
+        return initialized_flow

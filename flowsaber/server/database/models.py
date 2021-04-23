@@ -28,7 +28,6 @@ class RunLog(Model):
     flowrun_id: str
     agent_id: str
     message: str
-    info: dict
 
 
 class RunLogInput(Model):
@@ -41,7 +40,6 @@ class RunLogInput(Model):
     flowrun_id: str = None
     agent_id: str = None
     message: str = ""
-    info: dict = Field(default_factory=dict)
 
 
 class GetRunLogsInput(Model):
@@ -91,7 +89,7 @@ class EdgeInput(Model):
 
 
 class State(Model):
-    state_tpye: str
+    state_type: str
     result: str = None
     message: str = None
 
@@ -112,18 +110,18 @@ class Task(Model):
     outputs: List[str]
     source_code: str
     command: str = None
-    taskruns: List[str] = Field(default_factory=list)
 
 
 class Flow(Model):
     id: str
     name: str
+    full_name: str
     labels: List[str]
-    config: dict
-    source_code: str
-    serialized_flow: str
     tasks: List[str]
     edges: List[Edge]
+    docstring: str
+    serialized_flow: str
+    context: dict
     flowruns: List[str] = Field(default_factory=list)
 
 
@@ -131,18 +129,22 @@ class TaskInput(Model):
     id: str
     flow_id: str
     name: str
-    call_signature: dict
-    outputs: List[ChannelInput]
-    source_code: str
+    full_name: str
+    labels: List[str]
+    output: List[ChannelInput]
+    docstring: str
+    context: dict
 
 
 class FlowInput(Model):
     id: str
     name: str
+    full_name: str
     labels: List[str]
     tasks: List[TaskInput]
     edges: List[EdgeInput]
-    source_code: str
+    docstring: str
+    context: dict
     serialized_flow: str
 
 
@@ -160,8 +162,8 @@ class TaskRun(Model):
     id: str
     task_id: str
     flow_id: str
-    agent_id: str
     flowrun_id: str
+    agent_id: str
     inputs: dict
     context: dict
     state: State

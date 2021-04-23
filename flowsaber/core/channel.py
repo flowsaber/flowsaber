@@ -1,7 +1,7 @@
 import asyncio
 import inspect
 from collections import abc
-from queue import SimpleQueue
+from collections import deque
 from typing import Union, Sequence, Optional, List
 
 import flowsaber
@@ -190,7 +190,7 @@ class Channel(ChannelBase):
 
     def __init__(self, queue_factory: type = asyncio.Queue, **kwargs):
         super().__init__(**kwargs)
-        self.buffer = SimpleQueue()
+        self.buffer: deque = deque()
         self.initialized = False
         self.queues: List[LazyAsyncQueue] = []
         self.queue_factory = queue_factory
@@ -209,18 +209,18 @@ class Channel(ChannelBase):
     def initialize(self):
         if not self.initialized:
             self.initialized = True
-            if self.buffer.qsize():
+            if self.buffer:
                 # always put a END
-                self.buffer.put(END)
-                while not self.buffer.empty():
-                    self.put_nowait(self.buffer.get())
+                self.buffer.append(END)
+                while self.buffer:
+                    self.put_nowait(self.buffer.popleft())
 
     def put_nowait(self, item):
         if self.initialized:
             for q in self.queues:
                 q.put_nowait(item)
         else:
-            self.buffer.put(item)
+            self.buffer.append(item)
 
     async def put(self, item):
         self.initialize()

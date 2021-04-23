@@ -12,6 +12,7 @@ def test_flow():
 
     num_ch = Channel.values(*list(range(100)))
     f = myflow(num_ch)
+
     runner = FlowRunner(f)
     runner.run()
 

@@ -1,10 +1,10 @@
 type FlowRun {
     id: UUID!
-    flow_id: UUID!
     agent_id: UUID!
+    flow_id: UUID!
     name: String!
     labels: [String!]!
-    inputs: JSON!
+    input: JSON!
     context: JSON!
     state: State!
     start_time: DateTime!
@@ -15,11 +15,11 @@ type FlowRun {
 
 type TaskRun {
     id: UUID!
+    flowrun_id: UUID!
+    agent_id: UUID!
     task_id: UUID!
     flow_id: UUID!
-    agent_id: UUID!
-    flowrun_id: UUID!
-    inputs: JSON!
+    input: JSON!
     context: JSON!
     state: State!
     start_time: DateTime!
@@ -30,22 +30,22 @@ type TaskRun {
 
 input TaskRunInput {
     id: UUID!
+    flowrun_id: UUID
+    agent_id: UUID
     task_id: UUID
     flow_id: UUID
-    agent_id: UUID
-    flowrun_id: UUID
-    inputs: JSON
+    input: JSON
     context: JSON
     state: StateInput
 }
 
 input FlowRunInput {
     id: UUID!
-    flow_id: UUID
     agent_id: UUID
+    flow_id: UUID
     name: String
     labels: [String!]
-    inputs: JSON
+    input: JSON
     context: JSON
     state: StateInput
 }
@@ -54,8 +54,8 @@ input FlowRunInput {
 
 input GetFLowRunsInput {
     flowrun_id: [UUID!]
-    flow_id: [UUID!]
     agent_id: [UUID!]
+    flow_id: [UUID!]
     name: [String!]
     labels: [String!]
     state_type: [String!]
@@ -65,10 +65,10 @@ input GetFLowRunsInput {
 
 input  GetTaskRunsInput {
     taskrun_id: [UUID!]
+    flowrun_id: [UUID!]
+    agent_id: [UUID!]
     task_id: [UUID!]
     flow_id: [UUID!]
-    agent_id: [UUID!]
-    flowrun_id: [UUID!]
     state_type: [String!]
     after: DateTime
     before: DateTime
