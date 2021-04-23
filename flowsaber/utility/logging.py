@@ -99,3 +99,39 @@ def create_logger(name: str, log_record_factory, logging_options) -> Tuple[loggi
     logger.setLevel(logging_options.level)
 
     return logger, log_manager
+
+
+class RedirectToLog:
+    """
+    Custom redirect of stdout messages to logs
+
+    Args:
+        - logger (logging.Logger, optional): an optional logger to redirect stdout. If
+            not provided a logger names `stdout` will be created.
+    """
+
+    def __init__(self, logger: logging.Logger, level: int) -> None:
+        self.logger: logging.Logger = logger
+        self.level: int = level
+
+    def write(self, msg: str) -> None:
+        """
+        Write message from stdout to a prefect logger.
+        Note: blank newlines will not be logged.
+
+        Args:
+            msg (str): the message
+        """
+        if not isinstance(msg, str):
+            # stdout is expecting str
+            raise TypeError(f"string argument expected, got {type(msg)}")
+
+        if msg.strip():
+            self.logger.log(self.level, msg)
+
+    def flush(self) -> None:
+        """
+        Implemented flush operation for logger handler
+        """
+        for handler in self.logger.handlers:
+            handler.flush()

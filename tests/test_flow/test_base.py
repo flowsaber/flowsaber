@@ -4,6 +4,9 @@ from flowsaber.core.api import *
 def test_flow():
     @task
     def add(num):
+        import sys
+        print("This is meesage send by print to stdout in task")
+        print("This is meesage send by print to stderr in task", file=sys.stderr)
         return num + 1
 
     @flow

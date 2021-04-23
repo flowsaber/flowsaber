@@ -87,6 +87,31 @@ def class_to_method(cls: type):
 
 
 def extend_method(cls):
+    """Decorator to extend attributes of a class. Can be used in two ways:
+
+    1:
+    @extend_method(some_class)
+    def new_method(self):
+        pass
+
+    2:
+    @extend_method(some_class)
+    class A:
+        def new_method1(self):
+            pass
+
+        def new_method2(self):
+            pass
+
+    Parameters
+    ----------
+    cls
+
+    Returns
+    -------
+
+    """
+
     def set_method(obj: Union[type, Callable]):
         import inspect
 
@@ -109,7 +134,7 @@ def extend_method(cls):
 def class_deco(base_cls: type, method_name: str):
     def deco(fn: Callable = None, **kwargs):
         """
-        For base_cls is Task, method_name isrun
+        For base_cls is Task, method_name is run
 
         wrap  no-self argument function
             @deco
@@ -119,7 +144,7 @@ def class_deco(base_cls: type, method_name: str):
 
         into a Class:
             class Test(Task):
-                defrun(self, a, b, c) -> d:
+                def run(self, a, b, c) -> d:
                     "doc"
                     return test(a, b, c)
         and return:
@@ -133,7 +158,7 @@ def class_deco(base_cls: type, method_name: str):
 
         into a Class:
             class Test(Task):
-                defrun(self, a, b, c) -> d:
+                def run(self, a, b, c) -> d:
                     "doc"
                     return test(self, a, b, c)
         and return:

@@ -10,6 +10,10 @@ from flowsaber.server.database.models import ChannelInput
 
 
 class Fetcher(object):
+    """Fetch simple provide a for/async for method support for classes implemented with get/get_nowait methods.
+    The end of __next__/__anext__ is triggered by the appearance of END fetched from get/get_nowait.
+    """
+
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
             if not hasattr(self, k):
@@ -43,7 +47,8 @@ class Fetcher(object):
 
 
 class ConstantQueue(object):
-    """Like ordinary queue, the first element needs to be enqueued before fetching"""
+    """A async queue will emit it's internal value infinitely. Like ordinary queue, the first element
+    needs to be enqueued before fetching"""
     NOTSET = object()
 
     def __init__(self):
@@ -73,6 +78,11 @@ class ConstantQueue(object):
 
 
 class LazyAsyncQueue(Fetcher):
+    """Internally it's an asyncio.Queue, but the inner queue will only be created when meets the first call
+    it's fetcher/putter methods. It's designed like this to handler pickle or coroutine-loop problems.
+
+    """
+
     def __init__(self, ch, queue_factory, **kwargs):
         super().__init__(**kwargs)
         self.ch: Channel = ch
@@ -108,6 +118,11 @@ class LazyAsyncQueue(Fetcher):
 
 
 class ChannelBase(object):
+    """A channel it self is an object for storing items by using put/put_nowait. To consume data from the channel,
+    users must call ChannelBase.create_queue method to get a fetcher LazyAsyncQueue, and then call it's get/get_nowait method
+    to fetched the data emitted by the channel.
+    """
+
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
             if not hasattr(self, k):
@@ -187,6 +202,11 @@ class ChannelBase(object):
 
 
 class Channel(ChannelBase):
+    """Subclass of ChannelBase implemented create_queue method, the mechanism for sending data to all created queue is
+    simple, it just loop over all queues and push the item specified by call of put/put_nowait into all queues.
+    Furthermore, to make LazyAsyncQueue initialized only in a running event loop, Channel uses a buffer to buffer all
+    items pushed before entering the event loop.
+    """
 
     def __init__(self, queue_factory: type = asyncio.Queue, **kwargs):
         super().__init__(**kwargs)
@@ -234,12 +254,18 @@ class Channel(ChannelBase):
 
 
 class ConstantChannel(Channel):
+    """A channel use ConstantQueue as it's fetcher queue factory.
+    """
+
     def __init__(self, **kwargs):
         super().__init__(queue_factory=ConstantQueue, **kwargs)
 
 
 class Consumer(Fetcher):
-    """Empty consumer will emit only once
+    """Consumer is an object used for simultaneously fetching data emitted by multiple channels and output tuples.
+    Empty consumer will emit only once. The end of __next__/__anext__ will be triggered if any of it's source channel
+    emits a END object. For simplicity, if there is only a single source channel, the output of consumer will not be
+    a tuple.
     """
 
     def __init__(self, *queues: LazyAsyncQueue, **kwargs):

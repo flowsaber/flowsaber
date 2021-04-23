@@ -22,7 +22,6 @@ class Flow(Component):
 
     default_config = {
         'fork': 20,
-        'workdir': ""
     }
 
     def __init__(self, **kwargs):

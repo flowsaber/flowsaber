@@ -225,6 +225,7 @@ class RunTask(BaseTask):
         'io': 1,
         'cache_type': 'local',
         'executor_type': 'dask',
+        'timeout': 0
     }
 
     def initialize_context(self):
@@ -411,6 +412,18 @@ class Task(RunTask):
 
     @property
     def task_workdir(self) -> Path:
+        """Task's workdir is resolved in a bottom up way.
+        In this hierarchical way, users can change flowrun.context['flow_workdir'] by setting up the flowrun's
+        initial context, thus make the flow's workdir configurable.
+
+        1: if the task_workdir is already absolute, then use it
+        2: if parent_flow_workdir/task_workdir is already absolute, then use it
+        3: otherwise use top_flow_workdir/parent_flow_workdir/task_workdir as the workdir
+
+        Returns
+        -------
+
+        """
         workdir = Path(self.context['task_config']['workdir'], self.context['task_key'])
         if workdir.is_absolute():
             return workdir

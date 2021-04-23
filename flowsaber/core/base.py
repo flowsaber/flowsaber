@@ -16,6 +16,61 @@ if TYPE_CHECKING:
     import asyncio
 
 
+def enter_context(method: Callable[..., Any]) -> Any:
+    """A decorator runs the wrapped method within a new context composed of self.context and kwargs' context.
+
+    Parameters
+    ----------
+    method
+
+    Returns
+    -------
+
+    """
+
+    @functools.wraps(method)
+    def _enter_context(self, *args, **kwargs) -> Any:
+        # we clear the package default context
+        with flowsaber.context():
+            with flowsaber.context(self.context):
+                flowsaber.context.update(kwargs.get('context', {}))
+                return method(self, *args, **kwargs)
+
+    return _enter_context
+
+
+def aenter_context(method: Callable[..., Any]) -> Any:
+    """A decorator runs the wrapped method within a new context composed of self.context and kwargs' context.
+
+    Parameters
+    ----------
+    method
+
+    Returns
+    -------
+
+    """
+
+    @functools.wraps(method)
+    async def _aenter_context(self, *args, **kwargs) -> Any:
+        with flowsaber.context():
+            with flowsaber.context(self.context):
+                flowsaber.context.update(kwargs.get('context', {}))
+                return await method(self, *args, **kwargs)
+
+    return _aenter_context
+
+
+class ComponentExecuteError(RuntimeError):
+    def __init__(self, *args, futures=None):
+        super().__init__(*args)
+        self.futures = futures or []
+
+
+class ComponentCallError(RuntimeError):
+    pass
+
+
 class ComponentMeta(type):
     PAIR_ARG_NAME = 'FUNC_PAIRS'
 
@@ -95,58 +150,6 @@ class ComponentMeta(type):
         return class_name, bases, class_dict
 
 
-def enter_context(method: Callable[..., Any]) -> Any:
-    """A decorator runs the wrapped method within a new context composed of runner.context and kwargs' context.
-
-    Parameters
-    ----------
-    method
-
-    Returns
-    -------
-
-    """
-
-    @functools.wraps(method)
-    def _enter_context(self, *args, **kwargs) -> Any:
-        with flowsaber.context(self.context):
-            flowsaber.context.update(kwargs.get('context', {}))
-            return method(self, *args, **kwargs)
-
-    return _enter_context
-
-
-def aenter_context(method: Callable[..., Any]) -> Any:
-    """A decorator runs the wrapped method within a new context composed of runner.context and kwargs' context.
-
-    Parameters
-    ----------
-    method
-
-    Returns
-    -------
-
-    """
-
-    @functools.wraps(method)
-    async def _aenter_context(self, *args, **kwargs) -> Any:
-        with flowsaber.context(self.context):
-            flowsaber.context.update(kwargs.get('context', {}))
-            return await method(self, *args, **kwargs)
-
-    return _aenter_context
-
-
-class ComponentExecuteError(RuntimeError):
-    def __init__(self, *args, futures=None):
-        super().__init__(*args)
-        self.futures = futures or []
-
-
-class ComponentCallError(RuntimeError):
-    pass
-
-
 class Component(object, metaclass=ComponentMeta):
     """Base class of Flow and Task
     """
@@ -165,7 +168,9 @@ class Component(object, metaclass=ComponentMeta):
         'name': None,
         'full_name': None,
         'labels': [],
-        'workdir': ''
+        'workdir': '',
+        'log_stdout': True,
+        'log_stderr': True,
     }
 
     def __init__(self, **kwargs):
@@ -319,6 +324,7 @@ class Component(object, metaclass=ComponentMeta):
             self.config_dict['full_name'] = self.get_full_name()
 
         # set up workdir build from the hierarchy of flows/tasks
+        # flow's workdir and task's workdir is handled separately
         try:
             workdir = self.config_dict['workdir']
         except Exception as e:

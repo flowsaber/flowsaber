@@ -142,8 +142,10 @@ class Context(DotBase):
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        self._data = contextvars.ContextVar(f"data-{id(self)}")
-        self._info = DotDict()
+        # The magic for ensuring coroutine safe
+        self._data: contextvars.ContextVar = contextvars.ContextVar(f"data-{id(self)}")
+        self._info: DotDict = DotDict()
+        # the initial value of self._data is settled in here, within init will call self.data = dict(*args, **kwargs)
         super().__init__(*args, **kwargs)
 
     def __repr__(self):

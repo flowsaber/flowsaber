@@ -168,7 +168,7 @@ class FlowSaberContext(Context):
 
 
 def inject_context_attrs(factory):
-    """Inject context attrs into the log record.
+    """Inject context attrs into the log record base on context.context_attrs.
     Parameters
     ----------
     factory
@@ -195,7 +195,8 @@ def inject_context_attrs(factory):
 
 
 context = FlowSaberContext()
-
+# this default context will only work in the build time
+# during the flow/task run, will use context in flow/task as the initial context
 context.update({
     'default_flow_config': {
         'test__': {
@@ -206,14 +207,16 @@ context.update({
         'executor_type': 'dask',
         'test__': {
             'test__': [1, 2, 3]
-        }
+        },
+        'timeout': 0,
     },
+    # logging options can be flow/task specific, here we treat it as global options for simplicity
     'logging': {
         'fmt': "[{levelname}] [{filename}:{lineno}-{funcName}()] "
                "task:{task_full_name} taskrun:{taskrun_id: <10} {message}",
         'datefmt': "%Y-%m-%d %H:%M:%S",
         'style': '{',
-        'level': 'INFO',
+        'level': 'DEBUG',
         'buffer_size': 10,
         'max_buffer_size': 2000,
         'context_attrs': [
