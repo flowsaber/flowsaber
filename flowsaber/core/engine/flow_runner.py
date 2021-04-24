@@ -23,6 +23,14 @@ class FlowRunner(Runner):
 
     def enter_run(self, *args, **kwargs):
         super().enter_run(*args, **kwargs)
+
+        # TODO can use use print a logfactory has changed
+
+        async def test():
+            for i in range(10):
+                await asyncio.sleep(1)
+
+        self.executor.create_task(test())
         # this is redundant, keep it for uniformity
         self.context.update(flowrun_id=self.id)
         if 'context' in kwargs:

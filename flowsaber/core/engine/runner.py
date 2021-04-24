@@ -1,9 +1,11 @@
 """
 Some codes are borrowed from https://github.com/PrefectHQ/prefect/blob/master/src/prefect/engine/runner.py
 """
+import asyncio
 import functools
+import threading
 import traceback
-from typing import Callable, Union, Optional, TYPE_CHECKING
+from typing import Callable,  Set, List, Union, Optional, Coroutine, TYPE_CHECKING
 
 import flowsaber
 from flowsaber.core.base import Component
@@ -163,6 +165,63 @@ async def check_flow_cancellation(client: 'Client', flowrun_id: int, check_inter
             interrupt_main()
 
 
+class RunnerExecutor(threading.Thread):
+    STOP = "STOP"
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.tasks: Set[asyncio.Task] = set()
+        self.loop: Optional[asyncio.AbstractEventLoop] = None
+        self.queue: Optional[asyncio.Queue] = None
+        self.started: Optional[threading.Event] = None
+
+    def start(self) -> None:
+        self.started = threading.Event()
+        super().start()
+        self.started.wait()
+
+    def run(self):
+        async def main():
+            self.loop = asyncio.get_running_loop()
+            self.queue = task_queue = asyncio.Queue()
+            self.started.set()
+
+
+
+            while True:
+                coro = await task_queue.get()
+                if coro == self.STOP:
+                    task_queue.task_done()
+                    break
+                task = asyncio.create_task(coro)
+                self.tasks.add(task)
+
+                def done_callback(*args, **kwargs):
+                    self.tasks.remove(task)
+                    task_queue.task_done()
+
+                task.add_done_callback(done_callback)
+
+            # await task_queue.join()
+            for task in self.tasks:
+                task.cancel()
+
+        asyncio.run(main())
+
+    def create_task(self, coro: Union[Coroutine, str]):
+        assert self.started and self.started.is_set()
+        self.loop.call_soon_threadsafe(self.queue.put_nowait, coro)
+
+    def join(self, timeout: Optional[float] = ...) -> None:
+        self.create_task(self.STOP)
+        super().join()
+        self.started.clear()
+        self.started = None
+
+    def stop(self):
+        return self.join()
+
+
 class Runner(object):
     """Base runner class, intended to be the state manager of runnable object like flow and task.
 
@@ -171,7 +230,8 @@ class Runner(object):
     """
 
     def __init__(self, id: str = None, name: str = None, labels: list = None, **kwargs):
-        self.state_change_handlers = [self.logging_state_change_chandler]
+        self.executor: Optional[RunnerExecutor] = None
+        self.state_change_handlers: List[Callable] = [self.logging_state_change_chandler]
         self.id = id or flowsaber.context.random_id
         self.name = name or flowsaber.context.random_id
         self.labels = labels or []
@@ -231,13 +291,15 @@ class Runner(object):
             self.leave_run()
 
     def enter_run(self, *args, **kwargs):
-        flowsaber.flowsaber_log_manager.start()
+        self.executor = RunnerExecutor()
+        self.executor.start()
 
     def start_run(self, state: State = None, **kwargs) -> State:
         raise NotImplementedError
 
     def leave_run(self, *args, **kwargs):
-        flowsaber.flowsaber_log_manager.stop()
+        self.executor.stop()
+        self.executor = None
 
     @call_state_change_handlers
     def set_state(self, old_state: State, state_type: type):

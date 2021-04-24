@@ -264,4 +264,4 @@ log_record_factory = logging.getLogRecordFactory()
 log_record_factory = inject_context_attrs(log_record_factory)
 
 # if use `logger` as name, will coflict with logger in dask
-flowsaber_logger, flowsaber_log_manager = create_logger("flowsaber", log_record_factory, context.logging)
+flowsaber_logger, flowsaber_log_queue_handler = create_logger("flowsaber", log_record_factory, context.logging)
