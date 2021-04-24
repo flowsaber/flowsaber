@@ -3,12 +3,16 @@ Some codes are borrowed from https://github.com/PrefectHQ/prefect/blob/master/sr
 """
 import functools
 import traceback
-from typing import Callable, Union, Optional
+from typing import Callable, Union, Optional, TYPE_CHECKING
 
 import flowsaber
 from flowsaber.core.base import Component
-from flowsaber.core.utility.state import State, Failure, Scheduled
+from flowsaber.core.utility.state import State, Failure, Scheduled, Cancelling, Cancelled
 from flowsaber.server.database.models import RunInput
+from flowsaber.utility.utils import interrupt_main
+
+if TYPE_CHECKING:
+    from flowsaber.client.client import Client
 
 
 class RunException(Exception):
@@ -79,10 +83,19 @@ def catch_to_failure(method: Callable[..., State]) -> Callable[..., State]:
     def catch_exception_to_failure(self: "Runner", *args, **kwargs) -> State:
         try:
             new_state = method(self, *args, **kwargs)
-        except Exception as exc:
+        # TODO how to handle this only once?
+        # must use BaseException, because KeyBoardInterrupt is not Exception
+        except BaseException as exc:
             tb = traceback.format_exc()
-            e_str = f"Unexpected error: {exc} when calling method: {method} with traceback: {tb}"
-            new_state = Failure(result=exc, message=e_str)
+            # print(f'----- {exc} {tb}')
+            if isinstance(exc, KeyboardInterrupt):
+                e_str = f"{type(self).__name__} is cancelled with error: {exc}."
+                new_state = Cancelled(result=exc, message=e_str, trace_back=tb)
+            else:
+                e_str = f"{type(self).__name__} meet Unexpected error: {exc} when calling method: {method} " \
+                        f"with traceback: {tb}."
+                new_state = Failure(result=exc, message=e_str, trace_back=tb)
+
         return new_state
 
     return catch_exception_to_failure
@@ -138,6 +151,16 @@ def run_timeout_thread(func: Callable, timeout: int, **kwargs):
     except TimeoutError as e:
         fut.cancel()
         raise e
+
+
+async def check_flow_cancellation(client: 'Client', flowrun_id: int, check_interval: int):
+    import asyncio
+    while True:
+        await asyncio.sleep(check_interval)
+        flowrun = client.get_flowrun(flowrun_id)
+        state = State.from_dict(flowrun['state'])
+        if isinstance(state, Cancelling):
+            interrupt_main()
 
 
 class Runner(object):

@@ -94,8 +94,10 @@ class FlowSaberContext(Context):
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         executors = self._info[self.EXECUTOR_TABLE]  # must exists, or raise error
+        # dask distributed has Warning about future was never awaited
+        # https://github.com/dask/distributed/pull/3921
         for executor in executors.values():
-            self.logger.info(f"Stopiing executor: {executor}")
+            self.logger.info(f"Stopping executor: {executor}")
             await executor.__aexit__(exc_type, exc_val, exc_tb)
         executors.clear()
         del self._info[self.EXECUTOR_TABLE]
@@ -184,11 +186,12 @@ def inject_context_attrs(factory):
         import flowsaber
         record = factory(*args, **kwargs)
         try:
+            # TODO, sometimes, logging does not exist in flowsaber.context?
             context_attrs = flowsaber.context.logging.context_attrs or []
-        except Exception as e:
-            raise e
-        for attr in context_attrs:
-            setattr(record, attr, context.get(attr, 'None'))
+            for attr in context_attrs:
+                setattr(record, attr, context.get(attr, 'None'))
+        except Exception:
+            pass
         return record
 
     return inner
@@ -201,7 +204,7 @@ context.update({
     'default_flow_config': {
         'test__': {
             'test__': [1, 2, 3]
-        }
+        },
     },
     'default_task_config': {
         'executor_type': 'dask',

@@ -160,11 +160,15 @@ class TaskScheduler(Scheduler):
 
         # propogate exception or result
         def run_job_done_callback(f: asyncio.Future):
-            if f.exception():
+            if f.cancelled():
+                pass
+            elif f.exception():
                 job.set_exception(f.exception())
-            elif not f.cancelled():
+            elif f.done():
                 job.set_result(f.result())
-            # cancel should be triggered by job
+                # cancel should be triggered by job
+            else:
+                raise RuntimeError(f"Unexpected future {f}")
 
         job.task = asyncio.create_task(_run_job())
         job.task.add_done_callback(run_job_done_callback)

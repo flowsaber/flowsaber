@@ -79,6 +79,17 @@ def capture_local(event='return'):
     sys.settrace(None)
 
 
+def interrupt_main():
+    import os
+    if os.name == 'nt':
+        from _thread import interrupt_main
+        interrupt_main()
+    else:
+        import signal
+        import threading
+        signal.pthread_kill(threading.main_thread().ident, signal.SIGINT)
+
+
 class CaptureTerminal(object):
     def __init__(self, stdout=None, stderr=None):
         if isinstance(stdout, str):

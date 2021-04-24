@@ -59,7 +59,7 @@ class Scheduled(State):
     pass
 
 
-class Pending(Scheduled):
+class Pending(State):
     pass
 
 
@@ -83,7 +83,10 @@ class Success(Done):
 
 class Failure(Done):
     """Means some Exception has been raised."""
-    pass
+
+    def __init__(self, trace_back=None, **kwargs):
+        super().__init__(**kwargs)
+        self.trace_back = trace_back
 
 
 class Cached(Success):
@@ -106,5 +109,5 @@ class Cancelling(State):
     pass
 
 
-class Cancelled(State):
+class Cancelled(Failure):
     pass
