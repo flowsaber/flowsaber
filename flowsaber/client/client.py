@@ -1,10 +1,9 @@
 import inspect
-from typing import Sequence
+from typing import Any
 
 import aiohttp
 from pydantic import validate_arguments
 
-from flowsaber.core.flow import Flow
 from flowsaber.server.database.models import *
 
 
@@ -22,25 +21,32 @@ class ValidateMeta(type):
 
     def __new__(cls, clsname, bases, clsdict: dict):
         for k, v in clsdict.items():
-            if inspect.isfunction(v):
+            if not k.startswith('_') and inspect.isfunction(v):
                 clsdict[k] = validate_arguments(v)
         return super().__new__(cls, clsname, bases, clsdict)
 
 
 class Client(object, metaclass=ValidateMeta):
-    """The Graphql client used for communicating with server by sending HTTP post reqeuests data.
+    """The Graphql client used for communicating with server by sending HTTP _post reqeuests data.
     """
 
     def __init__(self, server_url: str = None, retry: int = 3):
         self.server_url = server_url
         self.retry = retry
+        self.test = True
+        self.session: Optional[aiohttp.ClientSession] = None
 
-    async def post(self, url, json=None, **kwargs) -> dict:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url, json=json, **kwargs) as rsp:
-                return await rsp.json()
+    # json conflict with pydantic, so use underscore to pass validation
+    async def _post(self, url, json=None, **kwargs) -> dict:
+        if self.session is None:
+            self.session = aiohttp.ClientSession()
+        async with self.session.post(url, json=json, **kwargs) as rsp:
+            return await rsp.json()
 
-    async def graphql(self, query: str, variables: dict, **kwargs) -> dict:
+    async def graphql_request(self, query: str, variables: dict, **kwargs) -> dict:
+        if self.test:
+            return {"ok": "ok"}
+
         json = {
             'query': query,
             'variables': variables
@@ -52,7 +58,7 @@ class Client(object, metaclass=ValidateMeta):
         rsp = {}
         while not success and retry > 0:
             try:
-                rsp = await self.post(self.server_url, json=json, **kwargs)
+                rsp = await self._post(self.server_url, json=json, **kwargs)
                 success = True
             except Exception as e:
                 retry -= 1
@@ -69,150 +75,33 @@ class Client(object, metaclass=ValidateMeta):
 
         return rsp['data']
 
-    async def register_agent(self, agent_input: AgentInput) -> int:
-        query = """
-            mutation($_input: agent_input!) {
-                register_agent(_input: $_input) {
-                    id
-                }
-            }
+    async def query(self, method: str, input: Any, field: str):
+        res = await self.graphql('query', method, input, field)
+        print(f'query {method} {input}')
+        return res
+
+    async def mutation(self, method: str, input: Any, field: str):
+        res = await self.graphql('mutation', method, input, field)
+        if 'log' not in method:
+            print(f'mutation {method} {input}')
+        return res
+
+    async def graphql(self, method_type: str, method: str, input: Any, field: str):
+        input_type = type(input).__name__
+        if input_type == 'str':
+            input_type = "String"
+
+        query = f"""
+            {method_type}($input: {input_type}!) {{
+                {method}(input: $input) {{
+                    {field}
+                }}
+            }}
         """
-        result = await self.graphql(query, dict(input=agent_input.dict()))
+        variables = {
+            'input': input.dict() if hasattr(input, 'dict') else input
+        }
 
-        return result['register_agent']['id']
-
-    async def delete_agent(self, agent_id: int) -> dict:
-        query = """
-            mutation($_input: UUID!) {
-                delete_agent(agent_id: $_input) {
-                    success
-                    message
-                }
-            }
-        """
-        result = await self.graphql(query, dict(input=agent_id))
-
-        return result['delete_agent']
-
-    async def create_flow(self, flow_input: FlowInput) -> int:
-        query = """
-            mutation($_input: FlowInput!) {
-                create_flow(_input: $_input) {
-                    id
-                }
-            }
-        """
-        result = await self.graphql(query, dict(input=flow_input))
-
-        return result['create_flow']['id']
-
-    async def delete_flow(self, flow_id: int) -> dict:
-        query = """
-            mutation($_input: UUID!) {
-                delete_flow(flow_id: $_input) {
-                    success
-                    message
-                }
-            }
-        """
-        result = await self.graphql(query, dict(input=flow_id))
-
-        return result['delete_flow']
-
-    async def update_flowrun(self, flowrun_input: FlowRunInput) -> int:
-        query = """
-            mutation($_input: FlowRunInput!) {
-                update_flowrun(_input: $_input) {
-                    id
-                }    
-            }
-        """
-
-        result = await self.graphql(query, dict(input=flowrun_input))
-
-        return result['update_flowrun']['id']
-
-    async def update_taskrun(self, taskrun_input: TaskRunInput) -> int:
-        query = """
-            mutation($_input: TaskRunInput!) {
-                update_taskrun(_input: $_input) {
-                    id
-                }    
-            }
-        """
-
-        result = await self.graphql(query, dict(input=taskrun_input.dict()))
-
-        return result['update_taskrun']['id']
-
-    async def write_run_logs(self, runlogs: Sequence[RunLogInput]) -> dict:
-        query = """
-            mutation($_input: [RunLogInput!]!) {
-                write_runlogs(logs: $_input) {
-                    success
-                    message
-                }
-            }
-        """
-
-        result = await self.graphql(query, dict(input=[runlog.dict() for runlog in runlogs]))
-
-        return result['write_runlogs']
-
-    async def get_flow(self, flow_id: int) -> Flow:
-        query = """
-            query($_input: UUID!) {
-                get_flow(flow_id: $_input) {
-                    serialized_flow
-                }
-            }
-        """
-
-        result = await self.graphql(query, dict(input=flow_id))
-
-        flow = Flow.deserialize(result['get_flow']['serialized_flow'])
-        assert flow.initialized
-
-        return flow
-
-    async def get_flows(self, get_flows_input: GetFlowsInput) -> Sequence[int]:
-        query = """
-            query($_input: GetFlowsInput!) {
-                get_flows(_input: $_input) {
-                    id
-                }
-            }
-        """
-
-        result = await self.graphql(query, dict(input=get_flows_input.dict()))
-
-        return result['get_flows']
-
-    async def get_flowrun(self, flowrun_id: int) -> dict:
-        query = """
-            query($_input: UUID!) {
-                get_flowrun(flowrun_id: $_input) {
-                    id
-                    flow_id
-                    state
-                    context
-                }
-            }
-        """
-
-        result = await self.graphql(query, dict(input=flowrun_id))
-
-        return result['get_flowrun']
-
-    async def get_flowruns(self, get_flowruns_input: GetFlowRunsInput) -> Sequence[int]:
-        query = """
-            query($_input: GetFlowRunsInput!) {
-                get_flowruns(_input: $_input) {
-                    id
-                }
-            }
-        """
-
-        result = await self.graphql(query, dict(input=get_flowruns_input.dict()))
-
-        return result['get_flowruns']
+        result = await self.graphql_request(query, variables)
+        return result
+        return result[method]

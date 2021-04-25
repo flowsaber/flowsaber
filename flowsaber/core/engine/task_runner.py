@@ -38,8 +38,7 @@ class TaskRunner(Runner):
         self.component = self.task
         self.inputs: BoundArguments = inputs
 
-    def enter_run(self, *args, **kwargs):
-        super().enter_run(*args, **kwargs)
+    def initialize_context(self, *args, **kwargs):
         # this is redundant, keep it for uniformity
         self.context.update(taskrun_id=self.id)
         if 'context' in kwargs:
@@ -47,6 +46,7 @@ class TaskRunner(Runner):
         flowsaber.context.update(taskrun_id=self.id)
 
     @enter_context
+    @redirect_std_to_logger
     @call_state_change_handlers
     @catch_to_failure
     def start_run(self, state: State = None, **kwargs) -> State:
@@ -120,7 +120,6 @@ class TaskRunner(Runner):
 
     @call_state_change_handlers
     @catch_to_failure
-    @redirect_std_to_logger
     def run_task(self, state: State, **kwargs) -> State:
         with ResourceMonitor() as monitor:
             res = self.run_task_timeout(**kwargs)

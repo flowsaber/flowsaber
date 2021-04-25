@@ -31,6 +31,7 @@ def enter_context(method: Callable[..., Any]) -> Any:
     @functools.wraps(method)
     def _enter_context(self, *args, **kwargs) -> Any:
         # we clear the package default context
+        import flowsaber
         with flowsaber.context():
             with flowsaber.context(self.context):
                 flowsaber.context.update(kwargs.get('context', {}))
@@ -53,6 +54,7 @@ def aenter_context(method: Callable[..., Any]) -> Any:
 
     @functools.wraps(method)
     async def _aenter_context(self, *args, **kwargs) -> Any:
+        import flowsaber
         with flowsaber.context():
             with flowsaber.context(self.context):
                 flowsaber.context.update(kwargs.get('context', {}))
@@ -385,7 +387,7 @@ class Component(object, metaclass=ComponentMeta):
 
     def check_future_exceptions(self, futures: List['asyncio.Future']):
         # wrap into a ComponentExecuteError with record of all futures
-        first_exception = next((fut.exception() for fut in futures if fut.exception() is not None), None)
+        first_exception = next((fut.exception() for fut in futures if fut.exception()), None)
         if first_exception:
             raise ComponentExecuteError(futures=futures) from first_exception
 

@@ -22,6 +22,10 @@ input RunLogInput {
     message: String
 }
 
+input RunLogsInput {
+    logs: [RunLogInput!]!
+}
+
 input GetRunLogsInput {
     id: [UUID!]
     taskrun_id: [UUID!]

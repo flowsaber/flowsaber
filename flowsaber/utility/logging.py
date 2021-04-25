@@ -3,32 +3,32 @@ Modified from prefect
 """
 import logging
 import sys
-from datetime import datetime
-from logging.handlers import MemoryHandler, QueueHandler
-from queue import SimpleQueue
+from logging import LogRecord
+from logging.handlers import MemoryHandler
 from typing import Tuple
 
-from flowsaber.server.database import RunLogInput
+
+class BufferHandler(MemoryHandler):
+
+    def emit(self, record: LogRecord):
+        msg = self.format(record)
+        record.message = msg
+        super().emit(record)
 
 
-class LogQueueHandler(QueueHandler):
+class LogHandler(logging.Handler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.handler = None
 
-    def prepare(self, record) -> RunLogInput:
-        record_dict = {
-            'level': record.levelname,
-            'time': datetime.fromtimestamp(record.created),
-            'task_id': getattr(record, 'task_id', None),
-            'flow_id': getattr(record, 'flow_id', None),
-            'taskrun_id': getattr(record, 'taskrun_id', None),
-            'flowrun_id': getattr(record, 'flowrun_id', None),
-            'agent_id': getattr(record, 'agent_id', None),
-            'message': record.message
-        }
-        run_log = RunLogInput(**record_dict)
-        return run_log
+    def handle(self, record):
+        handler = self.handler
+        if handler is not None:
+            handler(record)
 
 
-def create_logger(name: str, log_record_factory, logging_options) -> Tuple[logging.Logger, LogQueueHandler]:
+def create_logger(name: str, log_record_factory, logging_options) \
+        -> Tuple[logging.Logger, MemoryHandler, logging.Handler]:
     """
     comes from https://github.com/GangCaoLab/CoolBox/blob/master/coolbox/utilities/logtools.py
     """
@@ -41,18 +41,26 @@ def create_logger(name: str, log_record_factory, logging_options) -> Tuple[loggi
     logging.setLogRecordFactory(log_record_factory)
     logger = logging.getLogger(name)
 
+    # stream logger use user defined log level
     stream_handler = logging.StreamHandler(sys.stdout)
-    buffer_handler = MemoryHandler(capacity=logging_options.buffer_size, flushLevel=logging.DEBUG)
-    queue_handler = LogQueueHandler(queue=SimpleQueue())
-    buffer_handler.setTarget(queue_handler)
+    stream_handler.setLevel(logging_options.level)
     stream_handler.setFormatter(formatter)
-    queue_handler.setFormatter(formatter)
+
+    # server log handler always capture all logs
+    custom_log_handler = LogHandler()
+    buffer_handler = BufferHandler(
+        target=custom_log_handler,
+        capacity=logging_options.buffer_size,
+        flushLevel=logging.DEBUG
+    )
+    buffer_handler.setLevel(logging.DEBUG)
+    buffer_handler.setFormatter(formatter)  # this has no effect,
 
     logger.addHandler(stream_handler)
     logger.addHandler(buffer_handler)
-    logger.setLevel(logging_options.level)
+    logger.setLevel(logging.DEBUG)
 
-    return logger, queue_handler
+    return logger, buffer_handler, custom_log_handler
 
 
 class RedirectToLog:

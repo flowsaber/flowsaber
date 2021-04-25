@@ -1411,7 +1411,7 @@ setDocument = Sizzle.setDocument = function( node ) {
 			}
 
 			// Support: Opera 10 - 11 only
-			// Opera 10-11 does not throw on post-comma invalid pseudos
+			// Opera 10-11 does not throw on _post-comma invalid pseudos
 			el.querySelectorAll( "*,:x" );
 			rbuggyQSA.push( ",.*:" );
 		} );
@@ -3837,7 +3837,7 @@ jQuery.extend( {
 
 											// Support: Promises/A+ section 2.3.3.3.4.1
 											// https://promisesaplus.com/#point-61
-											// Ignore post-resolution exceptions
+											// Ignore _post-resolution exceptions
 											if ( depth + 1 >= maxDepth ) {
 
 												// Only substitute handlers pass on context
@@ -9175,7 +9175,7 @@ function ajaxHandleResponses( s, jqXHR, responses ) {
 }
 
 /* Chain conversions given the request and the original response
- * Also sets the responseXXX fields on the jqXHR instance
+ * Also sets the responseXXX field on the jqXHR instance
  */
 function ajaxConvert( s, response, jqXHR, isSuccess ) {
 	var conv2, current, conv, tmp, prev,
@@ -9351,7 +9351,7 @@ jQuery.extend( {
 	},
 
 	// Creates a full fledged settings object into target
-	// with both ajaxSettings and settings fields.
+	// with both ajaxSettings and settings field.
 	// If target is omitted, writes into ajaxSettings.
 	ajaxSetup: function( target, settings ) {
 		return settings ?
@@ -9682,7 +9682,7 @@ jQuery.extend( {
 				transport.send( requestHeaders, done );
 			} catch ( e ) {
 
-				// Rethrow post-completion exceptions
+				// Rethrow _post-completion exceptions
 				if ( completed ) {
 					throw e;
 				}
@@ -9732,7 +9732,7 @@ jQuery.extend( {
 				s.converters[ "text script" ] = function() {};
 			}
 
-			// Convert no matter what (that way responseXXX fields are always set)
+			// Convert no matter what (that way responseXXX field are always set)
 			response = ajaxConvert( s, response, jqXHR, isSuccess );
 
 			// If successful, handle type chaining
@@ -9992,7 +9992,7 @@ jQuery.ajaxTransport( function( options ) {
 					options.password
 				);
 
-				// Apply custom fields if provided
+				// Apply custom field if provided
 				if ( options.xhrFields ) {
 					for ( i in options.xhrFields ) {
 						xhr[ i ] = options.xhrFields[ i ];

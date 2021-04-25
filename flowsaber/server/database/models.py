@@ -42,6 +42,10 @@ class RunLogInput(Model):
     message: str = ""
 
 
+class RunLogsInput(Model):
+    logs: List[RunLogInput] = Field(default_factory=list)
+
+
 class GetRunLogsInput(Model):
     id: List[str] = Field(default_factory=list)
     taskrun_id: List[str] = Field(default_factory=list)

@@ -342,7 +342,7 @@ class DaskExecutor(Executor):
     def _make_task_key(
             task_name: str = "", task_index: int = None, **kwargs: Any
     ) -> Optional[str]:
-        """A helper for generating a dask task key from fields set in `extra_context`"""
+        """A helper for generating a dask task key from field set in `extra_context`"""
         if task_name:
             suffix = uuid.uuid4().hex
             if task_index is not None:

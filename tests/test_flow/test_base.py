@@ -19,7 +19,8 @@ def test_flow():
     num_ch = Channel.values(*list(range(10)))
     f = myflow(num_ch)
 
-    runner = FlowRunner(f)
+    runner = FlowRunner(f, server_address='asd')
+    # runner = FlowRunner(f)
     runner.run()
 
 

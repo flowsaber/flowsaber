@@ -33,6 +33,7 @@ from collections import defaultdict
 from functools import partial
 from typing import List, Optional, TYPE_CHECKING
 
+from flowsaber.core.default_context import DEFAULT_CONTEXT
 from flowsaber.core.utility.cache import Cache, get_cache
 from flowsaber.core.utility.executor import Executor, get_executor
 from flowsaber.utility.context import Context
@@ -40,6 +41,7 @@ from flowsaber.utility.logging import create_logger
 
 if TYPE_CHECKING:
     from flowsaber.core.flow import Flow
+    from queue import SimpleQueue
 
 
 class FlowSaberContext(Context):
@@ -198,70 +200,10 @@ def inject_context_attrs(factory):
 
 
 context = FlowSaberContext()
-# this default context will only work in the build time
-# during the flow/task run, will use context in flow/task as the initial context
-context.update({
-    'default_flow_config': {
-        'test__': {
-            'test__': [1, 2, 3]
-        },
-    },
-    'default_task_config': {
-        'executor_type': 'dask',
-        'test__': {
-            'test__': [1, 2, 3]
-        },
-        'timeout': 0,
-    },
-    # logging options can be flow/task specific, here we treat it as global options for simplicity
-    'logging': {
-        'fmt': "[{levelname}] [{filename}:{lineno}-{funcName}()] "
-               "task:{task_full_name} taskrun:{taskrun_id: <10} {message}",
-        'datefmt': "%Y-%m-%d %H:%M:%S",
-        'style': '{',
-        'level': 'DEBUG',
-        'buffer_size': 10,
-        'max_buffer_size': 2000,
-        'context_attrs': [
-            'flow_id',
-            'task_id',
-            'flow_name',
-            'task_name',
-            'flow_full_name',
-            'task_full_name',
-            'agent_id',
-            'flowrun_id',
-            'taskrun_id',
-        ]
-    },
-    'caches': [
-        {
-            'cache_type': 'local'
-        },
-        {
-            'cache_type': 'cloud',
-            'address': 'xxxx',
-            'cache_kwargs': None
-        }
-    ],
-    'executors': [
-        {
-            'executor_type': 'local'
-        },
-        {
-            'executor_type': 'dask',
-            'address': None,
-            'cluster_class': None,
-            'cluster_kwargs': None,
-            'adapt_kwargs': None,
-            'client_kwargs': None,
-            'debug': False
-        }
-    ]
-})
+context.update(DEFAULT_CONTEXT)
 
 log_record_factory = logging.getLogRecordFactory()
 log_record_factory = inject_context_attrs(log_record_factory)
 
 # if use `logger` as name, will coflict with logger in dask
-flowsaber_logger, flowsaber_log_queue_handler = create_logger("flowsaber", log_record_factory, context.logging)
+flowsaber_logger, buffer_handler, log_handler = create_logger("flowsaber", log_record_factory, context.logging)

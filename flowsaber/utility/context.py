@@ -8,6 +8,8 @@ from collections.abc import MutableMapping
 from copy import deepcopy
 from typing import Any, Iterable, Iterator, Union, cast
 
+from flowsaber.core.default_context import DEFAULT_CONTEXT
+
 DictLike = Union[dict, "DotBase"]
 
 
@@ -159,19 +161,21 @@ class Context(DotBase):
         try:
             return self._data.get()
         except LookupError as e:
-            # TODO No idea what's happened, the error shows up only in dask mode
-            self._data = contextvars.ContextVar(f"data-{id(self)}")
-            self.data = MergingDotDict()
+            # this happens in thread, context var is not valid in new thread
+            # dask uses thread to execute task
+            # TODO Any other way?
+            self.data = DEFAULT_CONTEXT
             return self._data.get()
 
     @data.setter
     def data(self, dic: DictLike):
         # this is the main point
         if not isinstance(dic, MergingDotDict):
-            self._data.set(MergingDotDict())
+            token = self._data.set(MergingDotDict())
             self.update(dic)
         else:
-            self._data.set(dic)
+            token = self._data.set(dic)
+        self._thread_backup = self._data.get()
 
     def __getstate__(self) -> None:
         """
@@ -196,10 +200,13 @@ class Context(DotBase):
                 print(context.a) # 1
         """
         # Avoid creating new `Context` object, copy as `dict` instead.
+        update_dict = dict(*args, **kwargs)
         prev_context = self.to_dict()
         try:
-            new_context = merge_dicts(deepcopy(prev_context), dict(*args, **kwargs))
-            self.data = new_context
+            if update_dict:
+                new_context = merge_dicts(deepcopy(prev_context), update_dict)
+                self.data = new_context
             yield self
         finally:
-            self.data = prev_context
+            if update_dict:
+                self.data = prev_context
