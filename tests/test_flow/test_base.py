@@ -16,12 +16,13 @@ def test_flow():
     def myflow(num):
         return num | add | add | view | add | view
 
-    num_ch = Channel.values(*list(range(10)))
-    f = myflow(num_ch)
+    num_ch = Channel.values(*list(range(2)))
+    with flowsaber.context({'logging': {'level': "DEBUG"}}):
+        f = myflow(num_ch)
 
     runner = FlowRunner(f, server_address='asd')
     # runner = FlowRunner(f)
-    runner.run()
+    runner.run(context={'logging': {'level': 'DEBUG'}})
 
 
 if __name__ == "__main__":

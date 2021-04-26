@@ -156,12 +156,17 @@ class TaskRunner(Runner):
                 is_main_thread = threading.current_thread() is threading.main_thread()
                 if is_main_thread:
                     flowsaber.context.logger.debug("Run in timeout in main thread in unix system")
-                    return run_timeout_signal(self.task.run, timeout, **self.inputs.arguments)
+                    return run_timeout_signal(timeout, self.task.run, **self.inputs.arguments)
 
-            flowsaber.context.logger.warning("Run in timeout using ThreadPoolExecutor")
-            # ERROR
-            # TODO when enter the new thread, the original context becomes invalid, why?
-            return run_timeout_thread(self.task.run, timeout, **self.inputs.arguments)
+            flowsaber.context.logger.debug("Run in timeout using ThreadPoolExecutor")
+
+            run_arguments = self.inputs.arguments
+
+            @enter_context
+            def run_in_context(task):
+                return task.run(**run_arguments)
+
+            return run_timeout_thread(timeout, run_in_context, self.task)
 
         return self.task.run(**self.inputs.arguments)
 

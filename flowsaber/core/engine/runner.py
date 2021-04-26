@@ -103,7 +103,7 @@ def catch_to_failure(method: Callable[..., State]) -> Callable[..., State]:
     return catch_exception_to_failure
 
 
-def run_timeout_signal(func: Callable, timeout: int, *args, **kwargs):
+def run_timeout_signal(timeout: int, func: Callable, *args, **kwargs):
     """Run function in main thread in unix system with timeout using SIGALARM signal.
 
     References
@@ -143,7 +143,7 @@ def run_timeout_signal(func: Callable, timeout: int, *args, **kwargs):
     return res
 
 
-def run_timeout_thread(func: Callable, timeout: int, **kwargs):
+def run_timeout_thread(timeout: int, *args, **kwargs):
     """Run the task within timeout within a thread pool. Note that the flowsaber.context would be corrupted
     in the new thread.
 
@@ -161,7 +161,7 @@ def run_timeout_thread(func: Callable, timeout: int, **kwargs):
 
     try:
         with ThreadPoolExecutor(max_workers=1) as executor:
-            fut = executor.submit(func, **kwargs)
+            fut = executor.submit(*args, **kwargs)
             return fut.result(timeout=timeout)
     except TimeoutError as e:
         fut.cancel()

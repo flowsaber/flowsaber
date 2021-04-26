@@ -159,9 +159,7 @@ class DaskExecutor(Executor):
     async def __aenter__(self):
         from distributed import Client
         if self.address is None:
-            self.cluster = self.cluster_class(**self.cluster_kwargs,
-                                              asynchronous=True,
-                                              threads_per_worker=1)
+            self.cluster = self.cluster_class(**self.cluster_kwargs, asynchronous=True)
             await self.cluster.__aenter__()
             if self.adapt_kwargs:
                 self.cluster.adapt(**self.adapt_kwargs)

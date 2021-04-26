@@ -14,7 +14,7 @@ DEFAULT_CONTEXT = {
         'test__': {
             'test__': [1, 2, 3]
         },
-        'timeout': 0,
+        'timeout': 10,
         'log_stdout': True,
         'log_stderr': True,
     },
@@ -24,7 +24,7 @@ DEFAULT_CONTEXT = {
                "task:{task_full_name} taskrun:{taskrun_id: <10} {message}",
         'datefmt': "%Y-%m-%d %H:%M:%S",
         'style': '{',
-        'level': 'INFO',
+        'level': 'DEBUG',
         'buffer_size': 10,
         'context_attrs': [
             'flow_id',
@@ -57,6 +57,8 @@ DEFAULT_CONTEXT = {
             'address': None,
             'cluster_class': None,
             'cluster_kwargs': None,
+            # TODO for best performance, use threads as worker, however, there may be bugs related to context and CWD
+            # 'cluster_kwargs': {'threads_per_worker': 1},
             'adapt_kwargs': None,
             'client_kwargs': None,
             'debug': False
