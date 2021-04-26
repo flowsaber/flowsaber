@@ -17,7 +17,7 @@ task_name
 task_full_name
 task_labels
 
-flowrun_id
+id
 flowrun_name
 
 taskrun_id
@@ -151,7 +151,7 @@ class FlowSaberContext(Context):
     @property
     def logger(self) -> logging.Logger:
         """Get a child logger of `flowsaber` logger with name of:
-        `callee.__name__.agent_id.flow_id.flowrun_id.task_id.taskrun_id`
+        `callee.__name__.agent_id.flow_id.id.task_id.taskrun_id`
 
         Returns
         -------

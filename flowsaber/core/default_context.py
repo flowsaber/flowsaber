@@ -34,7 +34,7 @@ DEFAULT_CONTEXT = {
             'flow_full_name',
             'task_full_name',
             'agent_id',
-            'flowrun_id',
+            'id',
             'taskrun_id',
         ]
     },

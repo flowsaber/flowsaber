@@ -15,7 +15,7 @@ from flowsaber.core.engine.runner import (
     redirect_std_to_logger
 )
 from flowsaber.core.utility.state import (
-    State, Scheduled, Pending, Running, Retrying,
+    State, Pending, Running, Retrying,
     Failure, Cached, Success, Skip, Drop
 )
 from flowsaber.core.utility.target import File
@@ -165,16 +165,17 @@ class TaskRunner(Runner):
 
         return self.task.run(**self.inputs.arguments)
 
-    def serialize(self, old_state: State, new_state: State) -> TaskRunInput:
-        taskrun_input = TaskRunInput(id=self.id, state=new_state.to_dict())
-        if isinstance(old_state, Scheduled) and isinstance(new_state, Pending):
-            taskrun_input.__dict__.update({
-                'task_id': flowsaber.context.get('task_id'),
-                'flow_id': flowsaber.context.get('flow_id'),
-                'agent_id': flowsaber.context.get('agent_id'),
-                'flowrun_id': flowsaber.context.get('flowrun_id'),
-                'inputs': {},
-                'context': flowsaber.context.to_dict()
+    def serialize(self, state: State, state_only=True):
+        info = {'id': self.id, 'state': state.to_dict()}
+        if not state_only:
+            info.update({
+                'flowrun_id': self.context['flowrun_id'],
+                'agent_id': self.context.get('agent_id'),
+                'task_id': self.context['task_id'],
+                'flow_id': self.context['flow_id'],
+                'context': {},
             })
+
+        taskrun_input = TaskRunInput(**info)
 
         return taskrun_input

@@ -2,24 +2,24 @@ type RunLog {
     id: UUID!
     level: String!
     time: DateTime!
+    message: String
     task_id: UUID
     flow_id: UUID
     taskrun_id: UUID
     flowrun_id: UUID
     agent_id: UUID
-    message: String
 }
 
 input RunLogInput {
     id: UUID!
     level: String!
     time: DateTime!
+    message: String!
     task_id: UUID
     flow_id: UUID
     taskrun_id: UUID
     flowrun_id: UUID
     agent_id: UUID
-    message: String
 }
 
 input RunLogsInput {

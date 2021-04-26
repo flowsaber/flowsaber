@@ -7,8 +7,8 @@ from flowsaber.core.engine.runner import (
 )
 from flowsaber.core.engine.scheduler import TaskScheduler
 from flowsaber.core.flow import Flow
-from flowsaber.core.utility.state import State, Scheduled, Pending, Running, Success
-from flowsaber.server.database.models import FlowRunInput, RunInput
+from flowsaber.core.utility.state import State, Pending, Running, Success
+from flowsaber.server.database.models import FlowRunInput
 
 
 async def maintain_heartbeat(runner: "Runner"):
@@ -68,17 +68,17 @@ class FlowRunner(Runner):
             res = await self.flow.start(scheduler=scheduler, **kwargs)
         return res
 
-    def serialize(self, old_state: State, new_state: State) -> RunInput:
-        flowrun_input = FlowRunInput(id=self.id, state=new_state.to_dict())
-        if isinstance(old_state, Scheduled) and isinstance(new_state, Pending):
-            flowrun_input.__dict__.update({
-                'task_id': flowsaber.context.get('task_id'),
-                'flow_id': flowsaber.context.get('flow_id'),
-                'agent_id': flowsaber.context.get('agent_id'),
-                'name': flowsaber.context.get('flow_name'),
-                'labels': flowsaber.context.get('flow_labels'),
-                'inputs': {},
-                'context': flowsaber.context.to_dict()
+    def serialize(self, state: State, state_only=True) -> FlowRunInput:
+        info = {'id': self.id, 'state': state.to_dict()}
+        if not state_only:
+            info.update({
+                'agent_id': self.context.get('agent_id'),
+                'flow_id': self.context['flow_id'],
+                'name': self.name,
+                'labels': self.labels,
+                'context': {},
             })
+
+        flowrun_input = FlowRunInput(**info)
 
         return flowrun_input

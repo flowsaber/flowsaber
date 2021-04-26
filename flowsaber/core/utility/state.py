@@ -30,7 +30,12 @@ class State(object):
         self.message: str = message or ""
 
     def to_dict(self) -> dict:
-        return self.__dict__
+        res = {
+            'state_type': self.__dict__['state_type'],
+            'result': None,
+            'message': self.__dict__['message']
+        }
+        return res
 
     @classmethod
     def from_dict(cls, state_dict) -> "State":

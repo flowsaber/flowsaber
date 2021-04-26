@@ -2,31 +2,31 @@ type Query {
     hello: String
 
     get_agent(input: UUID!): Agent!
-    get_agents: ids_payload!
+    get_agents: IdsPayload!
 
     get_flow(input: UUID!): Flow!
-    get_flows(input: GetFLowsInput!): ids_payload!
+    get_flows(input: GetFLowsInput!): IdsPayload!
 
     get_taskrun(input: UUID!): TaskRun!
-    get_taskruns(input: GetTaskRunsInput!): ids_payload!
+    get_taskruns(input: GetTaskRunsInput!): IdsPayload!
 
     get_flowrun(input: UUID!): FlowRun!
-    get_flowruns(input: GetFLowRunsInput!): ids_payload!
+    get_flowruns(input: GetFLowRunsInput!): IdsPayload!
 
     get_runlogs(input: GetRunLogsInput!): [RunLog!]!
 }
 
 type Mutation {
-    hello: success_payload!
+    hello: SuccessPayload!
 
     create_agent(input: AgentInput!): Agent!
-    delete_agent(input: UUID!): success_payload!
+    delete_agent(input: UUID!): SuccessPayload!
 
     create_flow(input: FlowInput!): Flow!
-    delete_flow(input: UUID!): success_payload!
+    delete_flow(input: UUID!): SuccessPayload!
 
     update_flowrun(input: FlowRunInput!): FlowRun!
     update_taskrun(input: TaskRunInput!): TaskRun!
 
-    write_runlogs(input: RunLogsInput!): success_payload!
+    write_runlogs(input: RunLogsInput!): SuccessPayload!
 }

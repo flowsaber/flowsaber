@@ -1,7 +1,7 @@
 from collections import defaultdict
 from typing import Sequence
 
-from ariadne import QueryType, MutationType, EnumType, ScalarType, ObjectType
+from ariadne import QueryType, MutationType, ScalarType, ObjectType
 from graphql import GraphQLResolveInfo
 from starlette.requests import Request
 
@@ -10,8 +10,7 @@ from flowsaber.server.database import *
 USERNAME = "admin"
 PASSWORD = "admin"
 
-db = get_db(f"mongodb+srv://{USERNAME}:{PASSWORD}@flowsaber.bkirk.mongodb.net"
-            f"/myFirstDatabase?retryWrites=true&w=majority")
+db = get_db('mongodb://127.0.0.1:27017')
 
 query = QueryType()
 mutation = MutationType()
@@ -20,15 +19,27 @@ flow = ObjectType("Flow")
 task = ObjectType("Task")
 flowrun = ObjectType("FlowRun")
 
-log_level = EnumType("LogLevel", LogLevel)
-
 datetime_scalar = ScalarType("DateTime")
+uuid_scalar = ScalarType("UUID")
+json_scalar = ScalarType("JSON")
 
 
 @datetime_scalar.serializer
 def serialize_datetime(value: datetime) -> str:
     assert isinstance(value, datetime)
     return value.isoformat()
+
+
+@uuid_scalar.serializer
+def serialize_uuid(value: str) -> str:
+    assert isinstance(value, str)
+    return value
+
+
+@json_scalar.serializer
+def serialize_json(value: dict) -> dict:
+    assert isinstance(value, dict)
+    return value
 
 
 def ch_id(data: dict) -> dict:
@@ -61,12 +72,15 @@ def update_notnone_exp(data: dict):
             if isinstance(v, dict):
                 resolve(v, f"{k}.")
             elif v is not None:
-                exp[f'{prevk}k'] = v
+                exp[f'{prevk}{k}'] = v
 
     resolve(data)
-
+    exp.pop("id", None)
+    exp.pop("_id", None)
     return {"$set": exp}
 
+
+# query
 
 @query.field('hello')
 async def hello(obj, info) -> str:
@@ -74,30 +88,34 @@ async def hello(obj, info) -> str:
 
 
 @query.field('get_agent')
-async def get_agent(obj, info, agent_id: str) -> Agent:
-    agent = await db.agent.find_one({"_id": agent_id})
-    agent = Agent(**ch_id(agent))
+async def get_agent(obj, info, input: str) -> Agent:
+    agent_id = input
+    agent_dict = await db.agent.find_one({"_id": agent_id})
+    agent_dict = ch_id(agent_dict)
+    agent = Agent(**agent_dict)
     return agent
 
 
 @query.field('get_agents')
-async def get_agents(obj, info) -> IdsPaload:
+async def get_agents(obj, info) -> IdsPayload:
     ids = []
-    async for agent in db.agent.find({}, {'_id': 1}):
-        ids.append(agent['_id'])
+    async for agent_dict in db.agent.find({}, {'_id': 1}):
+        ids.append(agent_dict['_id'])
 
-    return IdsPaload(id=ids)
+    return IdsPayload(id=ids)
 
 
 @query.field("get_flow")
-async def get_flow(obj, info, flow_id: str) -> Flow:
-    flow = await db.flow.find_one({"_id": flow_id})
-    flow = Flow(**ch_id(flow))
+async def get_flow(obj, info, input: str) -> Flow:
+    flow_id = input
+    flow_dict = await db.flow.find_one({"_id": flow_id})
+    flow_dict = ch_id(flow_dict)
+    flow = Flow(**flow_dict)
     return flow
 
 
-@query.field("get_taskrun")
-async def get_flows(obj, info, input: dict) -> IdsPaload:
+@query.field("get_flows")
+async def get_flows(obj, info, input: dict) -> IdsPayload:
     input = GetFlowsInput(**input)
     exp = {
         "$or":
@@ -109,57 +127,61 @@ async def get_flows(obj, info, input: dict) -> IdsPaload:
     }
 
     ids = []
-    async for flow in db.flow.find(exp, {"_id": 1}):
-        ids.append(flow['_id'])
+    async for flow_dict in db.flow.find(exp, {"_id": 1}):
+        ids.append(flow_dict['_id'])
 
-    return IdsPaload(id=ids)
+    return IdsPayload(id=ids)
 
 
 @query.field("get_taskrun")
-async def get_taskrun(obj, info, taskrun_id: str) -> TaskRun:
-    taskrun = await db.taskrun.find({"_id": taskrun_id})
-    taskrun = TaskRun(**ch_id(taskrun))
+async def get_taskrun(obj, info, input: str) -> TaskRun:
+    taskrun_id = input
+    taskrun_dict = await db.taskrun.find({"_id": taskrun_id})
+    taskrun_dict = ch_id(taskrun_dict)
+    taskrun = TaskRun(**taskrun_dict)
     return taskrun
 
 
 @query.field("get_taskruns")
-async def get_taskruns(obj, info, input: dict) -> IdsPaload:
+async def get_taskruns(obj, info, input: dict) -> IdsPayload:
     input = GetTaskRunsInput(**input)
-    exp_taskrun = {
+    exp = {
         "$or":
             [
-                {"_id": {"$in": input.taskrun_id}},
+                {"_id": {"$in": input.id}},
                 {'task_id': {"$in": input.task_id}},
                 {"flow_id": {"$in": input.flow_id}},
                 {"agent_id": {"$in": input.agent_id}},
-                {"flowrun_id": {"$in": input.flowrun_id}},
+                {"id": {"$in": input.flowrun_id}},
                 {"state.state_type": {"$in": input.state_type}}
             ]
     }
     time_exp = get_time_exp(input)
     if time_exp:
-        exp_taskrun.update({"start_time": time_exp})
+        exp.update({"start_time": time_exp})
     ids = []
-    async for taskrun in db.taskrun.find(exp_taskrun, {"_id": 1}):
-        ids.append(taskrun['_id'])
+    async for taskrun_dict in db.taskrun.find(exp, {"_id": 1}):
+        ids.append(taskrun_dict['_id'])
 
-    return IdsPaload(id=ids)
+    return IdsPayload(id=ids)
 
 
 @query.field("get_flowrun")
-async def get_flowrun(obj, info, flowrun_id: str) -> FlowRun:
-    flowrun = await db.flowrun.find_one({"_id": flowrun_id})
-    flowrun = FlowRun(**ch_id(flowrun))
+async def get_flowrun(obj, info, input: str) -> FlowRun:
+    flowrun_id = input
+    flowrun_dict = await db.flowrun.find_one({"_id": flowrun_id})
+    flowrun_dict = ch_id(flowrun_dict)
+    flowrun = FlowRun(**flowrun_dict)
     return flowrun
 
 
 @query.field("get_flowruns")
-async def get_flowruns(obj, info, input: dict) -> IdsPaload:
+async def get_flowruns(obj, info, input: dict) -> IdsPayload:
     input = GetFlowRunsInput(**input)
-    exp_flowrun = {
+    exp = {
         "$or":
             [
-                {"_id": {"$in": input.flowrun_id}},
+                {"_id": {"$in": input.id}},
                 {"flow_id": {"$in": input.flow_id}},
                 {"agent_id": {"$in": input.agent_id}},
                 {"name": {"$in": input.name}},
@@ -169,19 +191,20 @@ async def get_flowruns(obj, info, input: dict) -> IdsPaload:
     }
     time_exp = get_time_exp(input)
     if time_exp:
-        exp_flowrun.update({"start_time": time_exp})
+        exp.update({"start_time": time_exp})
     ids = []
-    async for flowrun in db.flowrun.find(exp_flowrun, {"_id": 1}):
-        ids.append(flowrun['_id'])
+    async for flowrun_dict in db.flowrun.find(exp, {"_id": 1}):
+        ids.append(flowrun_dict['_id'])
 
-    return IdsPaload(id=ids)
+    return IdsPayload(id=ids)
 
 
 @query.field("get_runlogs")
 async def get_runlogs(obj, info, input: dict) -> List[RunLog]:
     input = GetRunLogsInput(**input)
-    exp_runlog = {
+    exp = {
         "$or": [
+            {"_id": {"$in": input.id}},
             {"taskrun_id": {"$in": input.taskrun_id}},
             {"flowrun_id": {"$in": input.flowrun_id}},
             {"agent_id": {"$in": input.agent_id}},
@@ -190,14 +213,17 @@ async def get_runlogs(obj, info, input: dict) -> List[RunLog]:
     }
     time_exp = get_time_exp(input)
     if time_exp:
-        exp_runlog.update({"time": time_exp})
+        exp.update({"time": time_exp})
 
     runlogs = []
-    async for runlog in db.runlog.find(exp_runlog, {"_id": 0}):
-        runlogs.append(RunLog(**ch_id(runlog)))
+    async for runlog_dict in db.runlog.find(exp):
+        runlog_dict = ch_id(runlog_dict)
+        runlogs.append(RunLog(**runlog_dict))
 
     return runlogs
 
+
+# mutation
 
 @mutation.field("hello")
 async def resolve_write_hello(obj, info):
@@ -208,15 +234,16 @@ async def resolve_write_hello(obj, info):
 async def create_agent(obj, info: GraphQLResolveInfo, input: dict):
     request: Request = info.context['request']
     address = request.client.host
-    agent = Agent(**input, address=address).dict()
-    res = await db.agent.insert_one(ch_id(agent))
+    agent_dict = Agent(**input, address=address).dict()
+    res = await db.agent.insert_one(ch_id(agent_dict))
     return agent
 
 
 @mutation.field("delete_agent")
-async def delete_agent(obj, info, agent_id: str):
-    await db.agent.delete_one({"_id": agent_id})
-    return SuccessPayload()
+async def delete_agent(obj, info, input: str):
+    agent_id = input
+    res = await db.agent.delete_one({"_id": agent_id})
+    return SuccessPayload(success=res.deleted_count == 1)
 
 
 @mutation.field("create_flow")
@@ -225,8 +252,8 @@ async def create_flow(obj, info, input: dict):
     docs_dict = defaultdict(list)
     # store channels, tasks, flows
     for i, task_input in enumerate(flow_input.tasks):
-        for j, ch_input in enumerate(task_input.outputs):
-            task_input.outputs[j] = ch_input.id
+        for j, ch_input in enumerate(task_input.output):
+            task_input.output[j] = ch_input.id
             docs_dict['channel'].append(Channel(**ch_input.dict()))
         flow_input.tasks[i] = task_input.id
         docs_dict['task'].append(Task(**task_input.dict()))
@@ -240,53 +267,81 @@ async def create_flow(obj, info, input: dict):
 
 
 @mutation.field("delete_flow")
-async def delete_flow(obj, info, flow_id: str):
-    await db.flow.delete_one({"_id": flow_id})
-    return SuccessPayload()
+async def delete_flow(obj, info, input: str):
+    flow_id = input
+    res = await db.flow.delete_one({"_id": flow_id})
+    return SuccessPayload(success=res.deleted_count == 1)
 
 
 @mutation.field("update_flowrun")
 async def update_flowrun(obj, info, input: dict):
     flowrun_input = FlowRunInput(**input)
-    flowrun = await db.find_one({"_id": flowrun_input.id})
+    flowrun_id = flowrun_input.id
+    flowrun = await db.find_one({"_id": flowrun_id})
     if flowrun is None:
+        # insert a new flowrun
         flowrun = FlowRun(**flowrun_input.dict())
-        await db.insert_one(ch_id(flowrun.dict()))
+        if not flowrun.start_time:
+            flowrun.start_time = datetime.utcnow()
+        await db.flowrun.insert_one(ch_id(flowrun.dict()))
+        # append to agent, flow 's flowruns
+        await db.agent.update_one({"_id": flowrun.agent_id}, {"$push": flowrun.id})
+        await db.flow.update_one({"_id": flowrun.flow_id}, {"$push": flowrun.id})
         return flowrun
     else:
         update_exp = update_notnone_exp(flowrun_input.dict())
-        await db.flowrun.update_one(update_exp)
-        updated_flowrun = await db.flowrun.find_one({"_id": flowrun_input.id})
-        return updated_flowrun
+        await db.flowrun.update_one({'_id': flowrun_id}, update_exp)
+        updated_flowrun = await db.flowrun.find_one({"_id": flowrun_id})
+        return ch_id(updated_flowrun)
 
 
 @mutation.field("update_taskrun")
 async def update_taskrun(obj, info, input: dict):
     taskrun_input = TaskRunInput(**input)
-    taskrun = await db.find_one({"_id": taskrun_input.id})
+    taskrun_id = taskrun_input.id
+    taskrun = await db.find_one({"_id": taskrun_id})
     if taskrun is None:
+        # insert a new task run
         taskrun = TaskRun(**taskrun_input.dict())
-        await db.insert_one(ch_id(taskrun.dict()))
+        if not taskrun.start_time:
+            taskrun.start_time = datetime.utcnow()
+        await db.taskrun.insert_one(ch_id(taskrun.dict()))
+        # append taskrun into the flowrun
+        await db.flowrun.update_one({"_id": taskrun.flowrun_id}, {"$push": {"taskruns": taskrun.id}})
         return taskrun
     else:
         update_exp = update_notnone_exp(taskrun_input.dict())
-        await db.taskrun.update_one(update_exp)
-        updated_taskrun = await db.taskrun.find_one({"_id": taskrun_input.id})
-        return updated_taskrun
+        await db.taskrun.update_one({'_id': taskrun_id}, update_exp)
+        updated_taskrun = await db.taskrun.find_one({"_id": taskrun_id})
+        return ch_id(updated_taskrun)
 
 
 @mutation.field("write_runlogs")
 async def write_runlogs(obj, info, run_logs: Sequence[dict]):
     run_logs = [ch_id(run_log) for run_log in run_logs]
-    await db.runlog.insert_many(run_logs)
+    res = await db.runlog.insert_many(run_logs)
     return SuccessPayload()
 
 
 #
+@flow.field("tasks")
+async def resolve_tasks(obj, info):
+    cursor = db.task.find({"_id": {"$in": obj.tasks}})
+    tasks = await cursor.to_list(len(obj.tasks))
+    tasks = [Task(**ch_id(task)) for task in tasks]
+    return tasks
 
 
-@agent.field("flowruns")
+@task.field('output')
+async def resolve_channels(obj, info):
+    cursor = db.channel.find({"_id": {"$in": obj.output}})
+    channels = await cursor.to_list(len(obj.output))
+    channels = [Channel(**ch_id(channel)) for channel in channels]
+    return channels
+
+
 @flow.field("flowruns")
+@agent.field("flowruns")
 async def resolve_flowruns(obj, info):
     cursor = db.flowrun.find({"_id": {"$in": obj.flowruns}})
     flowruns = await cursor.to_list(len(obj.flowruns))
@@ -295,17 +350,8 @@ async def resolve_flowruns(obj, info):
 
 
 @flowrun.field("taskruns")
-@task.field("taskruns")
 async def resolve_taskruns(obj, info):
     cursor = db.taskrun.find({"_id": {"$in": obj.taskruns}})
     taskruns = await cursor.to_list(len(obj.taskruns))
     taskruns = [TaskRun(**ch_id(taskrun)) for taskrun in taskruns]
     return taskruns
-
-
-@flow.field("tasks")
-async def resolve_tasks(obj, info):
-    cursor = db.task.find({"_id": {"$in": obj.tasks}})
-    tasks = await cursor.to_list(len(obj.tasks))
-    tasks = [Task(**ch_id(task)) for task in tasks]
-    return tasks

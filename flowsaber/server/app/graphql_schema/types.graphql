@@ -3,11 +3,11 @@ scalar JSON
 scalar UUID
 
 
-type success_payload {
+type SuccessPayload {
     success: Boolean!
     error: String
 }
 
-type ids_payload {
+type IdsPayload {
     id: [UUID]!
 }

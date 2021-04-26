@@ -35,9 +35,9 @@
 #                 get_flowruns_input = GetFlowRunsInput(state_type=[Scheduled().state_type])
 #                 flowrun_ids = await self.client.get_flowruns(get_flowruns_input)
 #
-#                 for flowrun_id in flowrun_ids:
+#                 for id in flowrun_ids:
 #                     # fetch flowrun and flow
-#                     flow_run = await self.client.get_flowrun(flowrun_id)
+#                     flow_run = await self.client.get_flowrun(id)
 #                     flow = await self.client.get_flow(flow_run['flow_id'])
 #                     state = State.from_dict(flow_run['state'])
 #
@@ -50,10 +50,10 @@
 #                         }
 #                     }
 #                     fut = scheduler.create_task(flow_runner.run, state, **flow_run_kwargs)
-#                     self.flowruns[flowrun_id] = fut
+#                     self.flowruns[id] = fut
 #
 #                     def remove_flowrun(*args):
-#                         del self.flowruns[flowrun_id]
+#                         del self.flowruns[id]
 #
 #                     fut.add_done_callback(remove_flowrun)
 #                 # sleep for some time

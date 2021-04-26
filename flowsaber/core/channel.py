@@ -216,8 +216,8 @@ class Channel(ChannelBase):
         self.queue_factory = queue_factory
         # context info
         self.id = flowsaber.context.random_id
-        self.task_id = flowsaber.context.get('task_id')
-        self.flow_id = flowsaber.context.get('flow_id')
+        self.task_id = flowsaber.context.get('task_id', None)
+        self.flow_id = flowsaber.context.get('flow_id', None)
 
     def serialize(self) -> ChannelInput:
         return ChannelInput(

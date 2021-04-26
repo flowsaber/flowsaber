@@ -1,15 +1,11 @@
 type State {
-    id: UUID!
     state_type: String!
-    inputs: JSON
     result: String
     message: String
 }
 
 input StateInput {
-    id: UUID!
     state_type: String!
-    inputs: JSON
     result: String
     message: String
 }

@@ -199,7 +199,7 @@ async def send_logs(runner: "Runner"):
             'task_id': getattr(record, 'task_id', None),
             'flow_id': getattr(record, 'flow_id', None),
             'taskrun_id': getattr(record, 'taskrun_id', None),
-            'flowrun_id': getattr(record, 'flowrun_id', None),
+            'id': getattr(record, 'id', None),
             'agent_id': getattr(record, 'agent_id', None),
             'message': record.message
         }
@@ -325,14 +325,16 @@ class Runner(object):
         # used for executing background async tasks
         self.executor: Optional[RunnerExecutor] = None
         self.async_tasks: Set[AsyncFunc] = set()
-        self.state_change_handlers: List[Callable] = [self.logging_state_change_chandler]
+        self.state_change_handlers: List[Callable] = []
         # client
         self.server_address: str = server_address
         self.client: Optional[Client] = Client(self.server_address) if self.server_address else None
         self.log_queue: Optional[asyncio.Queue] = None
-        # add tasks
+        # add tasks and state handlers
+        self.state_change_handlers.append(self.logging_run_state)
         if self.client:
             self.add_async_task(send_logs)
+            self.state_change_handlers.append(self.update_run_state)
 
     def add_async_task(self, async_task: AsyncFunc):
         # TODO each async task should add a exit async function
@@ -342,13 +344,6 @@ class Runner(object):
 
     def remove_async_tasks(self, async_task: AsyncFunc):
         self.async_tasks.remove(async_task)
-
-    @staticmethod
-    def logging_state_change_chandler(runner: "Runner", old_state, new_state):
-        flowsaber.context.logger.info(f"State change from [{old_state}] to [{new_state}]")
-
-    def serialize(self, old_state: State, new_state: State) -> RunInput:
-        raise NotImplementedError
 
     @property
     def context(self) -> dict:
@@ -424,3 +419,21 @@ class Runner(object):
     def set_state(self, old_state: State, state_type: type):
         assert issubclass(state_type, State)
         return state_type.copy(old_state)
+
+    def serialize(self, state: State, state_only=True) -> RunInput:
+        raise NotImplementedError
+
+    @staticmethod
+    def logging_run_state(runner: "Runner", old_state, new_state):
+        flowsaber.context.logger.debug(f"State change from [{old_state}] to [{new_state}]")
+
+    @staticmethod
+    def update_run_state(runner: "Runner", old_state, new_state):
+        async def update_run(client, run_input):
+            is_flow = 'flow' in type(runner).__name__.lower()
+            method = 'update_flowrun' if is_flow else "update_taskrun"
+            await client.mutation(method, run_input, field='id')
+
+        state_only = not (old_state is None and isinstance(new_state, Scheduled))
+        run_input = runner.serialize(new_state, state_only=state_only)
+        runner.executor.create_task(update_run(runner.client, run_input))
