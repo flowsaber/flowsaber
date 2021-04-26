@@ -76,6 +76,7 @@ setup(
             'ariadne',
             'uvicorn',
             'starlette',
+            'motor'
         ]
     },
     python_requires='>=3.7, <4',

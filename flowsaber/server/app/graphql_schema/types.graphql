@@ -1,4 +1,4 @@
-scalar DateTime
+scalar TimeStamp
 scalar JSON
 scalar UUID
 

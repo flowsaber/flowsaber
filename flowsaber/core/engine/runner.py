@@ -11,8 +11,9 @@ from typing import Callable, Set, List, Union, Optional, Coroutine
 import flowsaber
 from flowsaber.client.client import Client
 from flowsaber.core.base import Component, enter_context
-from flowsaber.core.utility.state import State, Failure, Scheduled, Cancelled
+from flowsaber.core.utility.state import State, Failure, Scheduled, Cancelling, Cancelled
 from flowsaber.server.database.models import RunInput, RunLogsInput, RunLogInput
+from flowsaber.utility.utils import interrupt_main
 
 AsyncFunc = Callable[..., Coroutine]
 
@@ -170,6 +171,8 @@ def run_timeout_thread(timeout: int, *args, **kwargs):
 
 async def check_cancellation(runner: "Runner"):
     import asyncio
+    await runner.executor.initialized_q.get()
+    runner.executor.initialized_q.task_done()
     check_interval = runner.config.get('check_cancellation_interval', 5)
     runner_id = runner.id
     client: Client = runner.client
@@ -177,13 +180,50 @@ async def check_cancellation(runner: "Runner"):
         method = 'get_flowrun'
     else:
         method = 'get_taskrun'
-    fields = "state"
+    fields = "state { state_type} "
     while True:
         await asyncio.sleep(check_interval)
         run = await client.query(method, input=runner_id, field=fields)
-        # state = State.from_dict(run['state'])
-        # if isinstance(state, Cancelling):
-        #     interrupt_main()
+        state = State.from_dict(run['state'])
+        if isinstance(state, Cancelling):
+            flowsaber.context.logger.error("Fetched flow cancelling request from server.")
+            interrupt_main()
+
+
+async def update_run_sate(runner: "Runner"):
+    """Does not use runner.executor.create_task as these jobs has a strict order
+
+    Parameters
+    ----------
+    runner
+
+    Returns
+    -------
+
+    """
+
+    def state_change_handler(runner, old_state, new_state):
+        async def update_run(client, run_input):
+            is_flow = 'flow' in type(runner).__name__.lower()
+            method = 'update_flowrun' if is_flow else "update_taskrun"
+            await client.mutation(method, run_input, field='id')
+
+        state_only = not (old_state is None and isinstance(new_state, Scheduled))
+        run_input = runner.serialize(new_state, state_only=state_only)
+        print(state_only, run_input)
+        loop.call_soon_threadsafe(task_queue.put_nowait, update_run(runner.client, run_input))
+
+    loop = asyncio.get_running_loop()
+    task_queue = asyncio.Queue()
+    try:
+        runner.state_change_handlers[1] = state_change_handler
+        await runner.executor.initialized_q.get()
+        runner.executor.initialized_q.task_done()
+        while True:
+            coro = await task_queue.get()
+            await coro
+    finally:
+        runner.state_change_handlers[1] = None
 
 
 async def send_logs(runner: "Runner"):
@@ -195,11 +235,10 @@ async def send_logs(runner: "Runner"):
     def enqueue_log(record):
         record_dict = {
             'level': record.levelname,
-            'time': datetime.fromtimestamp(record.created),
+            'time': datetime.fromtimestamp(record.created).timestamp(),
             'task_id': getattr(record, 'task_id', None),
             'flow_id': getattr(record, 'flow_id', None),
             'taskrun_id': getattr(record, 'taskrun_id', None),
-            'id': getattr(record, 'id', None),
             'agent_id': getattr(record, 'agent_id', None),
             'message': record.message
         }
@@ -208,6 +247,8 @@ async def send_logs(runner: "Runner"):
 
     try:
         flowsaber.log_handler.handler = enqueue_log
+        await runner.executor.initialized_q.get()
+        runner.executor.initialized_q.task_done()
         while True:
             log = await log_queue.get()
             fields = "success\n" \
@@ -230,10 +271,12 @@ class RunnerExecutor(threading.Thread):
     def __init__(self, context=dict, **kwargs):
         super().__init__(**kwargs)
         self.context = context
-        self.tasks: List[asyncio.Future] = []
+        self.tasks: List[Coroutine] = []
+        self.futures = []
         self.loop: Optional[asyncio.AbstractEventLoop] = None
-        self.queue: Optional[asyncio.Queue] = None
         self.started: Optional[threading.Event] = None
+        self.initialized_q: Optional[asyncio.Queue] = None
+        self.exception: Optional[BaseException] = None
 
     def start(self) -> None:
         self.started = threading.Event()
@@ -247,11 +290,14 @@ class RunnerExecutor(threading.Thread):
         self.signal_stop()
         super().join()
         self.started = None
+        if self.exception:
+            self.exception = None
+            raise self.exception
 
     def signal_stop(self):
-        # the first task is a stop future
-        self.loop.call_soon_threadsafe(self.tasks[0].set_exception, self.DoneException())
-        self.loop.call_soon_threadsafe(self.queue.put_nowait, 'STOP')
+        if self.started and self.started.is_set() and len(self.futures):
+            # the first task is a stop future
+            self.loop.call_soon_threadsafe(self.futures[0].set_exception, self.DoneException())
 
     async def main_loop(self):
         """Endlessly fetch async task anc schedule for running in asyncio envent loop untill some task raise an
@@ -268,21 +314,22 @@ class RunnerExecutor(threading.Thread):
 
         self.loop = asyncio.get_running_loop()
         self.loop.set_exception_handler(raise_on_error)
-        self.queue = task_queue = asyncio.Queue()
-        self.started.set()
         # add a stop future as stop signal of executor
-        self.tasks.clear()
         stop_future = asyncio.Future()
-        self.tasks.append(stop_future)
+        self.futures.clear()
+        self.futures.append(stop_future)
 
-        while True:
-            coro = await task_queue.get()
-            if coro == 'STOP':
-                break
-            task = asyncio.create_task(coro)
-            self.tasks.append(task)
+        self.initialized_q = asyncio.Queue()
 
-        done, pending = await asyncio.wait(self.tasks, return_when=asyncio.FIRST_EXCEPTION)
+        while len(self.tasks):
+            coro = self.tasks.pop(-1)
+            self.futures.append(asyncio.create_task(coro))
+            self.initialized_q.put_nowait(1)
+
+        await self.initialized_q.join()
+
+        self.started.set()
+        done, pending = await asyncio.wait(self.futures, return_when=asyncio.FIRST_EXCEPTION)
         for job in pending:
             job.cancel()
 
@@ -297,17 +344,19 @@ class RunnerExecutor(threading.Thread):
         futures.remove(stop_future)
         if len(error_futures):
             raise RunnerExecuteError(futures=futures) from error_futures[0].exception()
-
         return futures
 
     @enter_context
     def run(self):
-
-        asyncio.run(self.main_loop())
+        try:
+            asyncio.run(self.main_loop())
+        except BaseException as exc:
+            print(exc)
+            self.exception = exc
 
     def create_task(self, coro: Union[Coroutine, str]):
-        assert self.started and self.started.is_set()
-        self.loop.call_soon_threadsafe(self.queue.put_nowait, coro)
+        assert not self.started or not self.started.is_set(), "Can only add task before running"
+        self.tasks.append(coro)
 
 
 class Runner(object):
@@ -330,11 +379,13 @@ class Runner(object):
         self.server_address: str = server_address
         self.client: Optional[Client] = Client(self.server_address) if self.server_address else None
         self.log_queue: Optional[asyncio.Queue] = None
+        self.update_queue: Optional[asyncio.Queue] = None
         # add tasks and state handlers
         self.state_change_handlers.append(self.logging_run_state)
         if self.client:
             self.add_async_task(send_logs)
-            self.state_change_handlers.append(self.update_run_state)
+            self.add_async_task(update_run_sate)
+            self.state_change_handlers.append(None)
 
     def add_async_task(self, async_task: AsyncFunc):
         # TODO each async task should add a exit async function
@@ -355,6 +406,7 @@ class Runner(object):
         assert self.component is not None, 'component is not settled'
         return self.component.config_dict
 
+    @call_state_change_handlers
     def initialize_run(self, state: Union[State, None], **kwargs) -> State:
         if state is None:
             state = Scheduled()
@@ -372,10 +424,14 @@ class Runner(object):
         -------
 
         """
+        print(f'1************* {prev_state} {cur_state}')
         handler = None
         try:
             for handler in self.state_change_handlers:
+                if handler is None:
+                    continue
                 cur_state = handler(self, prev_state, cur_state) or cur_state
+                print(f'************* {prev_state} {cur_state}')
         except Exception as exc:
             e_str = f"Unexpected error: {exc} when calling state_handler: {handler}"
             cur_state = Failure(result=exc, message=e_str)
@@ -383,7 +439,9 @@ class Runner(object):
 
     def run(self, state: State = None, **kwargs) -> State:
         try:
+            kwargs.setdefault('context', {})
             self.enter_run(state, **kwargs)
+            # print(kwargs['context'])
             final_state = self.start_run(state=state, **kwargs)
             # for debug
             if 'flow' in type(self).__name__.lower() and isinstance(final_state, Failure):
@@ -399,9 +457,9 @@ class Runner(object):
             with flowsaber.context(kwargs.get('context', {})) as context:
                 context_dict = context.to_dict()
         self.executor = RunnerExecutor(context=context_dict)
-        self.executor.start()
         for async_func in self.async_tasks:
             self.executor.create_task(async_func(self))
+        self.executor.start()
 
     def initialize_context(self, *args, **kwargs):
         pass
@@ -426,14 +484,3 @@ class Runner(object):
     @staticmethod
     def logging_run_state(runner: "Runner", old_state, new_state):
         flowsaber.context.logger.debug(f"State change from [{old_state}] to [{new_state}]")
-
-    @staticmethod
-    def update_run_state(runner: "Runner", old_state, new_state):
-        async def update_run(client, run_input):
-            is_flow = 'flow' in type(runner).__name__.lower()
-            method = 'update_flowrun' if is_flow else "update_taskrun"
-            await client.mutation(method, run_input, field='id')
-
-        state_only = not (old_state is None and isinstance(new_state, Scheduled))
-        run_input = runner.serialize(new_state, state_only=state_only)
-        runner.executor.create_task(update_run(runner.client, run_input))

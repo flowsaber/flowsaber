@@ -14,7 +14,7 @@ DEFAULT_CONTEXT = {
         'test__': {
             'test__': [1, 2, 3]
         },
-        'timeout': 10,
+        'timeout': 0,
         'log_stdout': True,
         'log_stderr': True,
     },
@@ -24,7 +24,7 @@ DEFAULT_CONTEXT = {
                "task:{task_full_name} taskrun:{taskrun_id: <10} {message}",
         'datefmt': "%Y-%m-%d %H:%M:%S",
         'style': '{',
-        'level': 'DEBUG',
+        'level': 'INFO',
         'buffer_size': 10,
         'context_attrs': [
             'flow_id',

@@ -12,6 +12,8 @@ from flowsaber.server.database.models import FlowRunInput
 
 
 async def maintain_heartbeat(runner: "Runner"):
+    await runner.executor.initialized_q.get()
+    runner.executor.initialized_q.task_done()
     client = runner.client
     flowrun_input = FlowRunInput(id=runner.id)
     while True:
@@ -33,11 +35,14 @@ class FlowRunner(Runner):
             self.add_async_task(maintain_heartbeat)
 
     def initialize_context(self, *args, **kwargs):
-        self.context.update(flowrun_id=self.id)
-        # this is redundant, keep it for uniformity
+        update_context = {
+            'flowrun_id': self.id,
+            'server_address': self.server_address
+        }
+        self.context.update(**update_context)
         if 'context' in kwargs:
-            kwargs['context'].update(flowrun_id=self.id)
-        flowsaber.context.update(flowrun_id=self.id)
+            kwargs['context'].update(**update_context)
+        flowsaber.context.update(**update_context)
 
     @enter_context
     @redirect_std_to_logger

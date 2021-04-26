@@ -5,7 +5,7 @@ type Query {
     get_agents: IdsPayload!
 
     get_flow(input: UUID!): Flow!
-    get_flows(input: GetFLowsInput!): IdsPayload!
+    get_flows(input: GetFlowsInput!): IdsPayload!
 
     get_taskrun(input: UUID!): TaskRun!
     get_taskruns(input: GetTaskRunsInput!): IdsPayload!

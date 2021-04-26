@@ -39,11 +39,14 @@ class TaskRunner(Runner):
         self.inputs: BoundArguments = inputs
 
     def initialize_context(self, *args, **kwargs):
-        # this is redundant, keep it for uniformity
-        self.context.update(taskrun_id=self.id)
+        update_context = {
+            'taskrun_id': self.id,
+            'server_address': self.server_address
+        }
+        self.context.update(**update_context)
         if 'context' in kwargs:
-            kwargs['context'].update(taskrun_id=self.id)
-        flowsaber.context.update(taskrun_id=self.id)
+            kwargs['context'].update(**update_context)
+        flowsaber.context.update(**update_context)
 
     @enter_context
     @redirect_std_to_logger

@@ -23,7 +23,7 @@ input FlowInput {
     serialized_flow: String!
 }
 
-input GetFLowsInput {
+input GetFlowsInput {
     id: [UUID!]
     name: [UUID!]
     labels: [String!]

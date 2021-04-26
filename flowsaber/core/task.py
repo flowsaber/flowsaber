@@ -468,7 +468,11 @@ class Task(RunTask):
         flowsaber.context.update(context_update)
         # must lock _input key to avoid collision in cache and files in _running path
         async with flowsaber.context.run_lock:
-            task_runner = TaskRunner(task=task, inputs=data)
+            task_runner = TaskRunner(
+                task=task,
+                inputs=data,
+                server_address=self.context.get('server_address', None)
+            )
             state = await flowsaber.context.executor.run(task_runner.run, **kwargs)
         return state
 

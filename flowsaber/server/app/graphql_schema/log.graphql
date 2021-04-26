@@ -1,7 +1,7 @@
 type RunLog {
     id: UUID!
     level: String!
-    time: DateTime!
+    time: TimeStamp!
     message: String
     task_id: UUID
     flow_id: UUID
@@ -13,7 +13,7 @@ type RunLog {
 input RunLogInput {
     id: UUID!
     level: String!
-    time: DateTime!
+    time: TimeStamp!
     message: String!
     task_id: UUID
     flow_id: UUID
@@ -32,6 +32,6 @@ input GetRunLogsInput {
     flowrun_id: [UUID!]
     agent_id: [UUID!]
     level: [String!]
-    before: DateTime
-    after: DateTime
+    before: TimeStamp
+    after: TimeStamp
 }

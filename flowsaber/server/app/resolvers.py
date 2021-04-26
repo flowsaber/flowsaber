@@ -1,16 +1,16 @@
 from collections import defaultdict
-from typing import Sequence
 
 from ariadne import QueryType, MutationType, ScalarType, ObjectType
 from graphql import GraphQLResolveInfo
 from starlette.requests import Request
 
-from flowsaber.server.database import *
+from flowsaber.server.database.models import *
+from flowsaber.server.database.api import DataBase
+
+db = DataBase('mongodb://127.0.0.1:27017')
 
 USERNAME = "admin"
 PASSWORD = "admin"
-
-db = get_db('mongodb://127.0.0.1:27017')
 
 query = QueryType()
 mutation = MutationType()
@@ -19,15 +19,15 @@ flow = ObjectType("Flow")
 task = ObjectType("Task")
 flowrun = ObjectType("FlowRun")
 
-datetime_scalar = ScalarType("DateTime")
+timestamp_scalar = ScalarType("TimeStamp")
 uuid_scalar = ScalarType("UUID")
 json_scalar = ScalarType("JSON")
 
 
-@datetime_scalar.serializer
-def serialize_datetime(value: datetime) -> str:
-    assert isinstance(value, datetime)
-    return value.isoformat()
+@timestamp_scalar.serializer
+def serialize_timestamp(value: int) -> int:
+    assert isinstance(value, int)
+    return value
 
 
 @uuid_scalar.serializer
@@ -170,8 +170,12 @@ async def get_taskruns(obj, info, input: dict) -> IdsPayload:
 async def get_flowrun(obj, info, input: str) -> FlowRun:
     flowrun_id = input
     flowrun_dict = await db.flowrun.find_one({"_id": flowrun_id})
-    flowrun_dict = ch_id(flowrun_dict)
-    flowrun = FlowRun(**flowrun_dict)
+    if flowrun_dict:
+        flowrun_dict = ch_id(flowrun_dict)
+        flowrun = FlowRun(**flowrun_dict)
+    else:
+        # for check_cancelling task, return a fake one
+        flowrun = {'state': {'state_type': "Scheduled"}}
     return flowrun
 
 
@@ -277,16 +281,20 @@ async def delete_flow(obj, info, input: str):
 async def update_flowrun(obj, info, input: dict):
     flowrun_input = FlowRunInput(**input)
     flowrun_id = flowrun_input.id
-    flowrun = await db.find_one({"_id": flowrun_id})
+    print(input)
+    flowrun = await db.flowrun.find_one({"_id": flowrun_id})
     if flowrun is None:
         # insert a new flowrun
-        flowrun = FlowRun(**flowrun_input.dict())
+        try:
+            flowrun = FlowRun(**flowrun_input.dict())
+        except Exception as e:
+            raise e
         if not flowrun.start_time:
-            flowrun.start_time = datetime.utcnow()
+            flowrun.start_time = current_timestamp()
         await db.flowrun.insert_one(ch_id(flowrun.dict()))
         # append to agent, flow 's flowruns
-        await db.agent.update_one({"_id": flowrun.agent_id}, {"$push": flowrun.id})
-        await db.flow.update_one({"_id": flowrun.flow_id}, {"$push": flowrun.id})
+        await db.agent.update_one({"_id": flowrun.agent_id}, {"$push": {"flowruns": flowrun.id}})
+        await db.flow.update_one({"_id": flowrun.flow_id}, {"$push": {"flowruns": flowrun.id}})
         return flowrun
     else:
         update_exp = update_notnone_exp(flowrun_input.dict())
@@ -299,12 +307,12 @@ async def update_flowrun(obj, info, input: dict):
 async def update_taskrun(obj, info, input: dict):
     taskrun_input = TaskRunInput(**input)
     taskrun_id = taskrun_input.id
-    taskrun = await db.find_one({"_id": taskrun_id})
+    taskrun = await db.taskrun.find_one({"_id": taskrun_id})
     if taskrun is None:
         # insert a new task run
         taskrun = TaskRun(**taskrun_input.dict())
         if not taskrun.start_time:
-            taskrun.start_time = datetime.utcnow()
+            taskrun.start_time = current_timestamp()
         await db.taskrun.insert_one(ch_id(taskrun.dict()))
         # append taskrun into the flowrun
         await db.flowrun.update_one({"_id": taskrun.flowrun_id}, {"$push": {"taskruns": taskrun.id}})
@@ -317,9 +325,13 @@ async def update_taskrun(obj, info, input: dict):
 
 
 @mutation.field("write_runlogs")
-async def write_runlogs(obj, info, run_logs: Sequence[dict]):
-    run_logs = [ch_id(run_log) for run_log in run_logs]
-    res = await db.runlog.insert_many(run_logs)
+async def write_runlogs(obj, info, input: dict):
+    runlogs_input = RunLogsInput(**input)
+    run_logs = [ch_id(run_log.dict()) for run_log in runlogs_input.logs]
+    try:
+        res = await db.runlog.insert_many(run_logs)
+    except Exception as e:
+        raise e
     return SuccessPayload()
 
 

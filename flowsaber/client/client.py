@@ -44,9 +44,6 @@ class Client(object, metaclass=ValidateMeta):
             return await rsp.json()
 
     async def graphql_request(self, query: str, variables: dict, **kwargs) -> dict:
-        if self.test:
-            return {"ok": "ok"}
-
         json = {
             'query': query,
             'variables': variables
@@ -89,7 +86,7 @@ class Client(object, metaclass=ValidateMeta):
     async def graphql(self, method_type: str, method: str, input: Any, field: str):
         input_type = type(input).__name__
         if input_type == 'str':
-            input_type = "String"
+            input_type = "UUID"
 
         query = f"""
             {method_type}($input: {input_type}!) {{
@@ -103,5 +100,4 @@ class Client(object, metaclass=ValidateMeta):
         }
 
         result = await self.graphql_request(query, variables)
-        return result
         return result[method]

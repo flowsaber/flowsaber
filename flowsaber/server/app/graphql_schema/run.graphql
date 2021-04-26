@@ -1,14 +1,14 @@
 type FlowRun {
     id: UUID!
-    agent_id: UUID!
+    agent_id: UUID
     flow_id: UUID!
     name: String!
     labels: [String!]!
     context: JSON!
     state: State!
-    start_time: DateTime!
-    end_time: DateTime
-    last_heartbeat: DateTime!
+    start_time: TimeStamp!
+    end_time: TimeStamp
+    last_heartbeat: TimeStamp!
     taskruns: [TaskRun!]!
 }
 
@@ -20,6 +20,7 @@ input FlowRunInput {
     labels: [String!]
     context: JSON
     state: StateInput
+    last_heartbeat: TimeStamp
 }
 
 input GetFLowRunsInput {
@@ -29,21 +30,21 @@ input GetFLowRunsInput {
     name: [String!]
     labels: [String!]
     state_type: [String!]
-    after: DateTime
-    before: DateTime
+    after: TimeStamp
+    before: TimeStamp
 }
 
 type TaskRun {
     id: UUID!
     flowrun_id: UUID!
-    agent_id: UUID!
+    agent_id: UUID
     task_id: UUID!
     flow_id: UUID!
     context: JSON!
     state: State!
-    start_time: DateTime!
-    end_time: DateTime
-    last_heartbeat: DateTime!
+    start_time: TimeStamp!
+    end_time: TimeStamp
+    last_heartbeat: TimeStamp!
 }
 
 input TaskRunInput {
@@ -54,6 +55,7 @@ input TaskRunInput {
     flow_id: UUID
     context: JSON
     state: StateInput
+    last_heartbeat: TimeStamp
 }
 
 input  GetTaskRunsInput {
@@ -63,7 +65,7 @@ input  GetTaskRunsInput {
     task_id: [UUID!]
     flow_id: [UUID!]
     state_type: [String!]
-    after: DateTime
-    before: DateTime
+    after: TimeStamp
+    before: TimeStamp
 }
 

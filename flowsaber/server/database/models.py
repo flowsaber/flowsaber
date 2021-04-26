@@ -1,8 +1,17 @@
-import uuid
-from datetime import datetime
 from typing import List, Optional
+from uuid import uuid4
 
 from pydantic import BaseModel, Field
+
+
+def current_timestamp():
+    # utc ?
+    from datetime import datetime
+    return datetime.utcnow().timestamp()
+
+
+def uuid():
+    return str(uuid4())
 
 
 class Model(BaseModel):
@@ -21,7 +30,7 @@ class IdsPayload(Model):
 class RunLog(Model):
     id: str
     level: str
-    time: datetime
+    time: int
     message: str
     task_id: str = None
     flow_id: str = None
@@ -31,9 +40,9 @@ class RunLog(Model):
 
 
 class RunLogInput(Model):
-    id: str = Field(default_factory=uuid.uuid4)
+    id: str = Field(default_factory=uuid)
     level: str
-    time: datetime = Field(default_factory=datetime.utcnow)
+    time: int = Field(default_factory=current_timestamp)
     message: str = ""
     task_id: str = None
     flow_id: str = None
@@ -52,8 +61,8 @@ class GetRunLogsInput(Model):
     flowrun_id: List[str] = Field(default_factory=list)
     agent_id: List[str] = Field(default_factory=list)
     level: List[str] = Field(default_factory=list)
-    before: datetime = None
-    after: datetime = None
+    before: int = None
+    after: int = None
 
 
 class Agent(Model):
@@ -124,7 +133,7 @@ class Flow(Model):
     docstring: str
     serialized_flow: str
     context: dict
-    flowruns: List[str]
+    flowruns: List[str] = Field(default_factory=list)
 
 
 class FlowInput(Model):
@@ -164,14 +173,14 @@ class RunInput(Model):
 class TaskRun(Model):
     id: str
     flowrun_id: str
-    agent_id: str
+    agent_id: str = None
     task_id: str
     flow_id: str
     context: dict
     state: State
-    start_time: datetime = None
-    end_time: datetime = None
-    last_heartbeat: datetime = Field(default_factory=datetime.utcnow)
+    start_time: int = None
+    end_time: int = None
+    last_heartbeat: int = Field(default_factory=current_timestamp)
 
 
 class TaskRunInput(RunInput):
@@ -182,6 +191,7 @@ class TaskRunInput(RunInput):
     flow_id: str = None
     context: dict = None
     state: StateInput = None
+    last_heartbeat: int = Field(default_factory=current_timestamp)
 
 
 class GetTaskRunsInput(Model):
@@ -191,8 +201,8 @@ class GetTaskRunsInput(Model):
     task_id: List[str] = Field(default_factory=list)
     flow_id: List[str] = Field(default_factory=list)
     state_type: List[str] = Field(default_factory=list)
-    after: datetime = None
-    before: datetime = None
+    after: int = None
+    before: int = None
 
 
 class FlowRun(Model):
@@ -203,9 +213,9 @@ class FlowRun(Model):
     labels: List[str]
     context: dict
     state: State
-    start_time: datetime = None
-    end_time: datetime = None
-    last_heartbeat: datetime = Field(default_factory=datetime.utcnow)
+    start_time: int = None
+    end_time: int = None
+    last_heartbeat: int = Field(default_factory=current_timestamp)
     taskruns: List[str] = Field(default_factory=list)  # db store id
 
 
@@ -217,6 +227,7 @@ class FlowRunInput(RunInput):
     labels: List[str] = None
     context: dict = None
     state: StateInput = None
+    last_heartbeat: int = Field(default_factory=current_timestamp)
 
 
 class GetFlowRunsInput(Model):
@@ -226,5 +237,5 @@ class GetFlowRunsInput(Model):
     name: List[str] = Field(default_factory=list)
     labels: List[str] = Field(default_factory=list)
     state_type: List[str] = Field(default_factory=list)
-    after: datetime = None
-    before: datetime = None
+    after: int = None
+    before: int = None
