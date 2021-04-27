@@ -48,7 +48,6 @@ class FlowRunner(Runner):
 
     def leave_run(self, *args, **kwargs):
         super().leave_run()
-        pass  # for set breakpoint
 
     @call_state_change_handlers
     @catch_to_failure

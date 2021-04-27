@@ -4,8 +4,46 @@ from ariadne import QueryType, MutationType, ScalarType, ObjectType
 from graphql import GraphQLResolveInfo
 from starlette.requests import Request
 
-from flowsaber.server.database.api import DataBase
+from flowsaber.server.database.db import DataBase
 from flowsaber.server.database.models import *
+
+
+def ch_id(data: dict) -> dict:
+    if "_id" in data:
+        data['id'] = data.pop('_id')
+    elif "id" in data:
+        data['_id'] = data.pop("id")
+    return data
+
+
+def get_time_exp(input) -> dict:
+    exp = {}
+    before = getattr(input, 'before')
+    after = getattr(input, 'after')
+    if before or after:
+        if after:
+            exp['$gt'] = after
+        if before:
+            exp['$lt'] = before
+
+    return exp
+
+
+def update_notnone_exp(data: dict):
+    # Note: does not check for list
+    exp = {}
+
+    def resolve(value, prevk=""):
+        for k, v in value.items():
+            if isinstance(v, dict):
+                resolve(v, f"{k}.")
+            elif v is not None:
+                exp[f'{prevk}{k}'] = v
+
+    resolve(data)
+    exp.pop("id", None)
+    exp.pop("_id", None)
+    return {"$set": exp}
 
 
 def get_resolvers(db: DataBase):
@@ -36,41 +74,6 @@ def get_resolvers(db: DataBase):
     def serialize_json(value: dict) -> dict:
         assert isinstance(value, dict)
         return value
-
-    def ch_id(data: dict) -> dict:
-        if "_id" in data:
-            data['id'] = data.pop('_id')
-        elif "id" in data:
-            data['_id'] = data.pop("id")
-        return data
-
-    def get_time_exp(input) -> dict:
-        exp = {}
-        before = getattr(input, 'before')
-        after = getattr(input, 'after')
-        if before or after:
-            if after:
-                exp['$gt'] = after
-            if before:
-                exp['$lt'] = before
-
-        return exp
-
-    def update_notnone_exp(data: dict):
-        # Note: does not check for list
-        exp = {}
-
-        def resolve(value, prevk=""):
-            for k, v in value.items():
-                if isinstance(v, dict):
-                    resolve(v, f"{k}.")
-                elif v is not None:
-                    exp[f'{prevk}{k}'] = v
-
-        resolve(data)
-        exp.pop("id", None)
-        exp.pop("_id", None)
-        return {"$set": exp}
 
     # query
 
@@ -201,17 +204,23 @@ def get_resolvers(db: DataBase):
     @query.field("get_runlogs")
     async def get_runlogs(obj, info, input: dict) -> List[RunLog]:
         input = GetRunLogsInput(**input)
-        exp = {
-            "$or": [
-                {"_id": {"$in": input.id}},
-                {"taskrun_id": {"$in": input.taskrun_id}},
-                {"flowrun_id": {"$in": input.flowrun_id}},
-                {"agent_id": {"$in": input.agent_id}},
-            ],
-            "level": {"$in": input.level}
-        }
-        time_exp = get_time_exp(input)
-        if time_exp:
+        exp = {}
+        has_or_exp = input.id or input.taskrun_id or input.flowrun_id or input.agent_id
+        if has_or_exp:
+            exp.update({
+                "$or": [
+                    {"_id": {"$in": input.id}},
+                    {"taskrun_id": {"$in": input.taskrun_id}},
+                    {"flowrun_id": {"$in": input.flowrun_id}},
+                    {"agent_id": {"$in": input.agent_id}},
+                ],
+            })
+        if input.level:
+            exp.update({
+                "level": {"$in": input.level}
+            })
+        if input.before or input.after:
+            time_exp = get_time_exp(input)
             exp.update({"time": time_exp})
 
         runlogs = []
@@ -229,10 +238,12 @@ def get_resolvers(db: DataBase):
 
     @mutation.field("create_agent")
     async def create_agent(obj, info: GraphQLResolveInfo, input: dict):
+        agent_input = AgentInput(**input)
         request: Request = info.context['request']
         address = request.client.host
-        agent_dict = Agent(**input, address=address).dict()
-        res = await db.agent.insert_one(ch_id(agent_dict))
+        agent = Agent(**agent_input.dict(), address=address)
+        await db.agent.insert_one(ch_id(agent.dict()))
+        print(agent)
         return agent
 
     @mutation.field("delete_agent")

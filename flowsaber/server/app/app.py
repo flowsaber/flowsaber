@@ -7,7 +7,7 @@ from ariadne import (
 )
 
 from flowsaber.server.app.resolvers import get_resolvers
-from flowsaber.server.database.api import DataBase
+from flowsaber.server.database.db import DataBase
 
 SCHEMA_PATH = Path(__file__).parent.resolve() / "graphql_schema"
 

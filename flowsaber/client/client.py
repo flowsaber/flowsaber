@@ -1,10 +1,8 @@
 import inspect
-from typing import Any
+from typing import Any, Optional
 
 import aiohttp
 from pydantic import validate_arguments
-
-from flowsaber.server.database.models import *
 
 
 class GraphqlError(Exception):

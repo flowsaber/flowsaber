@@ -3,8 +3,6 @@ import uuid
 from pathlib import Path
 from typing import Union, List, Optional, Tuple
 
-import cloudpickle
-
 import flowsaber
 from flowsaber.core.base import Component
 from flowsaber.core.channel import Channel, Output
@@ -144,10 +142,11 @@ class Flow(Component):
     def serialize(self) -> FlowInput:
         import base64
         import zlib
+        import dill
         # TODO can not fetch source code of type(self), if it's due to makefun ?
         assert self.initialized
         config = self.config
-        compressed_flow = zlib.compress(cloudpickle.dumps(self))
+        compressed_flow = zlib.compress(dill.dumps(self))
         serialized_flow = base64.encodebytes(compressed_flow).decode()
         return FlowInput(
             id=config.id,
@@ -165,7 +164,8 @@ class Flow(Component):
     def deserialize(cls, serialized_flow: str) -> "Flow":
         import base64
         import zlib
+        import dill
         compressed_flow = base64.decodebytes(serialized_flow.encode())
-        initialized_flow: 'Flow' = cloudpickle.loads(zlib.decompress(compressed_flow))
+        initialized_flow: 'Flow' = dill.loads(zlib.decompress(compressed_flow))
         assert initialized_flow.initialized
         return initialized_flow

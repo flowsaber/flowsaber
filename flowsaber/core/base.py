@@ -81,7 +81,10 @@ class ComponentMeta(type):
         class_name, bases, class_dict = mcs.copy_method_sig(class_name, bases, class_dict)
         class_name, bases, class_dict = mcs.update_default_config(class_name, bases, class_dict)
 
-        return super().__new__(mcs, class_name, bases, class_dict)
+        cls = super().__new__(mcs, class_name, bases, class_dict)
+        # print(cls, id(cls))
+        # globals().update({cls.__name__: cls})
+        return cls
 
     @classmethod
     def copy_method_sig(mcs, class_name, bases, class_dict):

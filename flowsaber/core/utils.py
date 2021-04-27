@@ -190,7 +190,9 @@ def class_deco(base_cls: type, method_name: str):
                 return fn(self, *args, **kwargs)
         # used for source the real func
         wrapper.__source_func__ = fn
-        return type(cls_name, (base_cls,), {method_name: wrapper})(**kwargs)
+        cls = type(cls_name, (base_cls,), {method_name: wrapper})(**kwargs)
+        # base.__dict__[cls_name] = cls
+        return cls
 
     deco.__name__ = deco.__qualname__ = base_cls.__name__.lower()
     return deco

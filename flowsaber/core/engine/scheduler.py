@@ -182,12 +182,12 @@ class FlowScheduler(Scheduler):
 
     def __init__(self, executor_cls=ProcessPoolExecutor, executor_kwargs: dict = None):
         self.executor_cls = executor_cls
-        self.executor_kwargs = executor_cls
+        self.executor_kwargs = executor_kwargs or {}
         self.executor: executor_cls = None
         self.futures: Set[Future] = set()
 
     def __enter__(self):
-        self.executor = self.executor_cls(**(self.executor_kwargs or {}))
+        self.executor = self.executor_cls(**self.executor_kwargs)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):

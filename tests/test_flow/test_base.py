@@ -34,17 +34,16 @@ def test_flow():
     }
     with ProcessPoolExecutor(max_workers=1) as executor:
         # start the server if not started manually
-        fut = executor.submit(Cli().server, port=8123)
+        # fut = executor.submit(Cli().server, port=8123)
         time.sleep(3)
 
         # run the flow
         st = time.time()
         runner.run(context=run_context)
         print("cost ", time.time() - st)
-        fut.cancel()
 
     async def check_data():
-        from flowsaber.server.database.api import get_db
+        from flowsaber.server.database.db import get_db
         db = get_db("mongodb://127.0.0.1:27017")
         flowruns = await db.flowrun.find().to_list(100)
         return flowruns
