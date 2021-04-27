@@ -40,10 +40,9 @@ class Local(Executor):
         super().__init__(**kwargs)
 
     async def run(self, fn, *args, **kwargs):
-        if inspect.iscoroutine(fn):
-            return await fn(*args, **kwargs)
-        else:
-            return fn(*args, **kwargs)
+        coro = fn(*args, **kwargs)
+        if inspect.iscoroutine(coro):
+            await coro
 
 
 class DaskExecutor(Executor):

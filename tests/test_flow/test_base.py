@@ -23,7 +23,7 @@ def test_flow():
     def myflow(num):
         return num | add | add | view | add | view
 
-    num_ch = Channel.values(*list(range(5)))
+    num_ch = Channel.values(*list(range(10)))
     initial_context = {
         'logging': {'level': "DEBUG"},
         'task_config': {
@@ -32,15 +32,20 @@ def test_flow():
     }
     with flowsaber.context(initial_context):
         f = myflow(num_ch)
+    from concurrent.futures import ProcessPoolExecutor
 
-    runner = FlowRunner(f, server_address='http://127.0.0.1:8000')
+    runner = FlowRunner(f, server_address='http://127.0.0.1:8123')
     run_context = {
 
     }
-    import time
-    st = time.time()
-    runner.run(context=run_context)
-    print("cost ", time.time() - st)
+    with ProcessPoolExecutor(max_workers=1) as executor:
+        from flowsaber.cli import Cli
+        fut = executor.submit(Cli().server, port=8123)
+        import time
+        time.sleep(3)
+        st = time.time()
+        runner.run(context=run_context)
+        print("cost ", time.time() - st)
 
 
 if __name__ == "__main__":

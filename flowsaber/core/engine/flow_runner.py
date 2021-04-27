@@ -3,22 +3,12 @@ import asyncio
 import flowsaber
 from flowsaber.core.base import enter_context
 from flowsaber.core.engine.runner import (
-    Runner, catch_to_failure, call_state_change_handlers, redirect_std_to_logger, check_cancellation
+    Runner, catch_to_failure, call_state_change_handlers, redirect_std_to_logger
 )
 from flowsaber.core.engine.scheduler import TaskScheduler
 from flowsaber.core.flow import Flow
 from flowsaber.core.utility.state import State, Pending, Running, Success
 from flowsaber.server.database.models import FlowRunInput
-
-
-async def maintain_heartbeat(runner: "Runner"):
-    await runner.executor.initialized_q.get()
-    runner.executor.initialized_q.task_done()
-    client = runner.client
-    flowrun_input = FlowRunInput(id=runner.id)
-    while True:
-        await asyncio.sleep(5)
-        await client.mutation('update_flowrun', input=flowrun_input, field="id")
 
 
 class FlowRunner(Runner):
@@ -30,9 +20,9 @@ class FlowRunner(Runner):
         assert isinstance(flow, Flow) and flow.initialized
         self.flow: Flow = flow
         self.component = self.flow
-        if self.server_address:
-            self.add_async_task(check_cancellation)
-            self.add_async_task(maintain_heartbeat)
+        if self.client:
+            self.add_task(self.check_cancellation)
+            self.add_task(self.maintain_heartbeat)
 
     def initialize_context(self, *args, **kwargs):
         update_context = {

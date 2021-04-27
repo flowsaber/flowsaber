@@ -23,7 +23,7 @@ input FlowRunInput {
     last_heartbeat: TimeStamp
 }
 
-input GetFLowRunsInput {
+input GetFlowRunsInput {
     id: [UUID!]
     agent_id: [UUID!]
     flow_id: [UUID!]

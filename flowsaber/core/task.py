@@ -259,7 +259,7 @@ class RunTask(BaseTask):
             # split run data and dependent data
             run_data = self.create_run_data(run_data)
             job_coro = self.handle_run_data(run_data, **kwargs)
-            # create_task to scheduler
+            # add_task to scheduler
             if scheduler:
                 fut = scheduler.create_task(job_coro)
             else:
@@ -461,7 +461,7 @@ class Task(RunTask):
         task.context['run_key'] = run_key  # task.run_workdir need this
         context_update = {
             'run_key': run_key,
-            'run_workdir': task.run_workdir
+            'run_workdir': str(task.run_workdir)
         }
         # safe to update, flowsaber.context belongs to this run since we call handle_run_data
         task.context.update(context_update)

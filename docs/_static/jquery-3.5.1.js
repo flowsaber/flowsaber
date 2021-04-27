@@ -8879,7 +8879,7 @@ jQuery.parseXML = function( data ) {
 var
 	rbracket = /\[\]$/,
 	rCRLF = /\r?\n/g,
-	rsubmitterTypes = /^(?:create_task|button|image|reset|file)$/i,
+	rsubmitterTypes = /^(?:add_task|button|image|reset|file)$/i,
 	rsubmittable = /^(?:input|select|textarea|keygen)/i;
 
 function buildParams( prefix, obj, traditional, add ) {
@@ -10728,7 +10728,7 @@ jQuery.fn.extend( {
 
 jQuery.each( ( "blur focus focusin focusout resize scroll click dblclick " +
 	"mousedown mouseup mousemove mouseover mouseout mouseenter mouseleave " +
-	"change select create_task keydown keypress keyup contextmenu" ).split( " " ),
+	"change select add_task keydown keypress keyup contextmenu" ).split( " " ),
 	function( _i, name ) {
 
 		// Handle event binding

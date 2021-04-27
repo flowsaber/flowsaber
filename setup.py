@@ -60,7 +60,8 @@ setup(
         'distributed',
         'psutil',
         'aiohttp',
-        'pydantic'
+        'pydantic',
+        'fire'
     ],
     extras_require={
         'test': [

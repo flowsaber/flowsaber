@@ -36,6 +36,10 @@ class Client(object, metaclass=ValidateMeta):
         self.test = True
         self.session: Optional[aiohttp.ClientSession] = None
 
+    async def close(self):
+        if self.session:
+            await self.session.close()
+
     # json conflict with pydantic, so use underscore to pass validation
     async def _post(self, url, json=None, **kwargs) -> dict:
         if self.session is None:
@@ -74,13 +78,10 @@ class Client(object, metaclass=ValidateMeta):
 
     async def query(self, method: str, input: Any, field: str):
         res = await self.graphql('query', method, input, field)
-        print(f'query {method} {input}')
         return res
 
     async def mutation(self, method: str, input: Any, field: str):
         res = await self.graphql('mutation', method, input, field)
-        if 'log' not in method:
-            print(f'mutation {method} {input}')
         return res
 
     async def graphql(self, method_type: str, method: str, input: Any, field: str):

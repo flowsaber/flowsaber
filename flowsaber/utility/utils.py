@@ -49,11 +49,8 @@ def change_cwd(path: Union[str, Path]) -> Path:
     """
     path = Path(path).expanduser().resolve()
     path.mkdir(parents=True, exist_ok=True)
-    try:
-        prev_cwd = os.getcwd()
-        os.chdir(path)
-    except Exception as e:
-        raise e
+    prev_cwd = os.getcwd()
+    os.chdir(path)
 
     try:
         yield Path(path)

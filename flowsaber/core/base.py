@@ -259,10 +259,8 @@ class Component(object, metaclass=ComponentMeta):
             new.call_initialize(*args, **kwargs)
             build_output = new.call_build(*args, **kwargs)
             return build_output
-        except ComponentCallError as e:
-            raise e
-        except Exception as e:
-            raise ComponentCallError from e
+        except BaseException as e:
+            raise ComponentCallError(str(e)) from e
 
     def __copy__(self):
         cls = type(self)
@@ -327,11 +325,7 @@ class Component(object, metaclass=ComponentMeta):
 
         # set up workdir build from the hierarchy of flows/tasks
         # flow's workdir and task's workdir is handled separately
-        try:
-            workdir = self.config_dict['workdir']
-        except Exception as e:
-            print(self.context, global_default_config, default_config, kwargs_config, tmp_config)
-            raise e
+        workdir = self.config_dict['workdir']
         workdir = Path(workdir).expanduser().resolve()
         if workdir.is_absolute():
             workdir = str(workdir)
@@ -362,10 +356,8 @@ class Component(object, metaclass=ComponentMeta):
         try:
             res = await self.start_execute(**kwargs)
             return res
-        except ComponentExecuteError as e:
-            raise e
-        except Exception as e:
-            raise ComponentExecuteError from e
+        except BaseException as e:
+            raise ComponentExecuteError(str(e)) from e
         finally:
             await self.end_execute()
             self.context = back_context
@@ -389,7 +381,7 @@ class Component(object, metaclass=ComponentMeta):
         # wrap into a ComponentExecuteError with record of all futures
         first_exception = next((fut.exception() for fut in futures if fut.exception()), None)
         if first_exception:
-            raise ComponentExecuteError(futures=futures) from first_exception
+            raise ComponentExecuteError(str(first_exception), futures=futures) from first_exception
 
     def serialize(self) -> BaseModel:
         raise NotImplementedError

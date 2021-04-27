@@ -30,7 +30,7 @@ class IdsPayload(Model):
 class RunLog(Model):
     id: str
     level: str
-    time: int
+    time: float
     message: str
     task_id: str = None
     flow_id: str = None
@@ -42,7 +42,7 @@ class RunLog(Model):
 class RunLogInput(Model):
     id: str = Field(default_factory=uuid)
     level: str
-    time: int = Field(default_factory=current_timestamp)
+    time: float = Field(default_factory=current_timestamp)
     message: str = ""
     task_id: str = None
     flow_id: str = None
@@ -61,8 +61,8 @@ class GetRunLogsInput(Model):
     flowrun_id: List[str] = Field(default_factory=list)
     agent_id: List[str] = Field(default_factory=list)
     level: List[str] = Field(default_factory=list)
-    before: int = None
-    after: int = None
+    before: float = None
+    after: float = None
 
 
 class Agent(Model):
@@ -178,9 +178,9 @@ class TaskRun(Model):
     flow_id: str
     context: dict
     state: State
-    start_time: int = None
-    end_time: int = None
-    last_heartbeat: int = Field(default_factory=current_timestamp)
+    start_time: float = None
+    end_time: float = None
+    last_heartbeat: float = Field(default_factory=current_timestamp)
 
 
 class TaskRunInput(RunInput):
@@ -191,7 +191,7 @@ class TaskRunInput(RunInput):
     flow_id: str = None
     context: dict = None
     state: StateInput = None
-    last_heartbeat: int = Field(default_factory=current_timestamp)
+    last_heartbeat: float = Field(default_factory=current_timestamp)
 
 
 class GetTaskRunsInput(Model):
@@ -201,8 +201,8 @@ class GetTaskRunsInput(Model):
     task_id: List[str] = Field(default_factory=list)
     flow_id: List[str] = Field(default_factory=list)
     state_type: List[str] = Field(default_factory=list)
-    after: int = None
-    before: int = None
+    after: float = None
+    before: float = None
 
 
 class FlowRun(Model):
@@ -213,9 +213,9 @@ class FlowRun(Model):
     labels: List[str]
     context: dict
     state: State
-    start_time: int = None
-    end_time: int = None
-    last_heartbeat: int = Field(default_factory=current_timestamp)
+    start_time: float = None
+    end_time: float = None
+    last_heartbeat: float = Field(default_factory=current_timestamp)
     taskruns: List[str] = Field(default_factory=list)  # db store id
 
 
@@ -227,7 +227,7 @@ class FlowRunInput(RunInput):
     labels: List[str] = None
     context: dict = None
     state: StateInput = None
-    last_heartbeat: int = Field(default_factory=current_timestamp)
+    last_heartbeat: float = Field(default_factory=current_timestamp)
 
 
 class GetFlowRunsInput(Model):
@@ -237,5 +237,5 @@ class GetFlowRunsInput(Model):
     name: List[str] = Field(default_factory=list)
     labels: List[str] = Field(default_factory=list)
     state_type: List[str] = Field(default_factory=list)
-    after: int = None
-    before: int = None
+    after: float = None
+    before: float = None

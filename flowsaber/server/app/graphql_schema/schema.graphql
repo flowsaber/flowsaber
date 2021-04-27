@@ -11,7 +11,7 @@ type Query {
     get_taskruns(input: GetTaskRunsInput!): IdsPayload!
 
     get_flowrun(input: UUID!): FlowRun!
-    get_flowruns(input: GetFLowRunsInput!): IdsPayload!
+    get_flowruns(input: GetFlowRunsInput!): IdsPayload!
 
     get_runlogs(input: GetRunLogsInput!): [RunLog!]!
 }

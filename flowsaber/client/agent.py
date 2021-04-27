@@ -49,7 +49,7 @@
 #                             'agent_id': self.id
 #                         }
 #                     }
-#                     fut = scheduler.create_task(flow_runner.run, state, **flow_run_kwargs)
+#                     fut = scheduler.add_task(flow_runner.run, state, **flow_run_kwargs)
 #                     self.flowruns[id] = fut
 #
 #                     def remove_flowrun(*args):
