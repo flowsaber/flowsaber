@@ -1,17 +1,12 @@
+from concurrent.futures import ProcessPoolExecutor
+
+from flowsaber.cli import Cli
 from flowsaber.core.api import *
-
-
-def time(fn):
-    import time
-    st = time.time()
-    fn()
-    print(time.time() - st)
 
 
 def test_flow():
     @task
     def add(num):
-        import sys
         # print("This is meesage send by print to stdout in task")
         # print("This is meesage send by print to stderr in task", file=sys.stderr)
         a = 1
@@ -32,20 +27,31 @@ def test_flow():
     }
     with flowsaber.context(initial_context):
         f = myflow(num_ch)
-    from concurrent.futures import ProcessPoolExecutor
-
+    # make sure mongodb is installed and started
     runner = FlowRunner(f, server_address='http://127.0.0.1:8123')
     run_context = {
 
     }
     with ProcessPoolExecutor(max_workers=1) as executor:
-        from flowsaber.cli import Cli
+        # start the server if not started manually
         fut = executor.submit(Cli().server, port=8123)
-        import time
         time.sleep(3)
+
+        # run the flow
         st = time.time()
         runner.run(context=run_context)
         print("cost ", time.time() - st)
+        fut.cancel()
+
+    async def check_data():
+        from flowsaber.server.database.api import get_db
+        db = get_db("mongodb://127.0.0.1:27017")
+        flowruns = await db.flowrun.find().to_list(100)
+        return flowruns
+
+    # check writed data in database
+    flowruns = asyncio.run(check_data())
+    print(flowruns)
 
 
 if __name__ == "__main__":

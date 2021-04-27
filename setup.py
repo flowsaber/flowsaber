@@ -53,6 +53,7 @@ setup(
     include_package_data=True,
     zip_safe=False,
     classifiers=classifiers,
+    package_data={'': ['server/app/graphql_schema/*.graphql']},
     install_requires=[
         'makefun',
         'cloudpickle',
