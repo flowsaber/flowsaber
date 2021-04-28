@@ -2,16 +2,16 @@ type Query {
     hello: String
 
     get_agent(input: UUID!): Agent!
-    get_agents: IdsPayload!
+    get_agents: [Agent!]!
 
     get_flow(input: UUID!): Flow!
-    get_flows(input: GetFlowsInput!): IdsPayload!
+    get_flows(input: GetFlowsInput!): [Flow!]!
 
     get_taskrun(input: UUID!): TaskRun!
-    get_taskruns(input: GetTaskRunsInput!): IdsPayload!
+    get_taskruns(input: GetTaskRunsInput!): [TaskRun!]!
 
     get_flowrun(input: UUID!): FlowRun!
-    get_flowruns(input: GetFlowRunsInput!): IdsPayload!
+    get_flowruns(input: GetFlowRunsInput!): [FlowRun!]!
 
     get_runlogs(input: GetRunLogsInput!): [RunLog!]!
 }

@@ -90,12 +90,12 @@ def get_resolvers(db: DataBase):
         return agent
 
     @query.field('get_agents')
-    async def get_agents(obj, info) -> IdsPayload:
-        ids = []
-        async for agent_dict in db.agent.find({}, {'_id': 1}):
-            ids.append(agent_dict['_id'])
+    async def get_agents(obj, info) -> List[dict]:
+        agents = []
+        async for agent_dict in db.agent.find({}):
+            agents.append(ch_id(agent_dict))
 
-        return IdsPayload(id=ids)
+        return agents
 
     @query.field("get_flow")
     async def get_flow(obj, info, input: str) -> Flow:
@@ -106,7 +106,7 @@ def get_resolvers(db: DataBase):
         return flow
 
     @query.field("get_flows")
-    async def get_flows(obj, info, input: dict) -> IdsPayload:
+    async def get_flows(obj, info, input: dict) -> List[dict]:
         input = GetFlowsInput(**input)
         exp = {}
         if input.id or input.name or input.labels:
@@ -119,12 +119,11 @@ def get_resolvers(db: DataBase):
                     ]
 
             })
+        flows = []
+        async for flow_dict in db.flow.find(exp):
+            flows.append(ch_id(flow_dict))
 
-        ids = []
-        async for flow_dict in db.flow.find(exp, {"_id": 1}):
-            ids.append(flow_dict['_id'])
-
-        return IdsPayload(id=ids)
+        return flows
 
     @query.field("get_taskrun")
     async def get_taskrun(obj, info, input: str) -> TaskRun:
@@ -135,7 +134,7 @@ def get_resolvers(db: DataBase):
         return taskrun
 
     @query.field("get_taskruns")
-    async def get_taskruns(obj, info, input: dict) -> IdsPayload:
+    async def get_taskruns(obj, info, input: dict) -> List[dict]:
         input = GetTaskRunsInput(**input)
         exp = {}
         has_or_exp = input.id or input.task_id or input.flow_id or input.agent_id or input.flowrun_id
@@ -157,11 +156,11 @@ def get_resolvers(db: DataBase):
         if input.before or input.after:
             time_exp = get_time_exp(input)
             exp.update({"start_time": time_exp})
-        ids = []
-        async for taskrun_dict in db.taskrun.find(exp, {"_id": 1}):
-            ids.append(taskrun_dict['_id'])
+        taskruns = []
+        async for taskrun_dict in db.taskrun.find(exp):
+            taskruns.append(ch_id(taskrun_dict))
 
-        return IdsPayload(id=ids)
+        return taskruns
 
     @query.field("get_flowrun")
     async def get_flowrun(obj, info, input: str) -> FlowRun:
@@ -176,7 +175,7 @@ def get_resolvers(db: DataBase):
         return flowrun
 
     @query.field("get_flowruns")
-    async def get_flowruns(obj, info, input: dict) -> IdsPayload:
+    async def get_flowruns(obj, info, input: dict) -> List[dict]:
         input = GetFlowRunsInput(**input)
         exp = {}
         has_or_exp = input.id or input.flow_id or input.agent_id or input.name or input.labels
@@ -198,14 +197,15 @@ def get_resolvers(db: DataBase):
         if input.before or input.after:
             time_exp = get_time_exp(input)
             exp.update({"start_time": time_exp})
-        ids = []
-        async for flowrun_dict in db.flowrun.find(exp, {"_id": 1}):
-            ids.append(flowrun_dict['_id'])
 
-        return IdsPayload(id=ids)
+        flowruns = []
+        async for flowrun_dict in db.flowrun.find(exp):
+            flowruns.append(ch_id(flowrun_dict))
+
+        return flowruns
 
     @query.field("get_runlogs")
-    async def get_runlogs(obj, info, input: dict) -> List[RunLog]:
+    async def get_runlogs(obj, info, input: dict) -> List[dict]:
         input = GetRunLogsInput(**input)
         exp = {}
         has_or_exp = input.id or input.taskrun_id or input.flowrun_id or input.agent_id
@@ -228,8 +228,7 @@ def get_resolvers(db: DataBase):
 
         runlogs = []
         async for runlog_dict in db.runlog.find(exp):
-            runlog_dict = ch_id(runlog_dict)
-            runlogs.append(RunLog(**runlog_dict))
+            runlogs.append(ch_id(runlog_dict))
 
         return runlogs
 
@@ -338,32 +337,32 @@ def get_resolvers(db: DataBase):
 
     #
     @flow.field("tasks")
-    async def resolve_tasks(obj, info):
-        cursor = db.task.find({"_id": {"$in": obj.tasks}})
-        tasks = await cursor.to_list(len(obj.tasks))
-        tasks = [Task(**ch_id(task)) for task in tasks]
+    async def resolve_tasks(obj, info) -> List[dict]:
+        task_ids = obj['tasks']
+        tasks = await db.task.find({"_id": {"$in": task_ids}}).to_list(len(task_ids))
+        tasks = [ch_id(task) for task in tasks]
         return tasks
 
     @task.field('output')
-    async def resolve_channels(obj, info):
-        cursor = db.channel.find({"_id": {"$in": obj.output}})
-        channels = await cursor.to_list(len(obj.output))
-        channels = [Channel(**ch_id(channel)) for channel in channels]
+    async def resolve_channels(obj, info) -> List[dict]:
+        channel_ids = obj['output']
+        channels = await db.channel.find({"_id": {"$in": channel_ids}}).to_list(len(channel_ids))
+        channels = [ch_id(channel) for channel in channels]
         return channels
 
     @flow.field("flowruns")
     @agent.field("flowruns")
-    async def resolve_flowruns(obj, info):
-        cursor = db.flowrun.find({"_id": {"$in": obj.flowruns}})
-        flowruns = await cursor.to_list(len(obj.flowruns))
-        flowruns = [FlowRun(**ch_id(flowrun)) for flowrun in flowruns]
+    async def resolve_flowruns(obj, info) -> List[dict]:
+        flowrun_ids = obj['flowruns']
+        flowruns = await db.flowrun.find({"_id": {"$in": flowrun_ids}}).to_list(len(flowrun_ids))
+        flowruns = [ch_id(flowrun) for flowrun in flowruns]
         return flowruns
 
     @flowrun.field("taskruns")
-    async def resolve_taskruns(obj, info):
-        cursor = db.taskrun.find({"_id": {"$in": obj.taskruns}})
-        taskruns = await cursor.to_list(len(obj.taskruns))
-        taskruns = [TaskRun(**ch_id(taskrun)) for taskrun in taskruns]
+    async def resolve_taskruns(obj, info) -> List[dict]:
+        taskrun_ids = obj['taskruns']
+        taskruns = await db.taskrun.find({"_id": {"$in": taskrun_ids}}).to_list(len(taskrun_ids))
+        taskruns = [ch_id(taskrun) for taskrun in taskruns]
         return taskruns
 
     return locals()
