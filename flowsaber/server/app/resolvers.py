@@ -129,7 +129,7 @@ def get_resolvers(db: DataBase):
     @query.field("get_taskrun")
     async def get_taskrun(obj, info, input: str) -> TaskRun:
         taskrun_id = input
-        taskrun_dict = await db.taskrun.find({"_id": taskrun_id})
+        taskrun_dict = await db.taskrun.find_one({"_id": taskrun_id})
         taskrun_dict = ch_id(taskrun_dict)
         taskrun = TaskRun(**taskrun_dict)
         return taskrun
