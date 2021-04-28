@@ -62,7 +62,7 @@ setup(
         'psutil',
         'aiohttp',
         'pydantic',
-        'fire'
+        'fire',
     ],
     extras_require={
         'test': [

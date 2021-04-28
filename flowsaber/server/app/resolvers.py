@@ -1,4 +1,5 @@
 from collections import defaultdict
+from typing import Union
 
 from ariadne import QueryType, MutationType, ScalarType, ObjectType
 from graphql import GraphQLResolveInfo
@@ -46,6 +47,13 @@ def update_notnone_exp(data: dict):
     return {"$set": exp}
 
 
+def get_field(obj: Union[BaseModel, dict], filed: str):
+    if isinstance(obj, BaseModel):
+        return getattr(obj, filed)
+    else:
+        return obj[filed]
+
+
 def get_resolvers(db: DataBase):
     assert isinstance(db, DataBase)
 
@@ -82,12 +90,10 @@ def get_resolvers(db: DataBase):
         return "Hello!"
 
     @query.field('get_agent')
-    async def get_agent(obj, info, input: str) -> Agent:
+    async def get_agent(obj, info, input: str) -> dict:
         agent_id = input
         agent_dict = await db.agent.find_one({"_id": agent_id})
-        agent_dict = ch_id(agent_dict)
-        agent = Agent(**agent_dict)
-        return agent
+        return ch_id(agent_dict)
 
     @query.field('get_agents')
     async def get_agents(obj, info) -> List[dict]:
@@ -244,8 +250,8 @@ def get_resolvers(db: DataBase):
         request: Request = info.context['request']
         address = request.client.host
         agent = Agent(**agent_input.dict(), address=address)
+        await db.agent.delete_one({"_id": agent.id})
         await db.agent.insert_one(ch_id(agent.dict()))
-        print(agent)
         return agent
 
     @mutation.field("delete_agent")
@@ -338,14 +344,14 @@ def get_resolvers(db: DataBase):
     #
     @flow.field("tasks")
     async def resolve_tasks(obj, info) -> List[dict]:
-        task_ids = obj['tasks']
+        task_ids = get_field(obj, 'tasks')
         tasks = await db.task.find({"_id": {"$in": task_ids}}).to_list(len(task_ids))
         tasks = [ch_id(task) for task in tasks]
         return tasks
 
     @task.field('output')
     async def resolve_channels(obj, info) -> List[dict]:
-        channel_ids = obj['output']
+        channel_ids = get_field(obj, 'output')
         channels = await db.channel.find({"_id": {"$in": channel_ids}}).to_list(len(channel_ids))
         channels = [ch_id(channel) for channel in channels]
         return channels
@@ -353,14 +359,14 @@ def get_resolvers(db: DataBase):
     @flow.field("flowruns")
     @agent.field("flowruns")
     async def resolve_flowruns(obj, info) -> List[dict]:
-        flowrun_ids = obj['flowruns']
+        flowrun_ids = get_field(obj, 'flowruns')
         flowruns = await db.flowrun.find({"_id": {"$in": flowrun_ids}}).to_list(len(flowrun_ids))
         flowruns = [ch_id(flowrun) for flowrun in flowruns]
         return flowruns
 
     @flowrun.field("taskruns")
     async def resolve_taskruns(obj, info) -> List[dict]:
-        taskrun_ids = obj['taskruns']
+        taskrun_ids = get_field(obj, 'taskruns')
         taskruns = await db.taskrun.find({"_id": {"$in": taskrun_ids}}).to_list(len(taskrun_ids))
         taskruns = [ch_id(taskrun) for taskrun in taskruns]
         return taskruns

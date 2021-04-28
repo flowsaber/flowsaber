@@ -124,11 +124,11 @@ class Flow(Component):
         # for the top most flow, initialize executors
         if self.config_dict['id'] == self.context['flow_id']:
             async with flowsaber.context:
-                res = await execute_child_components()
+                await execute_child_components()
+                # for the top most flow, return None, since Flowrunner's returned final
+                # state will inlcude this
         else:
-            res = await execute_child_components()
-
-        return res
+            await execute_child_components()
 
     @property
     def task_id_edges(self) -> List[Tuple[str, str]]:
@@ -142,11 +142,11 @@ class Flow(Component):
     def serialize(self) -> FlowInput:
         import base64
         import zlib
-        import cloudpickle
+        from distributed.protocol.pickle import dumps
         # TODO can not fetch source code of type(self), if it's due to makefun ?
         assert self.initialized
         config = self.config
-        compressed_flow = zlib.compress(cloudpickle.dumps(self))
+        compressed_flow = zlib.compress(dumps(self))
         serialized_flow = base64.encodebytes(compressed_flow).decode()
         return FlowInput(
             id=config.id,
@@ -164,8 +164,8 @@ class Flow(Component):
     def deserialize(cls, serialized_flow: str) -> "Flow":
         import base64
         import zlib
-        import cloudpickle
+        from distributed.protocol.pickle import loads
         compressed_flow = base64.decodebytes(serialized_flow.encode())
-        initialized_flow: 'Flow' = cloudpickle.loads(zlib.decompress(compressed_flow))
+        initialized_flow: 'Flow' = loads(zlib.decompress(compressed_flow))
         assert initialized_flow.initialized
         return initialized_flow

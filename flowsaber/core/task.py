@@ -90,12 +90,10 @@ class BaseTask(Component):
 
     async def start_execute(self, **kwargs):
         await super().start_execute(**kwargs)
-        res = await self.handle_consumer(self.input, **kwargs)
+        await self.handle_consumer(self.input, **kwargs)
         # always sends a END to _output channel
         end_signal = END if self.num_out == 1 else [END] * self.num_out
         await self.enqueue_res(end_signal)
-
-        return res
 
     async def handle_consumer(self, consumer: Consumer, **kwargs):
         """Iteratively fetch data from consumer and then call processing function
