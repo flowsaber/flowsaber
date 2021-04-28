@@ -3,7 +3,7 @@ import asyncio
 import fire
 
 
-class Cli:
+class CLI:
     TEST_DB_URL = 'mongodb+srv://admin:admin@flowsaber.bkirk.mongodb.net/flowsaber?retryWrites=true&w=majority'
 
     def server(self, url: str = TEST_DB_URL, **kwargs):
@@ -12,7 +12,7 @@ class Cli:
         Parameters
         ----------
         url: str
-            The mongodb url. default: TEST_DB_URL
+            The mongodb url. default: 127.0.0.1:27017
         kwargs: dict
             Options send to uvicorn.run()  for example: --host=xxx --port=xxx
 
@@ -35,11 +35,14 @@ class Cli:
 
         Parameters
         ----------
-        server: url
-            The url of flowsaber server
-        id
-        name
-        labels
+        server: str, optional
+            The url of flowsaber server, You can run `flowsaber server MONGODB_URL` to get a server address.
+        id: str
+            The id of the current agent.
+        name: str, optional
+            The name of the current agent:
+        labels: list, optional
+            The labels attached to the current agent.
 
         Returns
         -------
@@ -55,4 +58,4 @@ class Cli:
 
 
 if __name__ == '__main__':
-    fire.Fire(Cli)
+    fire.Fire(CLI)

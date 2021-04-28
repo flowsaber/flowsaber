@@ -1,4 +1,4 @@
-from flowsaber.core.api import *
+from flowsaber.api import *
 
 
 def test_flow_serialization():

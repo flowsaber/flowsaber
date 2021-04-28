@@ -1,0 +1,6 @@
+#!/usr/bin/env python
+
+import fire
+from flowsaber.cli import CLI
+
+fire.Fire(CLI)

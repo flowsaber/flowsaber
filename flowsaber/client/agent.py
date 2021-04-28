@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 # default ProcessPoolExecutor can not pickle build flow
 def run_flowrun(flowrun_data: dict, flow_data: dict, server_address: str, agent_id: str):
-    from flowsaber.core.api import Flow, FlowRunner, State
+    from flowsaber.api import Flow, FlowRunner, State
 
     flow_run_kwargs = {
         'context': {

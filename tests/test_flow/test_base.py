@@ -1,4 +1,4 @@
-from flowsaber.core.api import *
+from flowsaber.api import *
 
 
 def test_flow():
@@ -36,7 +36,7 @@ def test_flow():
     print("cost ", time.time() - st)
 
 
-def create_flow_and_schedule_running(flow: Flow):
+async def create_flow_and_schedule_running(flow: Flow):
     import flowsaber
     from flowsaber.client.client import Client
     c = Client("http://127.0.0.1:8123")
