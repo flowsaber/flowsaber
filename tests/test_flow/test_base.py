@@ -49,8 +49,8 @@ def test_flow():
         return flowruns
 
     # check writed data in database
-    flowruns = asyncio.run(check_data())
-    print(flowruns)
+    # flowruns = asyncio.run(check_data())
+    # print(flowruns)
 
 
 if __name__ == "__main__":

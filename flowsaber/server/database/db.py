@@ -25,7 +25,7 @@ class DataBase(object):
         import asyncio
 
         async def test():
-            db = DataBase(url, serverSelectionTimeoutMS=2)
+            db = DataBase(url)
             return await db.test_db.find_one()
 
         return asyncio.run(test())

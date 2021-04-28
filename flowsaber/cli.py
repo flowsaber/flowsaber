@@ -4,14 +4,15 @@ import fire
 
 
 class Cli:
+    TEST_DB_URL = 'mongodb+srv://admin:admin@flowsaber.bkirk.mongodb.net/flowsaber?retryWrites=true&w=majority'
 
-    def server(self, url: str = "mongodb://127.0.0.1:27017", **kwargs):
+    def server(self, url: str = TEST_DB_URL, **kwargs):
         """
 
         Parameters
         ----------
         url: str
-            The mongodb url. default: mongodb://127.0.0.1:27017
+            The mongodb url. default: TEST_DB_URL
         kwargs: dict
             Options send to uvicorn.run()  for example: --host=xxx --port=xxx
 

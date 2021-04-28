@@ -108,14 +108,17 @@ def get_resolvers(db: DataBase):
     @query.field("get_flows")
     async def get_flows(obj, info, input: dict) -> IdsPayload:
         input = GetFlowsInput(**input)
-        exp = {
-            "$or":
-                [
-                    {'_id': {'$in': input.id}},
-                    {"name": {"$in": input.name}},
-                    {"labels": {"$all": input.labels}}
-                ]
-        }
+        exp = {}
+        if input.id or input.name or input.labels:
+            exp.update({
+                "$or":
+                    [
+                        {'_id': {'$in': input.id}},
+                        {"name": {"$in": input.name}},
+                        {"labels": {"$all": input.labels}}
+                    ]
+
+            })
 
         ids = []
         async for flow_dict in db.flow.find(exp, {"_id": 1}):
