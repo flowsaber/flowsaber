@@ -389,11 +389,12 @@ class Runner(object):
         with flowsaber.context(self.context):
             with flowsaber.context(kwargs.get('context', {})) as context:
                 context_dict = context.to_dict()
-        self.executor = RunnerExecutor(context=context_dict)
-        for task in self.tasks:
-            self.executor.add_task(task)
-        self.executor.task_done_callbacks.append(self.client.close)
-        self.executor.start()
+        if self.client:
+            self.executor = RunnerExecutor(context=context_dict)
+            for task in self.tasks:
+                self.executor.add_task(task)
+            self.executor.task_done_callbacks.append(self.client.close)
+            self.executor.start()
 
     def initialize_context(self, *args, **kwargs):
         pass
@@ -402,8 +403,9 @@ class Runner(object):
         raise NotImplementedError
 
     def leave_run(self, *args, **kwargs):
-        self.executor.join()
-        self.executor = None
+        if self.client:
+            self.executor.join()
+            self.executor = None
 
     @call_state_change_handlers
     def set_state(self, old_state: State, state_type: type):
@@ -457,7 +459,8 @@ class Runner(object):
                 log_handler.handler = None
 
         def stop():
-            loop.call_soon_threadsafe(log_queue.put_nowait, None)
+            if loop.is_running():
+                loop.call_soon_threadsafe(log_queue.put_nowait, None)
 
         return main_loop(), stop
 
@@ -503,7 +506,8 @@ class Runner(object):
                 self.state_change_handlers.remove(state_change_handler)
 
         def stop():
-            loop.call_soon_threadsafe(task_queue.put_nowait, None)
+            if loop.is_running():
+                loop.call_soon_threadsafe(task_queue.put_nowait, None)
 
         return main_loop(), stop
 
@@ -548,6 +552,7 @@ class Runner(object):
                 await client.mutation(method, input=run_input, field="id")
 
         def stop():
-            loop.call_soon_threadsafe(need_stop.set)
+            if loop.is_running():
+                loop.call_soon_threadsafe(need_stop.set)
 
         return main_loop(), stop

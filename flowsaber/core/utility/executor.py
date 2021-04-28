@@ -42,7 +42,8 @@ class Local(Executor):
     async def run(self, fn, *args, **kwargs):
         coro = fn(*args, **kwargs)
         if inspect.iscoroutine(coro):
-            await coro
+            return await coro
+        return coro
 
 
 class DaskExecutor(Executor):

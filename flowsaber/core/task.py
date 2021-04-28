@@ -250,8 +250,8 @@ class RunTask(BaseTask):
 
         """
         # get the custom scheduler and pop it, do not pass into task runner
-        scheduler: 'TaskScheduler' = kwargs.get("scheduler")
-        kwargs.pop('scheduler')
+        scheduler: 'TaskScheduler' = kwargs.get("scheduler", None)
+        kwargs.pop('scheduler', None)
 
         futures = []
         async for data in consumer:
@@ -483,7 +483,7 @@ class Task(RunTask):
         ----------
         res
         """
-        assert isinstance(res, Done)
+        assert isinstance(res, Done), f"The result is {res}, should be a state of instance of Done"
         if isinstance(res, Success):
             await self.enqueue_res(res.result)
         elif isinstance(res, Failure):
