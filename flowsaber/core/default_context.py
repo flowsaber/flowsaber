@@ -21,20 +21,20 @@ DEFAULT_CONTEXT = {
     # logging options can be flow/task specific, here we treat it as global options for simplicity
     'logging': {
         'fmt': "[{levelname}] [{filename}:{lineno}-{funcName}()] "
-               "task:{task_full_name} taskrun:{taskrun_id: <10} {message}",
+               "[{task_full_name}] [{agent_id:6.6}|{flowrun_id:6.6}|{taskrun_id:6.6}] : {message}",
         'datefmt': "%Y-%m-%d %H:%M:%S",
         'style': '{',
         'level': 'INFO',
         'buffer_size': 10,
         'context_attrs': [
             'flow_id',
-            'task_id',
             'flow_name',
-            'task_name',
             'flow_full_name',
+            'task_id',
+            'task_name',
             'task_full_name',
             'agent_id',
-            'id',
+            'flowrun_id',
             'taskrun_id',
         ]
     },

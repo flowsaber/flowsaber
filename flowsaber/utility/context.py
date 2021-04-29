@@ -203,10 +203,8 @@ class Context(DotBase):
         update_dict = dict(*args, **kwargs)
         prev_context = self.to_dict()
         try:
-            if update_dict:
-                new_context = merge_dicts(deepcopy(prev_context), update_dict)
-                self.data = new_context
+            new_context = merge_dicts(deepcopy(prev_context), update_dict)
+            self.data = new_context
             yield self
         finally:
-            if update_dict:
-                self.data = prev_context
+            self.data = prev_context

@@ -82,8 +82,6 @@ class ComponentMeta(type):
         class_name, bases, class_dict = mcs.update_default_config(class_name, bases, class_dict)
 
         cls = super().__new__(mcs, class_name, bases, class_dict)
-        # print(cls, id(cls))
-        # globals().update({cls.__name__: cls})
         return cls
 
     @classmethod
@@ -95,6 +93,7 @@ class ComponentMeta(type):
             [src_method_name, target_method_name]
             [src_method_name, target_method_name, is_call_boolean]: signature of int will change to Channel[int]
         """
+
         empty_annotation = getattr(inspect, '_empty')
         # 1. handle copying method signature
         func_pairs = class_dict.get(mcs.PAIR_ARG_NAME, [])
@@ -102,33 +101,37 @@ class ComponentMeta(type):
             base_func_pairs = getattr(base_cls, mcs.PAIR_ARG_NAME, [])
             func_pairs += base_func_pairs
 
+        def copy_sig():
+            src = class_dict.get(src_fn) or next(getattr(c, src_fn) for c in bases)
+            tgt = class_dict.get(tgt_fn) or next(getattr(c, tgt_fn) for c in bases)
+            src_sigs = inspect.signature(src)
+            tgt_sigs = inspect.signature(tgt)
+            # handle param signatures, this is used for run -> __call__
+            if len(options) and options[0]:
+                src_sig_params = list(src_sigs.parameters.values())
+                for i, param in enumerate(src_sig_params):
+                    if param.annotation is not empty_annotation:
+                        src_sig_params[i] = param.replace(annotation=f"Channel[{param.annotation}]")
+                src_sigs = inspect.Signature(src_sig_params, return_annotation=src_sigs.return_annotation)
+            # handle return annotation, if tgt already has return annotation, keep it
+            if tgt_sigs.return_annotation is not empty_annotation:
+                src_sig_params = list(src_sigs.parameters.values())
+                src_sigs = inspect.Signature(src_sig_params, return_annotation=tgt_sigs.return_annotation)
+
+            @with_signature(src_sigs, func_name=tgt.__name__, qualname=tgt.__qualname__, doc=src.__doc__)
+            def new_tgt_fn(*args, **kwargs):
+                return tgt(*args, **kwargs)
+
+            # used for source the real func
+            new_tgt_fn.__source_func__ = src
+            return new_tgt_fn
+
         if func_pairs:
             assert all(len(item) >= 2 for item in func_pairs)
             for src_fn, tgt_fn, *options in func_pairs:
                 if src_fn == tgt_fn:
                     raise ValueError(f"src {src_fn} and tgt {tgt_fn} can not be the same.")
-                src = class_dict.get(src_fn) or next(getattr(c, src_fn) for c in bases)
-                tgt = class_dict.get(tgt_fn) or next(getattr(c, tgt_fn) for c in bases)
-                src_sigs = inspect.signature(src)
-                tgt_sigs = inspect.signature(tgt)
-                # handle param signatures, this is used for run -> __call__
-                if len(options) and options[0]:
-                    src_sig_params = list(src_sigs.parameters.values())
-                    for i, param in enumerate(src_sig_params):
-                        if param.annotation is not empty_annotation:
-                            src_sig_params[i] = param.replace(annotation=f"Channel[{param.annotation}]")
-                    src_sigs = inspect.Signature(src_sig_params, return_annotation=src_sigs.return_annotation)
-                # handle return annotation, if tgt already has return annotation, keep it
-                if tgt_sigs.return_annotation is not empty_annotation:
-                    src_sig_params = list(src_sigs.parameters.values())
-                    src_sigs = inspect.Signature(src_sig_params, return_annotation=tgt_sigs.return_annotation)
-
-                @with_signature(src_sigs, func_name=tgt.__name__, qualname=tgt.__qualname__, doc=src.__doc__)
-                def new_tgt_fn(*args, **kwargs):
-                    return tgt(*args, **kwargs)
-
-                # used for source the real func
-                new_tgt_fn.__source_func__ = src
+                new_tgt_fn = copy_sig()
                 class_dict[tgt_fn] = new_tgt_fn
 
         return class_name, bases, class_dict
@@ -299,7 +302,7 @@ class Component(object, metaclass=ComponentMeta):
         # may copied from a task already has context
         self.context = self.context or {}
         config_name = self.config_name
-        pre_workdir = flowsaber.context.get(config_name, {}).get('workdir', '')
+        up_workdir = flowsaber.context.get("up_" + config_name, {}).get('workdir', '')
         # update config in four steps
         default_config = self.default_config
         global_default_config = getattr(flowsaber.context, f'default_{config_name}', {})
@@ -333,7 +336,7 @@ class Component(object, metaclass=ComponentMeta):
         if workdir.is_absolute():
             workdir = str(workdir)
         else:
-            workdir = str(Path(pre_workdir, workdir))
+            workdir = str(Path(up_workdir, workdir))
         self.config_dict['workdir'] = workdir
 
     def initialize_input(self, *args, **kwargs):

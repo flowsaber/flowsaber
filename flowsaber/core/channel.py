@@ -230,8 +230,10 @@ class Channel(ChannelBase):
         if not self.initialized:
             self.initialized = True
             if self.buffer:
-                # always put a END
-                self.buffer.append(END)
+                # always put a END except for constant channel
+                # TODO are there any other ways?
+                if self.queue_factory is not ConstantQueue:
+                    self.buffer.append(END)
                 while self.buffer:
                     self.put_nowait(self.buffer.popleft())
 

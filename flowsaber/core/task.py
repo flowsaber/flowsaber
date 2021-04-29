@@ -5,7 +5,7 @@ import subprocess
 from collections import abc
 from inspect import Parameter, BoundArguments
 from pathlib import Path
-from typing import Callable, Sequence, Optional, TYPE_CHECKING
+from typing import Callable, Sequence, Optional, TYPE_CHECKING, List, Union, Tuple
 
 from dask.base import tokenize
 
@@ -21,6 +21,10 @@ from flowsaber.utility.utils import change_cwd, capture_local
 
 if TYPE_CHECKING:
     from flowsaber.core.engine.scheduler import TaskScheduler
+
+
+class ShellCommandExecuteError(RuntimeError):
+    pass
 
 
 class BaseTask(Component):
@@ -79,7 +83,10 @@ class BaseTask(Component):
         # register edges into the up-most flow
         for input_q in self.input.queues:
             edge = Edge(channel=input_q.ch, task=self)
-            flowsaber.context.top_flow.edges.append(edge)
+            try:
+                flowsaber.context.top_flow.edges.append(edge)
+            except Exception as e:
+                raise e
 
     def initialize_output(self):
         """Create _output channels according to self.num_output
@@ -212,7 +219,6 @@ class RunTask(BaseTask):
     """
     FUNC_PAIRS = [('run', '__call__', True)]
     default_config = {
-        'publish_dirs': [],
         'drop_error': False,
         'retry': 0,
         'fork': 7,
@@ -263,6 +269,10 @@ class RunTask(BaseTask):
             else:
                 fut = asyncio.create_task(job_coro)
             futures.append(fut)
+        # asyncio.wait can not accept empty list
+        if not futures:
+            return []
+
         # wait for the first exception and cancel all functions
         done, pending = await asyncio.wait(futures, return_when=asyncio.FIRST_EXCEPTION)
         for fut in pending:
@@ -396,7 +406,8 @@ class Task(RunTask):
 
     @property
     def task_key(self) -> str:
-        return f"{str(self)}-{self.task_hash}"
+        # TODO use which info as task key?
+        return f"{type(self).__name__}-{self.task_hash}"
 
     def initialize_context(self):
         super().initialize_context()
@@ -449,10 +460,12 @@ class Task(RunTask):
         """
         from copy import copy
         # get input hash, we do not count for parameter names, we only care about orders
-        run_key = flowsaber.context.cache.hash(
-            data=data.arguments.values(),
-            info=self.input_hash_source
+        # must use tuple, data.arguments.values() return an object instead of a container
+        run_key: str = flowsaber.context.cache.hash(
+            data=tuple(data.arguments.values()),
+            **self.input_hash_source
         )
+        assert run_key
 
         # create a fresh new task
         task = copy(self)
@@ -523,32 +536,75 @@ class Task(RunTask):
         self.skip_fn = skip_fn
 
     def clean(self):
-        """Functions called after the execution of task. For example, LocalCache need to write caches onto the disk for
-        cache persistence.
+        """Functions called after the execution of task. For example, Cache need to persist cached data.
         """
-        if hasattr(self, 'cache'):
-            self.cache.persist()
+        pass
 
 
 class ShellTask(Task):
     """Task that execute bash command by using subprocess.
     """
 
+    default_config = {
+        'publish_dirs': [],
+    }
+
     def run(self, cmd: str, output=None, env: Env = None):
-        env = env or Env()
+        """This method should be thread safe, can not run functions depends one process-base attributes like ENV, ....
+
+        Parameters
+        ----------
+        cmd
+        output
+        env
+
+        Returns
+        -------
+
+        """
+        from copy import deepcopy
+        env = deepcopy(env) or Env()
         flow_workdir = self.context['flow_workdir']
         run_workdir = self.context['run_workdir']
+        # run bash command in shell with Popen
+        stdout_file, stderr_file = self.execute_shell_command(cmd, run_workdir, env)
+        # 1. return stdout simulated by file
+        if output is None:
+            stdout_path = Path(stdout_file).resolve()
+            stdout = Stdout(stdout_path)
+            stdout.initialize_hash()
+            return stdout
 
-        # resolve publish dirs
-        publish_dirs = []
-        for pub_dir in self.config_dict['publish_dirs']:
-            pub_dir = Path(pub_dir).expanduser().resolve()
-            if pub_dir.is_absolute():
-                publish_dirs.append(pub_dir)
-            else:
-                publish_dirs.append(Path(flow_workdir, pub_dir).resolve())
-        # start run
+        # 2. return globed files
+        collect_files: List[File] = []
+        resolved_output = self.glob_output_files(output, run_workdir, collect_files)
+        publish_dirs = self.get_publish_dirs(flow_workdir, self.config_dict.get('publish_dirs', []))
+        for file in collect_files:
+            file.initialize_hash()
+            for pub_dir in publish_dirs:
+                pub_dir.mkdir(parents=True, exist_ok=True)
+                pub_file = pub_dir / Path(file.name)
+                if not pub_file.exists():
+                    file.link_to(pub_file)
+
+        return resolved_output
+
+    def execute_shell_command(self, cmd: str, run_workdir: Union[str, Path], env: Env) -> Tuple[Path, Path]:
+        """Run command in shell
+
+        Parameters
+        ----------
+        cmd
+        run_workdir
+        env
+
+        Returns
+        -------
+
+        """
+        # this is not thread safe, because ENV is process-based attributes
         with change_cwd(run_workdir) as path:
+            env.cwd = run_workdir
             # 2. run in environment, stdout and stderr are separated, stdout of other commands are redirected
             run_env_cmd = env.gen_cmd(str(cmd))
             stdout_f = run_workdir / Path(f".__run__.stdout")
@@ -563,57 +619,71 @@ class ShellTask(Task):
                 stderr_file.seek(0)
                 stderr = stderr_file.read(1000)
                 if p.returncode:
-                    raise ValueError(
-                        f"Run in environment for task {self} with error: {stderr} in {run_workdir} task: {self}")
+                    raise ShellCommandExecuteError(f"Run in environment for task {self} with "
+                                                   f"error: {stderr} in {run_workdir} task: {self}")
+            return stdout_f, stderr_f
 
-            # 1. return stdout simulated by file
-            if output is None:
-                stdout_path = Path(stdout_file.name).resolve()
-                stdout = Stdout(stdout_path)
-                stdout.initialize_hash()
-                return stdout
+    @classmethod
+    def glob_output_files(cls, item, run_workdir, collect_files: List[File]):
+        """Iterate over the item hierarchically and convert in-place and glob found str into Files
+        and collect them into the third parameter.
 
-            # 2. return globed files
-            # 1. convert to list
-            single = False
-            if not isinstance(output, (list, tuple)):
-                output = [output]
-                single = True
-            # 2. convert tuple to list
-            if isinstance(output, tuple):
-                output = list(output)
+        Parameters
+        ----------
+        item
+        run_workdir
+        collect_files
 
-            # 3. loop through element in the first level
-            def check_item(item):
-                if type(item) is str:
-                    files = [File(p.resolve())
-                             for p in Path().glob(item)
-                             if not p.name.startswith('.') and p.is_file()]
-                    for f in files:
-                        check_item(f)
+        Returns
+        -------
 
-                    return files[0] if len(files) == 1 else tuple(files)
-                # initialize File
-                elif isinstance(item, File):
-                    # initialize hash
-                    item.initialize_hash()
-                    # publish to publish dir
-                    for pub_dir in publish_dirs:
-                        pub_dir.mkdir(parents=True, exist_ok=True)
-                        pub_file = pub_dir / Path(item.name)
-                        if not pub_file.exists():
-                            item.link_to(pub_file)
+        """
+        # TODO need refactor, too complex
+        if type(item) is str:
+            # key step
+            files = [File(p.resolve())
+                     for p in Path(run_workdir).glob(item)
+                     if not p.name.startswith('.') and p.is_file()]
+            cls.glob_output_files(files, run_workdir, collect_files)
+            # may globed multiple files
+            return files[0] if len(files) == 1 else tuple(files)
 
-                elif isinstance(item, dict):
-                    for k, v in item.items():
-                        item[k] = check_item(v)
-                return item
+        elif isinstance(item, dict):
+            for k, v in item.items():
+                item[k] = cls.glob_output_files(v, run_workdir, collect_files)
+        elif isinstance(item, (tuple, list)):
+            if isinstance(item, tuple):
+                item = list(item)
+            for i, v in enumerate(item):
+                item[i] = cls.glob_output_files(v, run_workdir, collect_files)
+        elif isinstance(item, File):
+            # collect File
+            collect_files.append(item)
 
-            for i, item in enumerate(output):
-                # convert str to File, initialize File
-                output[i] = check_item(item)
+        return item
 
-            return output if not single else output[0]
+    @staticmethod
+    def get_publish_dirs(flow_workdir, configured_publish_dirs: List[str]):
+        """Get absolute path of configured publish dirs.
+
+        Parameters
+        ----------
+        flow_workdir
+        configured_publish_dirs
+
+        Returns
+        -------
+
+        """
+        # resolve publish dirs
+        publish_dirs = []
+        for pub_dir in configured_publish_dirs:
+            pub_dir = Path(pub_dir).expanduser().resolve()
+            if pub_dir.is_absolute():
+                publish_dirs.append(pub_dir)
+            else:
+                publish_dirs.append(Path(flow_workdir, pub_dir).resolve())
+        return publish_dirs
 
 
 class CommandTask(RunTask):
@@ -625,7 +695,7 @@ class CommandTask(RunTask):
     FUNC_PAIRS = [('command', 'run')]
 
     def __init__(self, **kwargs):
-        super().__init__(num_out=3, **kwargs)
+        super().__init__(num_out=2, **kwargs)
 
     def command(self, *args, **kwargs) -> str:
         """Users need to implement this function to compose the final bash command.
@@ -666,6 +736,7 @@ class CommandTask(RunTask):
 
     def run(self, *args, **kwargs):
         # TWO options: 1: use local var: CMD or use docstring
+        # TODO this cause error in debug mode, since settrace is forbidden in debug mode.
         with capture_local() as local_vars:
             cmd_output = self.command(*args, **kwargs)
         cmd = local_vars.get("CMD")

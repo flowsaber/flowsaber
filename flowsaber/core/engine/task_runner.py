@@ -139,7 +139,10 @@ class TaskRunner(Runner):
     @call_state_change_handlers
     def write_cache(self, state):
         assert isinstance(state, Success)
-        flowsaber.context.cache.put(self.context['run_workdir'], state.result)
+        run_workdir = self.context['run_workdir']
+        cache = flowsaber.context.cache
+        cache.put(run_workdir, state.result)
+        cache.persist_single(run_workdir)
         return state
 
     def run_task_timeout(self, **kwargs):

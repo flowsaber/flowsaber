@@ -53,6 +53,9 @@ class Cache(object):
     def persist(self):
         raise NotImplementedError
 
+    def persist_single(self, key):
+        raise NotImplementedError
+
 
 class LocalCache(Cache):
     """LocalCache treat hash keys as directories in disk and dump/load python objects in the corresponding directories.
@@ -71,7 +74,8 @@ class LocalCache(Cache):
         return self
 
     def hash(self, **kwargs) -> str:
-        return tokenize(kwargs)
+        h = tokenize(kwargs)
+        return h
 
     def remove(self, key):
         path = Path(key)
@@ -88,7 +92,7 @@ class LocalCache(Cache):
     def get(self, key: str, default=NO_CACHE) -> object:
         # case 1, in memory cache
         if key in self.cache:
-            flowsaber.context.logger.debug(f"Read cache:{key} succeed from memory.")
+            flowsaber.context.logger.info(f"Read cache:{key} succeed from memory.")
         else:
             # case 2, in disk cache
             value_path = Path(key, self.VALUE_FILE)
@@ -100,7 +104,7 @@ class LocalCache(Cache):
                 flowsaber.context.logger.debug(f"Read cache:{key} failed from disk with error: {e}")
                 return default
             self.cache[key] = value
-            flowsaber.context.logger.debug(f"Read cache:{key} succeed from disk.")
+            flowsaber.context.logger.info(f"Read cache:{key} succeed from disk.")
         return self.cache[key]
 
     def put(self, key: str, data: Any):
@@ -111,12 +115,16 @@ class LocalCache(Cache):
         """
         This should be called before python program ends
         """
-        flowsaber.context.logger.debug(f"Persist cache data: {self.cache}")
-        for key, value in self.cache.items():
-            f = Path(key, self.VALUE_FILE)
-            f.parent.mkdir(parents=True, exist_ok=True)
-            with f.open('wb') as wf:
-                self.serializer.dump(value, wf)
+        for key in tuple(self.cache.keys()):
+            self.persist_single(key)
+
+    def persist_single(self, key):
+        flowsaber.context.logger.info(f"write cache {key}.")
+        value = self.cache[key]
+        f = Path(key, self.VALUE_FILE)
+        f.parent.mkdir(parents=True, exist_ok=True)
+        with f.open('wb') as wf:
+            self.serializer.dump(value, wf)
 
 
 def get_cache(cache: str = 'local', *args, **kwargs):

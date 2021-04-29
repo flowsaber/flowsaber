@@ -41,9 +41,10 @@ class Flow(Component):
 
     def call_initialize(self, *args, **kwargs):
         super().call_initialize(*args, **kwargs)
+        # all flow record child executable components
+        self.components = []
         # only the up-most flow record infos
         if not flowsaber.context.up_flow:
-            self.components = []
             self.tasks = []
             self.edges = []
 
@@ -69,7 +70,12 @@ class Flow(Component):
 
     def call_build(self, *args, **kwargs) -> Union[Output, 'Flow']:
         # enter flow context
-        with self, flowsaber.context(self.context):
+        from copy import deepcopy
+        # used for child component
+        self_context = deepcopy(self.context)
+        self_context["up_" + self.config_name] = self_context[self.config_name]
+        self_context.pop(self.config_name)
+        with self, flowsaber.context(self_context):
             # TODO in case of None return, make a channel yield a end when all components run done
             self.output = self.run(*args, **kwargs) or Channel.end()
 

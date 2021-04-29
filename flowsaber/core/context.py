@@ -191,7 +191,7 @@ def inject_context_attrs(factory):
             # TODO, sometimes, logging does not exist in flowsaber.context?
             context_attrs = flowsaber.context.logging.context_attrs or []
             for attr in context_attrs:
-                setattr(record, attr, context.get(attr, 'None'))
+                setattr(record, attr, context.get(attr, ''))
         except Exception:
             pass
         return record

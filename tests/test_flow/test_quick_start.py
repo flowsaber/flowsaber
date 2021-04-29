@@ -1,13 +1,4 @@
-import sys
-
-import matplotlib.image as mpimg
-import matplotlib.pyplot as plt
-
-sys.path.insert(0, '../../')
-import flowsaber
-from flowsaber import *
-
-EnvTask.DEFAULT_CONFIG = {'task_workdir': '/tmp/Env'}  # make the EnvTask cache at a global place
+from flowsaber.api import *
 
 
 def test_quick_start():
@@ -39,26 +30,13 @@ def test_quick_start():
         | map_(lambda x: int(x.strip())) \
         | view
 
-    config.update({
-        'cpu': 8,
-        Task: {
-            'executor': 'ray'
-        }
-    })
-
-    # set _input
-    num_ch = Channel.values(1, 2, 3, 4, 5, 6, 7, 8)
+    num_ch = Channel.values(1, 2, 3, 4, 5)
     # resolve dependencies
-    workflow = my_flow(num=num_ch)
-    # now can generate dag
-    workflow.graph.render('quick_start_dag', view=False, format='png', cleanup=True)
-    # try run the flow
-    asyncio.run(flowsaber.run(workflow))
+    with flowsaber.context({"task_config": {"executor_type": 'dask'}}):
+        workflow = my_flow(num=num_ch)
 
-    # visualize the flow
-    img = mpimg.imread('quick_start_dag.png')
-    imgplot = plt.imshow(img)
-    plt.show(block=False)
+    runner = FlowRunner(workflow)
+    runner.run()
 
 
 if __name__ == "__main__":
