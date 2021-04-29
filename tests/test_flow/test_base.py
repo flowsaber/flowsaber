@@ -36,7 +36,5 @@ def test_flow():
     print("cost ", time.time() - st)
 
 
-
-
 if __name__ == "__main__":
     test_flow()

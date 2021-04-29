@@ -167,7 +167,6 @@ def class_deco(base_cls: type, method_name: str):
         if fn is None:
             # TODO builtin partial does not maintain signature while makefun.partial has bug
             return partial(deco, **kwargs)
-        assert inspect.isfunction(fn), "Only functions are supported"
         cls_name: str = fn.__name__
         cls_name = cls_name[0].upper() + cls_name[1:]
 

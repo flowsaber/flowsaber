@@ -104,6 +104,10 @@ class ComponentMeta(type):
         def copy_sig():
             src = class_dict.get(src_fn) or next(getattr(c, src_fn) for c in bases)
             tgt = class_dict.get(tgt_fn) or next(getattr(c, tgt_fn) for c in bases)
+            while hasattr(src, '__inner_func__'):
+                src = src.__inner_func__
+            while hasattr(tgt, '__inner_func__'):
+                tgt = tgt.__inner_func__
             src_sigs = inspect.signature(src)
             tgt_sigs = inspect.signature(tgt)
             # handle param signatures, this is used for run -> __call__
@@ -124,6 +128,7 @@ class ComponentMeta(type):
 
             # used for source the real func
             new_tgt_fn.__source_func__ = src
+            new_tgt_fn.__inner_func__ = tgt
             return new_tgt_fn
 
         if func_pairs:

@@ -61,7 +61,7 @@ class TaskRunner(Runner):
         if isinstance(state, Skip):
             return state
         retry = self.task.config_dict.get("retry", 1)
-        cache_type = self.context.get('cache_type')
+        cache_type = self.context.get('cache_type', None)
         while True:
             # 2. use cached result if needed
             if cache_type:

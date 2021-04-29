@@ -7,7 +7,7 @@ import flowsaber
 from flowsaber.core.base import Component
 from flowsaber.core.channel import Channel, Output
 from flowsaber.core.task import BaseTask, Edge
-from flowsaber.core.utils import check_cycle
+from flowsaber.core.utils import check_cycle, class_deco
 from flowsaber.server.database import FlowInput
 
 
@@ -175,3 +175,6 @@ class Flow(Component):
         initialized_flow: 'Flow' = loads(zlib.decompress(compressed_flow))
         assert initialized_flow.initialized
         return initialized_flow
+
+
+flow = class_deco(Flow, 'run')

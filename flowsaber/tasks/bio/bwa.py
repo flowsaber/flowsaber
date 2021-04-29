@@ -1,13 +1,11 @@
-from flowsaber import ShellTask, File
+from flowsaber.core.task import File
+from flowsaber.tasks.shell import ShellFlow
 
 
-class Bwa(ShellTask):
+class Bwa(ShellFlow):
     """
     For xxx.fastq.gz return a file named xx.fastq.bam
     """
-    DEFAULT_CONFIG = {
-        'conda': "bwa==0.7.12 samtools==1.2"
-    }
 
     def command(self, fa: File, fastq: File, params=None):
         """
@@ -22,4 +20,4 @@ class Bwa(ShellTask):
         return bam
 
 
-bwa = Bwa()
+bwa = Bwa(conda="bwa==0.7.12 samtools==1.2")

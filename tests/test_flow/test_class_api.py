@@ -1,12 +1,4 @@
-import sys
-
-sys.path.insert(0, '../../')
-import flowsaber
-from flowsaber import *
-import numpy as np
-import uuid
-
-EnvTask.DEFAULT_CONFIG = {'task_workdir': '/tmp/Env'}  # make the EnvTask cache at a global place
+from flowsaber.api import *
 
 
 def test_flow1():
@@ -58,25 +50,17 @@ def test_flow1():
     fasta2 = Channel.values("A", "B", "x", "a")
 
     workflow = myflow(fasta1, fasta2)
-    consumer = Consumer.from_channels(workflow._output)
-    asyncio.run(flowsaber.run(workflow))
-
-    results = []
-    for data in consumer:
-        results.append(data)
-    print("Results are: ")
-    for res in results:
-        print(res, type(res))
-
-    workflow.graph.render('class_dag1', view=False, format='pdf', cleanup=True)
+    runner = FlowRunner(workflow)
+    runner.run()
 
 
 def test_flow2():
     class Comput1(Task):
         def run(self, a, b):
+            import numpy as np
             l = len(str(b))
-
             ma = np.random.randn(l, l)
+
             return {a: [1] * l, b: ma}
 
     class Comput2(Task):
@@ -85,7 +69,7 @@ def test_flow2():
 
     class Shell1(ShellTask):
         def command(self, f: str):
-            Shell(f"echo  '{f}' > {f}")
+            """echo '{f}' > {f}"""
             return f
 
     class Shell2(ShellTask):

@@ -12,7 +12,7 @@ def test_quick_start():
 
     @shell
     def write(num):
-        """echo {num} > 1.txt"""
+        """echo '{num}' > 1.txt"""
         return '*.txt'
 
     @task
@@ -32,7 +32,7 @@ def test_quick_start():
 
     num_ch = Channel.values(1, 2, 3, 4, 5)
     # resolve dependencies
-    with flowsaber.context({"task_config": {"executor_type": 'dask', 'cache_type': None}}):
+    with flowsaber.context({"task_config": {"executor_type": 'dask', 'cache_type': 'local'}}):
         workflow = my_flow(num=num_ch)
 
     runner = FlowRunner(workflow)

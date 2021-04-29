@@ -1,30 +1,23 @@
 import asyncio
 import inspect
-import os
-import subprocess
 from collections import abc
 from inspect import Parameter, BoundArguments
 from pathlib import Path
-from typing import Callable, Sequence, Optional, TYPE_CHECKING, List, Union, Tuple
+from typing import Callable, Sequence, Optional, TYPE_CHECKING
 
 from dask.base import tokenize
 
 import flowsaber
 from flowsaber.core.base import Component, aenter_context
-from flowsaber.core.channel import Channel, Consumer, ConstantChannel, Output
+from flowsaber.core.channel import Channel, Consumer, Output
 from flowsaber.core.engine.task_runner import TaskRunner
-from flowsaber.core.utility.env import Env, EnvCreator
 from flowsaber.core.utility.state import State, Done, Success, Failure
-from flowsaber.core.utility.target import File, Stdout, Stdin, END, Data
+from flowsaber.core.utility.target import File, END, Data
+from flowsaber.core.utils import class_deco
 from flowsaber.server.database.models import EdgeInput, TaskInput
-from flowsaber.utility.utils import change_cwd, capture_local
 
 if TYPE_CHECKING:
     from flowsaber.core.engine.scheduler import TaskScheduler
-
-
-class ShellCommandExecuteError(RuntimeError):
-    pass
 
 
 class BaseTask(Component):
@@ -462,7 +455,8 @@ class Task(RunTask):
         from copy import copy
         # get input hash, we do not count for parameter names, we only care about orders
         # must use tuple, data.arguments.values() return an object instead of a container
-        if self.context.get('cache', None):
+        cache_type = self.context.get('cache_type', None)
+        if cache_type:
             run_key: str = flowsaber.context.cache.hash(
                 data=tuple(data.arguments.values()),
                 **self.input_hash_source
@@ -545,256 +539,6 @@ class Task(RunTask):
         pass
 
 
-class ShellTask(Task):
-    """Task that execute bash command by using subprocess.
-    """
-
-    default_config = {
-        'publish_dirs': [],
-    }
-
-    def run(self, cmd: str, output=None, env: Env = None):
-        """This method should be thread safe, can not run functions depends one process-base attributes like ENV, ....
-
-        Parameters
-        ----------
-        cmd
-        output
-        env
-
-        Returns
-        -------
-
-        """
-        from copy import deepcopy
-        env = deepcopy(env) or Env()
-        flow_workdir = self.context['flow_workdir']
-        run_workdir = self.context['run_workdir']
-        # run bash command in shell with Popen
-        stdout_file, stderr_file = self.execute_shell_command(cmd, run_workdir, env)
-        # 1. return stdout simulated by file
-        if output is None:
-            stdout_path = Path(stdout_file).resolve()
-            stdout = Stdout(stdout_path)
-            stdout.initialize_hash()
-            return stdout
-
-        # 2. return globed files
-        collect_files: List[File] = []
-        resolved_output = self.glob_output_files(output, run_workdir, collect_files)
-        publish_dirs = self.get_publish_dirs(flow_workdir, self.config_dict.get('publish_dirs', []))
-        for file in collect_files:
-            file.initialize_hash()
-            for pub_dir in publish_dirs:
-                pub_dir.mkdir(parents=True, exist_ok=True)
-                pub_file = pub_dir / Path(file.name)
-                if not pub_file.exists():
-                    file.link_to(pub_file)
-
-        return resolved_output
-
-    def execute_shell_command(self, cmd: str, run_workdir: Union[str, Path], env: Env) -> Tuple[Path, Path]:
-        """Run command in shell
-
-        Parameters
-        ----------
-        cmd
-        run_workdir
-        env
-
-        Returns
-        -------
-
-        """
-        # this is not thread safe, because ENV is process-based attributes
-        with change_cwd(run_workdir) as path:
-            env.cwd = run_workdir
-            # 2. run in environment, stdout and stderr are separated, stdout of other commands are redirected
-            run_env_cmd = env.gen_cmd(str(cmd))
-            stdout_f = run_workdir / Path(f".__run__.stdout")
-            stderr_f = run_workdir / Path(f".__run__.stderr")
-            with stdout_f.open('w') as stdout_file, stderr_f.open('w+') as stderr_file:
-                with subprocess.Popen(f"{run_env_cmd}",
-                                      stdout=stdout_file,
-                                      stderr=stderr_file,
-                                      env=os.environ.copy(), shell=True) as p:
-                    p.wait()
-
-                stderr_file.seek(0)
-                stderr = stderr_file.read(1000)
-                if p.returncode:
-                    raise ShellCommandExecuteError(f"Run in environment for task {self} with "
-                                                   f"error: {stderr} in {run_workdir} task: {self}")
-            return stdout_f, stderr_f
-
-    @classmethod
-    def glob_output_files(cls, item, run_workdir, collect_files: List[File]):
-        """Iterate over the item hierarchically and convert in-place and glob found str into Files
-        and collect them into the third parameter.
-
-        Parameters
-        ----------
-        item
-        run_workdir
-        collect_files
-
-        Returns
-        -------
-
-        """
-        # TODO need refactor, too complex
-        if type(item) is str:
-            # key step
-            files = [File(p.resolve())
-                     for p in Path(run_workdir).glob(item)
-                     if not p.name.startswith('.') and p.is_file()]
-            cls.glob_output_files(files, run_workdir, collect_files)
-            # may globed multiple files
-            return files[0] if len(files) == 1 else tuple(files)
-
-        elif isinstance(item, dict):
-            for k, v in item.items():
-                item[k] = cls.glob_output_files(v, run_workdir, collect_files)
-        elif isinstance(item, (tuple, list)):
-            if isinstance(item, tuple):
-                item = list(item)
-            for i, v in enumerate(item):
-                item[i] = cls.glob_output_files(v, run_workdir, collect_files)
-        elif isinstance(item, File):
-            # collect File
-            collect_files.append(item)
-
-        return item
-
-    @staticmethod
-    def get_publish_dirs(flow_workdir, configured_publish_dirs: List[str]):
-        """Get absolute path of configured publish dirs.
-
-        Parameters
-        ----------
-        flow_workdir
-        configured_publish_dirs
-
-        Returns
-        -------
-
-        """
-        # resolve publish dirs
-        publish_dirs = []
-        for pub_dir in configured_publish_dirs:
-            pub_dir = Path(pub_dir).expanduser().resolve()
-            if pub_dir.is_absolute():
-                publish_dirs.append(pub_dir)
-            else:
-                publish_dirs.append(Path(flow_workdir, pub_dir).resolve())
-        return publish_dirs
-
-
-class CommandTask(RunTask):
-    """Task used for composing bash command based on outputs data of channels. Users need to implement the
-    command method.
-    Note that the _output Channel of this task simply emits composed bash command in str type, and this
-    bash command needs to be actually executed by ShellTask.
-    """
-    FUNC_PAIRS = [('command', 'run')]
-
-    def __init__(self, **kwargs):
-        super().__init__(num_out=2, **kwargs)
-
-    def command(self, *args, **kwargs) -> str:
-        """Users need to implement this function to compose the final bash command.
-
-        The returned value of this method represents the expected outputs after executing the
-        composed bash command in shell:
-            1. None represents the _output is stdout.
-            2. str variables represents glob syntax for files in the working directory.
-
-        To tell flowsaber what's the composed bash command, users has two options:
-            1: Assign the composed command to a vriable named CMD.
-            2: Write virtual fstring as the docstring of command method. All variables in the command method
-                scoped can be used freely.
-
-        Here are some examples:
-
-            class A(CommandTask):
-                def command(self, fa, fasta):
-                    "bwa map -t {self.context.cpu} {fa} {fasta} -o {bam_file}"
-                    bam_file = "test.bam"
-                    return bam_file
-
-            class B(CommandTask):
-                def command(self, file):
-                    a = "xxxx"
-                    b = 'xxxx'
-                    CMD = f"echo {a}\n"
-                          f"echo {b}\n"
-                          f"cat {file}"
-                    # here implicitly returned a None, represents the _output of cmd is stdout
-
-        Parameters
-        ----------
-        args
-        kwargs
-        """
-        raise NotImplementedError("Please implement this function and return a bash script.")
-
-    def run(self, *args, **kwargs):
-        # TWO options: 1: use local var: CMD or use docstring
-        # TODO this cause error in debug mode, since settrace is forbidden in debug mode.
-        with capture_local() as local_vars:
-            cmd_output = self.command(*args, **kwargs)
-        cmd = local_vars.get("CMD")
-        if cmd is None:
-            cmd = self.command.__doc__
-            if cmd is None:
-                raise ValueError("CommandTask must be registered with a shell script_cmd "
-                                 "by calling `_(CMD) or Bash(CMD)` inside the function or add the "
-                                 "script_cmd as the command() method's documentation by setting __doc__ ")
-            local_vars.update({'self': self})
-            cmd = cmd.format(**local_vars)
-        # add cat stdin cmd
-        stdins = [arg for arg in list(args) + list(kwargs.values()) if isinstance(arg, Stdin)]
-        if len(stdins) > 1:
-            raise RuntimeError(f"Found more than two stdin inputs: {stdins}")
-        stdin = f"{stdins[0]} " if len(stdins) else ""
-        cmd = f"{stdin}{cmd}"
-        return cmd, cmd_output
-
-
-# TODO move EnvTask within the CommandTask
-class EnvTask(ShellTask):
-    __ENV_TASKS__ = {}
-
-    def __call__(self, *args, **kwargs):
-        env_hash = self.env_creator.hash
-        if env_hash not in self.__ENV_TASKS__:
-            self.__ENV_TASKS__[env_hash] = super().__call__(*args, **kwargs)
-        return self.__ENV_TASKS__[env_hash]
-
-    def __init__(self, module: str = None, conda: str = None, image: str = None, **kwargs):
-        super().__init__(**kwargs)
-        self.env_creator: EnvCreator = EnvCreator(module, conda, image)
-        self.env: Optional[Env] = None
-
-    def initialize_output(self) -> Output:
-        self.output = ConstantChannel(task=self)
-        return self.output
-
-    def run(self, cmd: str, output=None, env: Env = None):
-        run_workdir = self.context['run_workdir']
-        with change_cwd(run_workdir) as path:
-            cmd, env = self.env_creator.gen_cmd_env()
-        super().run(cmd=cmd)
-        self.env = env
-        return env
-
-    @property
-    def input_hash_source(self) -> dict:
-        return {
-            'env_hash': self.env_creator.hash
-        }
-
-
 class Edge(object):
     """A edge represents a dependency between a channel and a task. the Task consumes data emited by the channel.
     """
@@ -808,3 +552,7 @@ class Edge(object):
             channel_id=self.channel.id,
             task_id=self.task.config_dict['id']
         )
+
+
+run = class_deco(RunTask, 'run')
+task = class_deco(Task, 'run')
