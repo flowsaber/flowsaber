@@ -1,5 +1,4 @@
 import shutil
-from inspect import BoundArguments
 from pathlib import Path
 from typing import Any
 
@@ -38,7 +37,7 @@ class Cache(object):
     implementing `hash` method. Hash of inputs can be further used to write/read related data.
     """
 
-    def hash(self, input_args: BoundArguments, **kwargs):
+    def hash(self, **kwargs):
         raise NotImplementedError
 
     def put(self, input_key: str, output):

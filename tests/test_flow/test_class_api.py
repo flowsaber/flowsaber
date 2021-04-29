@@ -67,25 +67,25 @@ def test_flow2():
         def run(self, dic):
             return '-'.join(str(k) for k in dic.keys())
 
-    class Shell1(ShellTask):
+    class Shell1(ShellFlow):
         def command(self, f: str):
             """echo '{f}' > {f}"""
             return f
 
-    class Shell2(ShellTask):
+    class Shell2(ShellFlow):
         def command(self, f: File):
             f1 = "t1.txt"
             f2 = "t2.txt"
-            Shell(f"""
+            CMD = f"""
                cat  '{f}' >> {f1}
                cat '{f1}' >> {f2}
                cat '{f}' >> {f2}
-              """)
+              """
             return f1, f2
 
-    class Shell3(ShellTask):
+    class Shell3(ShellFlow):
         def command(self, f: File):
-            Shell(f"cat {f}")
+            """cat {f}"""
 
     comput1 = Comput1()
     comput2 = Comput2()
@@ -112,7 +112,7 @@ def test_flow2():
     class Flow12(Flow):
         def run(self, a, b):
             ch = flow1(a, b)
-            return flow2(ch)
+            return flow2(ch) | view
 
     myflow = Flow12()
 
@@ -122,26 +122,9 @@ def test_flow2():
     fasta1 = Channel.values(*fasta1_list)
     fasta2 = Channel.values(*fasta2_list)
 
-    config.update({
-        'cpu': 7,
-        'memory': 100,
-        'time': 1000,
-        'io': 80
-    })
-
     workflow = myflow(fasta1, fasta2)
-    consumer = Consumer.from_channels(workflow._output)
-
-    asyncio.run(flowsaber.run(workflow))
-
-    results = []
-    for data in consumer:
-        results.append(data)
-    print("Results are: ")
-    for res in results:
-        print(res, type(res))
-
-    workflow.graph.render('class_dag2', view=False, format='pdf', cleanup=True)
+    runner = FlowRunner(workflow)
+    runner.run()
 
 
 if __name__ == "__main__":

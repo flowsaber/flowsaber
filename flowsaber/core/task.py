@@ -441,6 +441,11 @@ class Task(RunTask):
     def run_workdir(self) -> Path:
         return Path(self.task_workdir, self.context['run_key'])
 
+    def run_hash_source(self, run_data: BoundArguments, **kwargs) -> dict:
+        return {
+            'data': tuple(run_data.arguments.values())
+        }
+
     async def call_run(self, data: BoundArguments, **kwargs) -> State:
         """Call self.run within the control of a asyncio.Lock identified by run_workdir
         Parameters
@@ -457,10 +462,7 @@ class Task(RunTask):
         # must use tuple, data.arguments.values() return an object instead of a container
         cache_type = self.context.get('cache_type', None)
         if cache_type:
-            run_key: str = flowsaber.context.cache.hash(
-                data=tuple(data.arguments.values()),
-                **self.input_hash_source
-            )
+            run_key: str = flowsaber.context.cache.hash(**self.run_hash_source(data, **kwargs))
         else:
             run_key: str = flowsaber.context.random_id
         assert run_key
@@ -513,15 +515,6 @@ class Task(RunTask):
             return self.skip_fn(**bound_args.arguments)
         else:
             return False
-
-    @property
-    def input_hash_source(self) -> dict:
-        """Other infos needs to be passed into cache.hash function for fecthing a unique _input/run key.
-        Returns
-        -------
-
-        """
-        return {}
 
     def skip(self, skip_fn: Callable):
         """A decorator/function exposed for users to specify skip function.

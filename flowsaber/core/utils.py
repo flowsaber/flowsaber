@@ -177,7 +177,9 @@ def class_deco(base_cls: type, method_name: str):
             'func_name': method_name,
             'qualname': method_name
         }
-        if not (sigs[0].name == 'self' and sigs[0].kind == inspect.Parameter.POSITIONAL_OR_KEYWORD):
+        no_args = not sigs
+        first_is_self = sigs and sigs[0].name == 'self' and sigs[0].kind == inspect.Parameter.POSITIONAL_OR_KEYWORD
+        if no_args or not first_is_self:
             sigs.insert(0, SELF_SIG)
 
             @with_signature(inspect.Signature(sigs, return_annotation=sig.return_annotation), **params)

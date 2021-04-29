@@ -2,7 +2,7 @@ import hashlib
 import os
 import subprocess
 from pathlib import Path
-from typing import List, Union, Tuple, Optional, Any
+from typing import List, Union, Tuple, Optional, Any, TYPE_CHECKING
 
 from dask.base import tokenize
 
@@ -12,6 +12,9 @@ from flowsaber.core.task import Task
 from flowsaber.core.utility.target import Stdin, Stdout, File
 from flowsaber.core.utils import class_deco
 from flowsaber.utility.utils import change_cwd, capture_local
+
+if TYPE_CHECKING:
+    from inspect import BoundArguments
 
 
 class EnvBase(object):
@@ -237,15 +240,21 @@ class ShellTask(Task):
 
         """
         # this is not thread safe, because ENV is process-based attributes
+        wrapped_cmd = f"mkdir -p {run_workdir};\n" \
+                      f"cd {run_workdir};\n" \
+                      f"{cmd}"
+        # write into a sh file
+        bash_script = Path(run_workdir, f".__run__.sh")
+        with change_cwd(run_workdir):
+            with bash_script.open('w') as f:
+                f.write(wrapped_cmd)
+        # execute with subprocess.Popen
         with change_cwd(run_workdir):
             envs = os.environ.copy()
-            wrapped_cmd = f"mkdir -p {run_workdir};\n" \
-                          f"cd {run_workdir};\n" \
-                          f"{cmd}"
             stdout_f = run_workdir / Path(f".__run__.stdout")
             stderr_f = run_workdir / Path(f".__run__.stderr")
             with stdout_f.open('w') as stdout_file, stderr_f.open('w+') as stderr_file:
-                with subprocess.Popen(wrapped_cmd,
+                with subprocess.Popen(f"bash -e {bash_script};",
                                       stdout=stdout_file, stderr=stderr_file,
                                       env=envs, shell=True) as p:
                     p.wait()
@@ -253,8 +262,8 @@ class ShellTask(Task):
                 stderr_file.seek(0)
                 stderr = stderr_file.read(1000)
                 if p.returncode:
-                    raise ShellTaskExecuteError(f"Run in environment for task {self} with "
-                                                f"error: {stderr} in {run_workdir} task: {self}")
+                    raise ShellTaskExecuteError(f"Execute bash file: {bash_script} meets "
+                                                f"error: {stderr} in {run_workdir}.")
 
             return stdout_f, stderr_f
 
@@ -340,6 +349,24 @@ class CommandTask(ShellTask):
         self.env_creator: Optional[EnvCreator] = None
 
     @property
+    def task_hash(self) -> str:
+        """take command's source code into consideration
+
+        Returns
+        -------
+
+        """
+        run_hash = super().task_hash
+        fn = self.command
+        # for wrapped func, use __source_func__ as a link
+        while hasattr(fn, '__source_func__'):
+            fn = fn.__source_func__
+        code = fn.__code__.co_code
+        annotations = getattr(fn, '__annotations__', None)
+
+        return tokenize(code, annotations, run_hash)
+
+    @property
     def env(self) -> EnvCreator:
         if self.env_creator is None:
             module = self.config_dict.get('module', None)
@@ -353,6 +380,11 @@ class CommandTask(ShellTask):
     def input_hash_source(self) -> dict:
         return {
             'env_info': self.env.hash
+        }
+
+    def run_hash_source(self, run_data: 'BoundArguments', **kwargs) -> dict:
+        return {
+            'env_hash': self.env.hash
         }
 
     def command(self, *args, **kwargs) -> str:
