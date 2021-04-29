@@ -53,7 +53,8 @@ def shell(command_fn: Callable = None, **kwargs) -> Union[Callable, Flow]:
         # 2. execute the command
         env_ch = None
         if module or conda or image:
-            env_ch = EnvTask(module, conda, image)()
+            # try to use the same env for all tasks
+            env_ch = EnvTask(module, conda, image, **kwargs, name="ENV")()
         output_ch = shell_task(cmd_ch, cmd_output_ch, env=env_ch)
 
         return output_ch

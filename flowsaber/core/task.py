@@ -407,6 +407,7 @@ class Task(RunTask):
     @property
     def task_key(self) -> str:
         # TODO use which info as task key?
+        # Task are supposed to be statefull, same input with same output
         return f"{type(self).__name__}-{self.task_hash}"
 
     def initialize_context(self):
