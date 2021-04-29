@@ -61,6 +61,7 @@ class Agent(object):
             name=self.name,
             labels=self.labels
         )
+        await self.client.mutation('delete_agent', self.id, "success")
         agent_data = await self.client.mutation('create_agent', agent_input, "id")
         assert agent_data['id'] == self.id
         with FlowScheduler() as scheduler:

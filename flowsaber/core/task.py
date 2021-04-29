@@ -761,6 +761,7 @@ class CommandTask(RunTask):
         return cmd, cmd_output
 
 
+# TODO move EnvTask within the CommandTask
 class EnvTask(ShellTask):
     __ENV_TASKS__ = {}
 

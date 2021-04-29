@@ -36,24 +36,6 @@ def test_flow():
     print("cost ", time.time() - st)
 
 
-async def create_flow_and_schedule_running(flow: Flow):
-    import flowsaber
-    from flowsaber.client.client import Client
-    c = Client("http://127.0.0.1:8123")
-    flow_data = await c.mutation("create_flow", flow.serialize(), "id")
-    await c.mutation(
-        "update_flowrun",
-        FlowRunInput(
-            id=flowsaber.context.random_id,
-            name="test",
-            labels=[],
-            context={},
-            flow_id=flow_data['id'],
-            agent_id="test",
-            state=Scheduled().to_dict()
-        ),
-        'id'
-    )
 
 
 if __name__ == "__main__":

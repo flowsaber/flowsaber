@@ -186,7 +186,7 @@ class FlowScheduler(Scheduler):
         self.executor: executor_cls = None
         self.futures: Set[Future] = set()
 
-    def __enter__(self):
+    def __enter__(self) -> 'FlowScheduler':
         self.executor = self.executor_cls(**self.executor_kwargs)
         return self
 
