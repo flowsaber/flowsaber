@@ -32,7 +32,7 @@ def test_quick_start():
 
     num_ch = Channel.values(1, 2, 3, 4, 5)
     # resolve dependencies
-    with flowsaber.context({"task_config": {"executor_type": 'dask'}}):
+    with flowsaber.context({"task_config": {"executor_type": 'dask', 'cache_type': None}}):
         workflow = my_flow(num=num_ch)
 
     runner = FlowRunner(workflow)

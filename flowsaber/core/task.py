@@ -462,10 +462,13 @@ class Task(RunTask):
         from copy import copy
         # get input hash, we do not count for parameter names, we only care about orders
         # must use tuple, data.arguments.values() return an object instead of a container
-        run_key: str = flowsaber.context.cache.hash(
-            data=tuple(data.arguments.values()),
-            **self.input_hash_source
-        )
+        if self.context.get('cache', None):
+            run_key: str = flowsaber.context.cache.hash(
+                data=tuple(data.arguments.values()),
+                **self.input_hash_source
+            )
+        else:
+            run_key: str = flowsaber.context.random_id
         assert run_key
 
         # create a fresh new task
