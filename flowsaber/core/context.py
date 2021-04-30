@@ -30,6 +30,7 @@ import inspect
 import logging
 import uuid
 from collections import defaultdict
+from contextlib import asynccontextmanager
 from functools import partial
 from typing import List, Optional, TYPE_CHECKING
 
@@ -55,10 +56,10 @@ class FlowSaberContext(Context):
 
     """
     EXECUTOR_TABLE = '__executors'
+    LOCK_TABLE = '__locks'
     CACHE_TABLE = "__caches"
-    RUN_LOCK_TABLE = "__run_locks"
     LOGGER_TABLE = '__loggers'
-    FLOW_STACK = '__flow_stack'
+    FLOW_STACK_LIST = '__flow_stack'
 
     @property
     def random_id(self) -> str:
@@ -66,7 +67,7 @@ class FlowSaberContext(Context):
 
     @property
     def flow_stack(self) -> List['Flow']:
-        return self._info.setdefault(self.FLOW_STACK, [])
+        return self._info.setdefault(self.FLOW_STACK_LIST, [])
 
     @property
     def top_flow(self) -> Optional['Flow']:
@@ -120,20 +121,22 @@ class FlowSaberContext(Context):
             self.logger.warning(f"The executor: {executor_type} not found. fall back to local")
         return executors[executor_type]
 
-    @property
-    def run_lock(self) -> asyncio.Lock:
+    @asynccontextmanager
+    async def lock(self, keys: List[str]):
         """Fetch a asyncio.Lock based on `run_workdir` in the current context.
         Returns
         -------
 
         """
-        locks = self._info.setdefault(
-            self.RUN_LOCK_TABLE,
-            default=defaultdict(asyncio.Lock)
-        )
-        assert 'run_workdir' in self, "Can not find 'run_workdir' in context. You are not within a task."
-        run_workdir = self.run_workdir
-        return locks[run_workdir]
+        lock_table = self._info.setdefault(self.LOCK_TABLE, defaultdict(asyncio.Lock))
+        locks = tuple(lock_table[key] for key in keys)
+        try:
+            for lock in locks:
+                await lock.acquire()
+            yield locks
+        finally:
+            for lock in locks:
+                lock.release()
 
     @property
     def cache(self, ) -> Cache:

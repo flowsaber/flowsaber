@@ -107,7 +107,7 @@ class LocalCache(Cache):
         return self.cache[key]
 
     def put(self, key: str, data: Any):
-        flowsaber.context.logger.debug(f"set cache:{key} with: {data}")
+        flowsaber.context.logger.debug(f"set cache:{key}")
         self.cache[key] = data
 
     def persist(self):

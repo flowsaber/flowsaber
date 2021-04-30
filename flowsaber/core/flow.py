@@ -129,6 +129,7 @@ class Flow(Component):
 
         # for the top most flow, initialize executors
         if self.config_dict['id'] == self.context['flow_id']:
+            flowsaber.context._info.clear()
             async with flowsaber.context:
                 await execute_child_components()
                 # for the top most flow, return None, since Flowrunner's returned final

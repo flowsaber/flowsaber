@@ -3,7 +3,7 @@ import inspect
 from collections import abc
 from inspect import Parameter, BoundArguments
 from pathlib import Path
-from typing import Callable, Sequence, Optional, TYPE_CHECKING
+from typing import Callable, Sequence, Optional, TYPE_CHECKING, List
 
 from dask.base import tokenize
 
@@ -328,12 +328,14 @@ class RunTask(BaseTask):
             if ano_type is not Parameter.empty and isinstance(ano_type, type):
                 value = arguments[arg]
                 # 1. do some type conversion in case with type annotation
-                if not isinstance(value, ano_type):
+                is_default = (param.default is not inspect._empty) and (value is param.default)
+                print(f"{value} {type(value)} {param} {ano_type} {(not is_default) and (not isinstance(value, ano_type))}")
+                if (not is_default) and (not isinstance(value, ano_type)):
                     try:
                         arguments[arg] = ano_type(value)
                     except Exception as e:
-                        raise TypeError(f"The _input argument `{arg}` has annotation `{ano_type}`, but "
-                                        f"the _input value `{value}` can not be converted.")
+                        raise TypeError(f"The input argument `{arg}` has annotation `{ano_type}`, but "
+                                        f"the input value `{value}` can not be converted.")
                 # 2. if has File annotation, make sure it exists
                 if ano_type is File and not arguments[arg].is_file():
                     raise ValueError(f"The argument {arg} has a File annotation but "
@@ -446,6 +448,10 @@ class Task(RunTask):
             'data': tuple(run_data.arguments.values())
         }
 
+    @property
+    def run_lock_source(self) -> List[str]:
+        return [self.context.get('run_workdir')]
+
     async def call_run(self, data: BoundArguments, **kwargs) -> State:
         """Call self.run within the control of a asyncio.Lock identified by run_workdir
         Parameters
@@ -478,7 +484,7 @@ class Task(RunTask):
         task.context.update(context_update)
         flowsaber.context.update(context_update)
         # must lock _input key to avoid collision in cache and files in _running path
-        async with flowsaber.context.run_lock:
+        async with flowsaber.context.lock(task.run_lock_source):
             task_runner = TaskRunner(
                 task=task,
                 inputs=data,
