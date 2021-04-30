@@ -79,7 +79,7 @@ setup(
             'pytest-cov',
             'httpimport',
             'autodocsumm',
-            'pysam',
+            # 'pysam',
             'matplotlib'
         ],
         'server': [
