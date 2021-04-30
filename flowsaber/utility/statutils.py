@@ -29,7 +29,6 @@ class ResourceMonitor(Thread):
         self.running.clear()
         self.join()
 
-    # TODO this method may cause errors sometimes, possibly due to quick exit of process.
     def run(self) -> None:
         self.s_usage = self.accum_resource(self.STATIC_ATTRS, self.s_usage)
 
@@ -52,16 +51,20 @@ class ResourceMonitor(Thread):
 
     @classmethod
     def accum_resource(cls, attrs: Sequence, usage=None):
-        ps = [psutil.Process()]
-        ps = ps + list(ps[0].children(recursive=True))
-        if usage is None:
-            usage = {}
+        # TODO this method may cause errors sometimes, possibly due to quick exit of process.
+        try:
+            ps = [psutil.Process()]
+            ps += list(ps[0].children(recursive=True))
+            if usage is None:
+                usage = {}
 
-        for p in ps:
-            p_usage = cls.unwrap(p.as_dict(attrs))
-            for k, v in p_usage.items():
-                usage[k] = usage.get(k, 0) + v
-        return usage
+            for p in ps:
+                p_usage = cls.unwrap(p.as_dict(attrs))
+                for k, v in p_usage.items():
+                    usage[k] = usage.get(k, 0) + v
+            return usage
+        except Exception:
+            return {} if usage is None else usage
 
     @staticmethod
     def unwrap(value: dict):
