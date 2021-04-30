@@ -11,6 +11,8 @@ jobs:
       - uses: ammaraskar/sphinx-action@master
         with:
           docs-folder: "docs/"
+          pre-build-command: "pip install '.[server]'"
+
 
       - name: Commit documentation changes
         run: |
