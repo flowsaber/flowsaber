@@ -27,6 +27,7 @@ release = '0.1'
 
 # -- General configuration ---------------------------------------------------
 import sphinx_rtd_theme
+import myst_nb
 
 
 # Add any Sphinx extension module names here, as strings. They can be
