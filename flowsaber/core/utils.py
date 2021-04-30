@@ -131,8 +131,8 @@ def extend_method(cls):
     return set_method
 
 
-def class_deco(base_cls: type, method_name: str):
-    def deco(fn: Callable = None, **kwargs):
+def class_deco(base_cls: type, method_name: str) -> Callable:
+    def deco(fn: Callable = None, **kwargs) -> base_cls:
         """
         For base_cls is Task, method_name is run
 

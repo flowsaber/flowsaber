@@ -320,17 +320,10 @@ class DaskExecutor(Executor):
 
     def __getstate__(self) -> dict:
         state = self.__dict__.copy()
-        state.update(
-            {
-                k: None
-                for k in [
-                "client",
-                "_futures",
-                "_should_run_event",
-                "_watch_dask_events_task",
-            ]
-            }
-        )
+        state.update({
+            k: None
+            for k in ["client", "_futures", "_should_run_event", "_watch_dask_events_task"]
+        })
         return state
 
     def __setstate__(self, state: dict) -> None:

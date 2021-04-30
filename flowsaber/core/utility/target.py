@@ -81,12 +81,8 @@ class File(Target):
 
 class Stdout(File):
     """Ugly way, Use File to store stdout.
-    In the idealist implementation, stdout and _stdin can be piped/linked across machines over network.
+    In the idealist implementation, stdout and stdin can be piped/linked across machines over network.
     """
-
-    def __str__(self):
-        # Note: different to File, stdout should be string by default
-        return self.path.read_text()
 
 
 class Stdin(Target):

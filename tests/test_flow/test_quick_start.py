@@ -30,13 +30,11 @@ def test_quick_start():
         | map_(lambda x: int(x.strip())) \
         | view
 
-    num_ch = Channel.values(1, 2, 3, 4, 5)
+    num_ch = Channel.values(1, 2, 3)
     # resolve dependencies
     with flowsaber.context({"task_config": {"executor_type": 'dask', 'cache_type': 'local'}}):
         workflow = my_flow(num=num_ch)
-
-    runner = FlowRunner(workflow)
-    runner.run()
+    run(workflow)
 
 
 if __name__ == "__main__":

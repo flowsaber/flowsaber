@@ -53,7 +53,7 @@ class CLI:
         flowsaber.context.logger.info(f"Server: {server}")
         agent = Agent(server, id, name, labels)
         flowsaber.context.logger.info(f"The agent is: Agent(id={agent.id}, name={agent.name}, labels={agent.labels})")
-        flowsaber.context.logger.info(f"Stating agent ....")
+        flowsaber.context.logger.info(f"Starting agent ....")
         asyncio.run(agent.start())
 
 

@@ -62,7 +62,6 @@ class ShellTask(Task):
                 pub_file = pub_dir / Path(file.name)
                 if not pub_file.exists():
                     file.link_to(pub_file)
-        print(f"resolved ----------- {resolved_output}")
         return resolved_output
 
     def execute_shell_command(self, cmd: str, run_workdir: Union[str, Path], envs: dict = None) -> Tuple[Path, Path]:
@@ -263,7 +262,13 @@ class ShellFlow(Flow):
     @property
     def shell_task(self) -> ShellTask:
         if self.shell_task_ is None:
-            self.shell_task_ = ShellTask(**self.rest_kwargs)
+            # rename shell_task's name to FlowNameShellTask
+            flow_name = self.config_dict['name']
+            if '[' in flow_name:
+                flow_name = flow_name[:flow_name.index('[')]
+            task_cls_name = flow_name + "ShellTask"
+            task_cls_name = task_cls_name[0].upper() + task_cls_name[1:]
+            self.shell_task_ = type(task_cls_name, (ShellTask,), {})(**self.rest_kwargs)
         return self.shell_task_
 
     def command(self, *args, **kwargs):

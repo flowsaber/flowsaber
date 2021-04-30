@@ -71,12 +71,18 @@ setup(
     ],
     extras_require={
         'test': [
+            "graphql-core",
+            'ariadne',
+            'uvicorn',
+            'starlette',
+            'motor',
+            # test
             'pytest',
             'pytest-cov',
             'httpimport',
             'autodocsumm',
             'pysam',
-            'matplotlib'
+            'matplotlib',
         ],
         'server': [
             "graphql-core",

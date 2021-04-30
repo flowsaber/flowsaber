@@ -15,7 +15,7 @@ def test_flow():
     def myflow(num):
         return num | add | add | view | add | view
 
-    num_ch = Channel.values(*list(range(10)))
+    num_ch = Channel.values(*list(range(5)))
     initial_context = {
         'logging': {'level': "DEBUG"},
         'task_config': {
@@ -24,16 +24,7 @@ def test_flow():
     }
     with flowsaber.context(initial_context):
         f = myflow(num_ch)
-    # make sure mongodb is installed and started
-    runner = FlowRunner(f)
-    run_context = {
-
-    }
-    time.sleep(3)
-
-    st = time.time()
-    runner.run(context=run_context)
-    print("cost ", time.time() - st)
+    run(f)
 
 
 if __name__ == "__main__":

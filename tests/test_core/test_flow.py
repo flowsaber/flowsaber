@@ -16,6 +16,3 @@ def test_flow_serialization():
     flow_input = tes_flow.serialize()
 
     deserialized_flow = Flow.deserialize(flow_input.serialized_flow)
-
-    assert deserialized_flow.initialized
-    assert deserialized_flow == tes_flow
