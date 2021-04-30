@@ -2,68 +2,11 @@
 API Reference
 =============
 
-Task
+Api
 =====
 
-.. automodule:: flowsaber.core.task
+.. automodule:: flowsaber.api
     :autosummary:
     :members:
 
-Flow
-========
-
-.. automodule:: flowsaber.core.flow
-    :autosummary:
-    :members:
-
-Channel
-=======
-
-.. automodule:: flowsaber.core.channel
-    :autosummary:
-    :members:
-
-Operators
-=====
-
-.. automodule:: flowsaber.operators
-    :autosummary:
-    :members:
-
-Tasks
-=====
-
-.. automodule:: flowsaber.tasks
-    :autosummary:
-    :members:
-
-Context
-=======
-.. automodule:: flowsaber.context
-    :autosummary:
-    :members:
-
-Target
-=========
-.. automodule:: flowsaber.core.target
-    :autosummary:
-    :members:
-
-Scheduler
-=========
-.. automodule:: flowsaber.core.scheduler
-    :autosummary:
-    :members:
-
-Executor
-=========
-.. automodule:: flowsaber.core.executor
-    :autosummary:
-    :members:
-
-Cache
-=========
-.. automodule:: flowsaber.core.cache
-    :autosummary:
-    :members:
 
