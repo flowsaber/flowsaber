@@ -28,7 +28,7 @@ def test_snakemake_workflow():
         import matplotlib.pyplot as plt
         from pysam import VariantFile
 
-        quals = [record.qual for record in VariantFile(vcf.open('rb'))]
+        quals = [record.qual for record in VariantFile(str(vcf))]
         plt.hist(quals)
 
         plt.savefig("report.svg")
