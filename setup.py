@@ -12,9 +12,8 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "License :: OSI Approved :: MIT",
     "Intended Audience :: Science/Research",
-    "Topic :: Scientific/Engineering :: workflow",
-    "Topic :: Scientific/Engineering :: pipeline",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Software Development :: Libraries",
 ]
 
 keywords = [
