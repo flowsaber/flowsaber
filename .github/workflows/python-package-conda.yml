@@ -32,9 +32,8 @@ jobs:
       run: |
         export PATH=$CONDA/bin:$PATH
         $CONDA/bin/conda install --yes pytest
-        $CONDA/bin/conda install -c anaconda graphviz pysam matplotlib --yes
         $CONDA/bin/conda install -c conda-forge --yes pytest-tornasync
-        $CONDA/bin/conda install -c bioconda --yes bwa samtools bcftools
+        $CONDA/bin/conda install -c bioconda --yes bwa samtools bcftools pysam
         $CONDA/bin/pytest --cov=./ -s -o log_cli=True -vvvv --cov-report=xml tests/
     - name: "Upload coverage to Codecov"
       uses: codecov/codecov-action@v1

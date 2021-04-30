@@ -82,7 +82,6 @@ setup(
             'httpimport',
             'autodocsumm',
             'pysam',
-            'matplotlib',
         ],
         'server': [
             "graphql-core",
