@@ -1,0 +1,93 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "collapsed": true,
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "# Quick Start"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "source": [
+    "### Installation\n",
+    "\n",
+    "- Install from PYPI or from source.\n",
+    "\n",
+    "```\n",
+    "pip install flowsaber\n",
+    "```\n",
+    "\n",
+    "Or\n",
+    "\n",
+    "```bash\n",
+    "https://github.com/zhqu1148980644/flowsaber.git\n",
+    "cd flowsaber && pip install .\n",
+    "```\n",
+    "\n",
+    "### Main concepts\n",
+    "\n",
+    "For users who are familiar with nextflow usages can skip this part, other's can also check\n",
+    "[this](https://www.nextflow.io/docs/edge/basic.html) for similar descriptions that comes from the introduction\n",
+    "section of the nextflow documentation.\n",
+    "\n",
+    "Basically there are several components that are exposed to users for building and configuring workflows.\n",
+    "\n",
+    "##### Task\n",
+    "`Task` is the object represents the execution unit in your workflow. Tasks runs in parallel for different inputs.\n",
+    "\n",
+    "##### Flow\n",
+    "`Flow` is the object that combines and records dependencies of all tasks you have put in. After it's been\n",
+    "instantiated, it should be called for the actual dependency building and then can be executed by call `flow.execute()`.\n",
+    "\n",
+    "##### Channel\n",
+    "`Channel` represents a flow/queue of data, it's consumed by Tasks. Any user defined data should be\n",
+    "enqueued into a channel and then as arguments of Task/Flow.\n",
+    "\n",
+    "##### Operator\n",
+    "`Operator` is built-in tasks that helps to manipulate the control of channels.\n",
+    "\n",
+    "- For example: `map, sum, count, collect, flatten....`\n",
+    "\n",
+    "### A Typical workflow\n",
+    "\n",
+    "The workflow defined below covers most sets of features supported by pyflow.\n",
+    "\n",
+    "- Note: the output of the workflow may be different in different runs, this is\n",
+    "due to the parallelism of task's executions for different inputs.\n"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   }
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 2
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython2",
+   "version": "2.7.6"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 0
+}

@@ -1,0 +1,68 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "collapsed": true,
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "# Internal\n",
+    "\n",
+    "\n",
+    "- The second call will generate a new task instance depends on `(ch1, ch2, ch3)` and return a new `Channel`.\n",
+    "\n",
+    "```\n",
+    "task = Task()\n",
+    "output_ch = task(ch1, ch2, ch3)\n",
+    "```\n",
+    "\n",
+    "\n",
+    "- For each task instance, will get a unique `task_key` equals to it's working directory, since a task\n",
+    "object can be used multiple times, so there may be multiple tasks share the same `task_key`.\n",
+    "```\n",
+    "task.task_key = classname-hash(task.run_job.__code__ + task.run.__annotation__ + other_info)\n",
+    "task.task_workdir = task.config_dict.task_workdir/task.task_key\n",
+    "```\n",
+    "\n",
+    "- For each input of `task.run`, the run will have a `run_key` equals to it's working directory\n",
+    "```\n",
+    "run.task_workdir = run_key = task.task_workdir/hash(inputs, other_info)\n",
+    "```\n",
+    "\n",
+    "- All task objects with the same `task_key` will share the same `lock pool` and `cache`, different\n",
+    "runs will be scheduled in parallel but runs with the same `run_key` will compete for a sharing `run_key` lock\n",
+    "to avoid conflictions.\n",
+    "\n",
+    "\n",
+    "- For task receives no input channels, the task's will only be ran once\n",
+    "```\n",
+    "output_ch = task()\n",
+    "```"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 2
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython2",
+   "version": "2.7.6"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 0
+}
