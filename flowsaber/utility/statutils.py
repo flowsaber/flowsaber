@@ -29,6 +29,7 @@ class ResourceMonitor(Thread):
         self.running.clear()
         self.join()
 
+    # TODO this method may cause errors sometimes, possibly due to quick exit of process.
     def run(self) -> None:
         self.s_usage = self.accum_resource(self.STATIC_ATTRS, self.s_usage)
 
