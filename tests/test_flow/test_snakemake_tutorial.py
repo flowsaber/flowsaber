@@ -11,14 +11,14 @@ def test_snakemake_workflow():
 
     @shell(conda="bwa=0.7.17 samtools=1.9")
     def sort(bam: File):  # self is optional in case you don't want to access the current task
-        """samtools sort -o {sorted_bam} {bam}"""  # use local variable
+        """samtools sort -o {sorted_bam} {bam}"""
         sorted_bam = f"{bam.stem}.sorted.bam"
         return sorted_bam
 
     @shell(conda="bcftools=1.9 samtools=1.9", pubdir="results/vcf")
     def call(fa: File, bams: list):  # In case you need to write some python codes
+        """samtools mpileup -g -f {fa} {bams} | bcftools call -mv - > all.vcf"""
         bams = ' '.join(str(bam) for bam in bams)
-        CMD = f"samtools mpileup -g -f {fa} {bams} | bcftools call -mv - > all.vcf"
         return "all.vcf"
 
     @task(publish_dirs=["results/stats"])
@@ -34,20 +34,35 @@ def test_snakemake_workflow():
         plt.savefig("report.svg")
 
     @flow
-    def call_vcf_flow(fa, fastq):
+    def call_vcf_flow():
+        """Call vcf from fastq file.
+
+        Parameters
+        ----------
+        fa: : str
+            The path of genome file
+        fastq: List[str]
+            list of fastq files
+        """
+
         def _call(bams):  # task is normal function, use python as wish
             return call(fa, bams)
+
+        context = flowsaber.context
+        fa = Channel.value(context.fa)
+        fastq = Channel.values(context.fastq)
 
         bam1 = bwa(fa, fastq)  # automatically clone channel
         bam2 = bwa(fa, fastq)
         mix(bam1, bam2) | sort | collect | _call | stats
 
     prefix = 'snamke-demo.nosync/data'
-    fa = Channel.value(f'{prefix}/genome.fa')
-    fastq = Channel.values(*[f'{prefix}/samples/{sample}' for sample in ['A.fastq', 'B.fastq', 'C.fastq']])
-
-    # resolve dependency
-    workflow = call_vcf_flow(fa, fastq)
+    with flowsaber.context({
+        "fa": f'{prefix}/genome.fa',
+        "fastq": [f'{prefix}/samples/{sample}' for sample in ['A.fastq', 'B.fastq', 'C.fastq']]
+    }):
+        # resolve dependency
+        workflow = call_vcf_flow()
     run(workflow)
 
 
