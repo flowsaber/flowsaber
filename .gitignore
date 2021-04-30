@@ -1,8 +1,11 @@
 *.py[cod]
 *$py.class
 *pdf
+*svg
 tests/work
 tests/results
+tests/workdir
+tests/test_flow/dask-worker-space
 
 .__*
 .idea

@@ -2,8 +2,6 @@ from collections import defaultdict
 from typing import Union
 
 from ariadne import QueryType, MutationType, ScalarType, ObjectType
-from graphql import GraphQLResolveInfo
-from starlette.requests import Request
 
 from flowsaber.server.database.db import DataBase
 from flowsaber.server.database.models import *
@@ -245,9 +243,9 @@ def get_resolvers(db: DataBase):
         return SuccessPayload()
 
     @mutation.field("create_agent")
-    async def create_agent(obj, info: GraphQLResolveInfo, input: dict):
+    async def create_agent(obj, info, input: dict):
         agent_input = AgentInput(**input)
-        request: Request = info.context['request']
+        request = info.context['request']
         address = request.client.host
         agent = Agent(**agent_input.dict(), address=address)
         await db.agent.delete_one({"_id": agent.id})

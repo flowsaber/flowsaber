@@ -10,11 +10,10 @@ classifiers = [
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
-    "License :: OSI Approved :: MIT",
+    "License :: OSI Approved :: MIT License",
     "Intended Audience :: Science/Research",
-    "Topic :: Scientific/Engineering :: workflow",
-    "Topic :: Scientific/Engineering :: pipeline",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Software Development :: Libraries",
 ]
 
 keywords = [
@@ -32,7 +31,10 @@ def get_version():
 
 
 def get_long_description():
-    return "A dataflow based workflow framework."
+    with open("README.md") as f:
+        readme = f.read()
+    # remove html tag
+    return re.sub("<.*>", '', readme)
 
 
 def get_install_requires():
@@ -49,8 +51,9 @@ setup(
     author_email='zhongquan789@gmail.com',
     version=get_version(),
     license='MIT',
-    description=get_long_description(),
+    description="A dataflow based workflow framework",
     long_description=get_long_description(),
+    long_description_content_type='text/markdown',
     keywords=keywords,
     url='https://github.com/zhqu1148980644/flowsaber',
     packages=find_packages(),
@@ -71,18 +74,20 @@ setup(
     ],
     extras_require={
         'test': [
+            'ariadne',
+            'uvicorn',
+            'motor',
+            # test
             'pytest',
             'pytest-cov',
             'httpimport',
             'autodocsumm',
-            'pysam',
+            # 'pysam',
             'matplotlib'
         ],
         'server': [
-            "graphql-core",
             'ariadne',
             'uvicorn',
-            'starlette',
             'motor'
         ]
     },

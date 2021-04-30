@@ -12,7 +12,6 @@ Welcome to flowsaber's documentation!
 
    quick_start.ipynb
    task.ipynb
-   environment.ipynb
    executor.ipynb
    internal.ipynb
    api.rst

@@ -20,6 +20,14 @@ if TYPE_CHECKING:
     from flowsaber.core.engine.scheduler import TaskScheduler
 
 
+class RunDataTypeError(TypeError):
+    pass
+
+
+class RunDataFileNotFoundError(RuntimeError):
+    pass
+
+
 class BaseTask(Component):
     """Base class of all Tasks, internally, BaseTask iteratively fetch items emitted by Channel inputs asynchronously.
     And then push the processed result of each item into the _output channels. All items are handled in sequence.
@@ -205,7 +213,8 @@ class BaseTask(Component):
 
 
 class RunTask(BaseTask):
-    """RunTask is subclass of BaseTask, representing tasks with run method exposed to users to implement specific item processing logics.
+    """RunTask is subclass of BaseTask, representing tasks with run method exposed to users to implement specific
+    item processing logics.
     Compared to BaseTask:
     1. Runs of multiple inputs will be executed in parallel.
     2. Runs will be executed in the main loop.
@@ -328,18 +337,17 @@ class RunTask(BaseTask):
             if ano_type is not Parameter.empty and isinstance(ano_type, type):
                 value = arguments[arg]
                 # 1. do some type conversion in case with type annotation
-                is_default = (param.default is not inspect._empty) and (value is param.default)
-                print(f"{value} {type(value)} {param} {ano_type} {(not is_default) and (not isinstance(value, ano_type))}")
-                if (not is_default) and (not isinstance(value, ano_type)):
+                is_default = param.default is not inspect.Signature.empty and value == param.default
+                if not is_default and not isinstance(value, ano_type):
                     try:
                         arguments[arg] = ano_type(value)
                     except Exception as e:
-                        raise TypeError(f"The input argument `{arg}` has annotation `{ano_type}`, but "
-                                        f"the input value `{value}` can not be converted.")
+                        raise RunDataTypeError(f"The input argument `{arg}` has annotation `{ano_type}`, "
+                                               f"but the input value `{value}` can not be converted.") from e
                 # 2. if has File annotation, make sure it exists
                 if ano_type is File and not arguments[arg].is_file():
-                    raise ValueError(f"The argument {arg} has a File annotation but "
-                                     f"the file {arguments[arg]} does not exists.")
+                    raise RunDataFileNotFoundError(f"The argument {arg} has a File annotation, "
+                                                   f"but the file {value} does not exists.")
             # 3. make sure each File's  checksum being computed, only check the first level
             value = arguments[arg]
             values = [value] if not isinstance(value, (list, tuple, set)) else value

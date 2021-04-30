@@ -42,7 +42,6 @@ from flowsaber.utility.logging import create_logger
 
 if TYPE_CHECKING:
     from flowsaber.core.flow import Flow
-    from queue import SimpleQueue
 
 
 class FlowSaberContext(Context):

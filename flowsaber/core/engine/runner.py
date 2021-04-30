@@ -134,7 +134,7 @@ def run_timeout_signal(timeout: int, func: Callable, *args, **kwargs):
         # Raise the alarm if `timeout` seconds pass
         flowsaber.context.logger.debug(f"Sending alarm with {timeout}s timeout...")
         signal.alarm(timeout)
-        flowsaber.context.logger.debug(f"Executing function in main thread...")
+        flowsaber.context.logger.debug("Executing function in main thread...")
         res = func(*args, **kwargs)
 
     finally:
@@ -300,8 +300,9 @@ class RunnerExecutor(threading.Thread):
 class Runner(object):
     """Base runner class, intended to be the state manager of runnable object like flow and task.
 
-    Users need to add state change handlers in order to be informed when meeting state changes of some method. Methods of runner
-     should both accept and return state, and need to be decorated with `call_state_change_handlers` decorator.
+    Users need to add state change handlers in order to be informed when meeting state changes of some method.
+    Methods of runner should both accept and return state, and need to be decorated with
+    `call_state_change_handlers` decorator.
     """
 
     def __init__(self, server_address: str = None, id: str = None, name: str = None, labels: list = None, **kwargs):
@@ -452,7 +453,7 @@ class Runner(object):
                         break
                     fields = "success\n" \
                              "error"
-                    res = await client.mutation('write_runlogs', RunLogsInput(logs=[log]), fields)
+                    await client.mutation('write_runlogs', RunLogsInput(logs=[log]), fields)
             finally:
                 # TODO not thread safe
                 # remove handler
@@ -532,7 +533,8 @@ class Runner(object):
                     interrupt_main()
 
         def stop():
-            loop.call_soon_threadsafe(need_stop.set)
+            if loop.is_running():
+                loop.call_soon_threadsafe(need_stop.set)
 
         return main_loop(), stop
 

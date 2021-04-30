@@ -27,6 +27,7 @@ release = '0.1'
 
 # -- General configuration ---------------------------------------------------
 import sphinx_rtd_theme
+import myst_nb
 
 
 # Add any Sphinx extension module names here, as strings. They can be
@@ -73,7 +74,7 @@ html_theme_options = {
     'display_version': True,
     'prev_next_buttons_location': 'bottom',
     'style_external_links': False,
-    'vcs_pageview_mode': '',
+    'vcs_pageview_mode': 'blob',
     'style_nav_header_background': 'white',
     # Toc options
     'collapse_navigation': True,

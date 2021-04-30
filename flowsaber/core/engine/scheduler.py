@@ -30,7 +30,7 @@ class GaSolver(Solver):
             return items
 
         ga = pyeasyga.GeneticAlgorithm(list(items))
-        ga.fitness_function = partial(self.fitness, score_func)
+        ga.fitness_function = partial(self.fitness, self.score_func)
         ga.run()
         max_score, flags = ga.best_individual()
 

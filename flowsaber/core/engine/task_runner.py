@@ -109,8 +109,8 @@ class TaskRunner(Runner):
                 if f.initialized:
                     check_hash = f.calculate_hash()
                     if check_hash != f.hash:
-                        msg = f"Read cache failed from disk " \
-                              f"because file content task_hash changed."
+                        msg = "Read cache failed from disk " \
+                              "because file content task_hash changed."
                         flowsaber.context.logger.warning(msg)
                         cache_valid = False
                         break

@@ -94,7 +94,6 @@ class ComponentMeta(type):
             [src_method_name, target_method_name, is_call_boolean]: signature of int will change to Channel[int]
         """
 
-        empty_annotation = getattr(inspect, '_empty')
         # 1. handle copying method signature
         func_pairs = class_dict.get(mcs.PAIR_ARG_NAME, [])
         for base_cls in bases:
@@ -114,11 +113,11 @@ class ComponentMeta(type):
             if len(options) and options[0]:
                 src_sig_params = list(src_sigs.parameters.values())
                 for i, param in enumerate(src_sig_params):
-                    if param.annotation is not empty_annotation:
+                    if param.annotation is not inspect.Signature.empty:
                         src_sig_params[i] = param.replace(annotation=f"Channel[{param.annotation}]")
                 src_sigs = inspect.Signature(src_sig_params, return_annotation=src_sigs.return_annotation)
             # handle return annotation, if tgt already has return annotation, keep it
-            if tgt_sigs.return_annotation is not empty_annotation:
+            if tgt_sigs.return_annotation is not inspect.Signature.empty:
                 src_sig_params = list(src_sigs.parameters.values())
                 src_sigs = inspect.Signature(src_sig_params, return_annotation=tgt_sigs.return_annotation)
 

@@ -160,7 +160,7 @@ class Context(DotBase):
     def data(self) -> MergingDotDict:
         try:
             return self._data.get()
-        except LookupError as e:
+        except LookupError:
             # this happens in thread, context var is not valid in new thread
             # dask uses thread to execute task
             # TODO Any other way?
@@ -171,10 +171,10 @@ class Context(DotBase):
     def data(self, dic: DictLike):
         # this is the main point
         if not isinstance(dic, MergingDotDict):
-            token = self._data.set(MergingDotDict())
+            self._data.set(MergingDotDict())
             self.update(dic)
         else:
-            token = self._data.set(dic)
+            self._data.set(dic)
         self._thread_backup = self._data.get()
 
     def __getstate__(self) -> None:
