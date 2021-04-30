@@ -50,13 +50,16 @@
 
 ### Features
 
-- Dataflow-like task composing syntax inspired from [nextflow](https://github.com/nextflow-io/nextflow) 's DSL2.
-- Python based: Import/Compose/Modify Task/Flow objects at any time.
-- DAG generation.
-- Local Cache.
-- Clustering support based on ray.
-- Conda and Container execution environment.
-
+- Dataflow-like flow/task composing syntax inspired from [nextflow](https://github.com/nextflow-io/nextflow) 's DSL2.
+- Pure python: No DSL, Import/Compose/Modify Task/Flow python objects at will.
+    - Extensible and interactive due to dynamic nature of Python.
+        - Task Cache.
+        - Conda and Container execution environment.
+        - ...
+- Distributable: Use Dask distributed as Task executor, can deploy in local, cluster, cloud.
+- Support hybrid model inspired from [prefect](https://github.com/PrefectHQ/prefect).
+    - Build Flow in Local python or web UI(In progress).
+    - Schedule/Monitor flow execution in remote server through python or web UI(In progress).
 
 ### Install
 
@@ -69,10 +72,7 @@ pip install flowsaber
 - A minimal working example consists most features and usages of `flowsaber`.
 
 ```python
-import matplotlib.image as mpimg
-import matplotlib.pyplot as plt
-import flowsaber
-from flowsaber import *
+from flowsaber.api import *
 
 @task
 def add(self, num):  # self is optional
@@ -102,27 +102,48 @@ def my_flow(num):
     | map_(lambda x: int(x.strip())) \
     | view
 
-config_dict.update({
-    'cpu': 8,
-    Task: {
-        'executor': 'ray'
-    }
-})
-
-# set _input
 num_ch = Channel.values(1, 2, 3, 4, 5, 6, 7, 8)
 # resolve dependencies
 workflow = my_flow(num=num_ch)
-# now can generate dag
-workflow.graph.render('quick_start_dag', view=False, format='png', cleanup=True)
-# try run the flow
-# if meet error, wrap code under if __name__ == '__main__':
-asyncio.run(flowsaber.run(workflow))
+run(workflow)
+```
 
-# visualize the flow
-img = mpimg.imread('quick_start_dag.png')
-imgplot = plt.imshow(img)
-plt.show(block=False)
+
+### Example to run in remote
+
+##### Start server(API endpoint)
+In bash shell.
+```bash
+flowsaber server
+```
+
+##### Start agent(Flow dispatcher)
+In bash shell.
+```bash
+flowsaber agent --server "http://127.0.0.1:8000" --id test
+```
+
+##### Create flow and schedule for running
+In python script or IPython console.
+```python
+from flowsaber.api import *
+@task
+def add(num):
+    print("This is meesage send by print to stdout in task")
+    print("This is meesage send by print to stderr in task", file= sys.stderr)
+    a = 1
+    for i in range(10000000):
+        a += 1
+    return num + 1
+
+@flow
+def myflow(num):
+    return num | add | add | view | add | view
+
+num_ch = Channel.values(*list(range(10)))
+f = myflow(num_ch)
+
+run(f, server_address="http://127.0.0.1:8000", agent_id="test")
 ```
 
 ### Test
@@ -133,12 +154,12 @@ python -m pytest tests -s -o log_cli=True -vvvv
 
 
 ### TODO
-- [ ] Refactor DAG.
+
 - [ ] Web interface.
 - [ ] Pbs/Torque executor
 - [ ] More cache mode.
 - [ ] Supportrun in Cloud platform.
-- [ ] Run CWL script, Convert between CWL and flowsaber script.
+- [ ] Run CWL script, Convert between CWL and flowsaber flow.
 
 ### Reference
 - [nextflow](https://github.com/nextflow-io/nextflow)
