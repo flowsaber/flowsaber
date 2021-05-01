@@ -46,7 +46,7 @@
 ### Install
 
 ```bash
-pip install flowsaber
+pip install 'flowsaber[server]'
 ```
 
 ### Example

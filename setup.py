@@ -71,25 +71,21 @@ setup(
         'aiohttp',
         'pydantic',
         'fire',
+        # server libs
+        'ariadne',
+        'uvicorn',
+        'dnspython',
+        'motor',
     ],
     extras_require={
         'test': [
-            'ariadne',
-            'uvicorn',
-            'motor',
-            # test
             'pytest',
             'pytest-cov',
             'httpimport',
             'autodocsumm',
-            # 'pysam',
+            'pysam',
             'matplotlib'
         ],
-        'server': [
-            'ariadne',
-            'uvicorn',
-            'motor'
-        ]
     },
     python_requires='>=3.7, <4',
 )
