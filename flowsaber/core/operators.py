@@ -36,20 +36,28 @@ class Split(Operator):
         super().__init__(num_out=num, **kwargs)
 
 
-class Select(Operator):
-    """Similar to split, used for tuple/list _output, select will only _output one channel, with the selected index
+class GetItem(Operator):
+    """Get item from the output of the input channel with specified key, like `obj[key]`. The input channel is excepted
+    to emit objects with `__getitem__` method. For example, tuple, list, dict ....
+
     """
 
-    def __init__(self, index: int, **kwargs):
+    def __init__(self, key: Any, **kwargs):
         super().__init__(**kwargs)
-        self.index = index
+        self.key = key
 
     async def handle_input(self, data, *args, **kwargs):
         if data is not END:
             try:
-                await self.enqueue_res(data[self.index])
+                await self.enqueue_res(data[self.key])
             except TypeError as e:
-                raise ValueError(f"The output {data} can be be indexed with {self.index}. error is: {e}")
+                raise ValueError(f"The output {data} can be be indexed with {self.key}. error is: {e}")
+
+
+class Select(GetItem):
+    """Alias for GetItem task.
+    """
+    pass
 
 
 class Mix(Operator):
@@ -415,8 +423,12 @@ def split(num: int):
     return Split(num=num)
 
 
-def select(index: int):
-    return Select(index=index)
+def getitem(key: Any):
+    return GetItem(key=key)
+
+
+def select(key: Any):
+    return Select(key=key)
 
 
 def branch(num: int, by: Callable):

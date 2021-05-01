@@ -223,6 +223,7 @@ class RunTask(BaseTask):
     default_config = {
         'drop_error': False,
         'retry': 0,
+        'retry_delay': 5,
         'fork': 7,
         'cpu': 1,
         'gpu': 0,

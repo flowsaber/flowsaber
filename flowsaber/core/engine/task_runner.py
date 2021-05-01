@@ -75,7 +75,7 @@ class TaskRunner(Runner):
                     flowsaber.context.logger.warning(f"Run task: {self.task} failed, try to retry "
                                                      f"with {retry - 1} retrying left.")
                     state = self.set_state(state, Retrying)
-                    time.sleep(self.task.config_dict.get('retry_wait_time', 2))
+                    time.sleep(self.task.config_dict.get('retry_delay', 2))
                     state = self.set_state(state, Running)
                     retry -= 1
                     continue
@@ -83,9 +83,8 @@ class TaskRunner(Runner):
                     state = self.set_state(state, Drop)
             break
         # 4. write to cache if needed
-        if isinstance(state, Success):
-            if cache_type:
-                state = self.write_cache(state)
+        if isinstance(state, Success) and cache_type:
+            state = self.write_cache(state)
 
         return state
 

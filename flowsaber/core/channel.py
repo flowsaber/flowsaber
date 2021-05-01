@@ -149,9 +149,13 @@ class ChannelBase(object):
         ch >> task                   -> task(ch)
         ch >> [task1, _tasks, task3]  -> [task1(ch), task2(ch), task3(ch)]
         """
+        from flowsaber.core.base import Component
+
         if not isinstance(tasks, abc.Sequence):
+            assert isinstance(tasks, Component)
             return tasks(self)
 
+        assert all(isinstance(task, Component) for task in tasks)
         outputs = [task(self) for task in tasks]
         if isinstance(tasks, tuple):
             outputs = tuple(tasks)
@@ -163,8 +167,17 @@ class ChannelBase(object):
         """
         return self >> tasks
 
-    @staticmethod
-    def value(value, **kwargs):
+    def __getitem__(self, key) -> "Channel":
+        """
+        ch = Channel.value({'name': 'asd', 'age': 2})
+        name_channel = ch['name'] equals to GetItem('name')(ch)
+        """
+        from flowsaber.core.operators import GetItem
+        getitem_task = GetItem(key=key)
+        return getitem_task(self)
+
+    @classmethod
+    def value(cls, value, **kwargs) -> 'ConstantChannel':
         """
         Channel._output(1)
         """
@@ -176,12 +189,12 @@ class ChannelBase(object):
         ch.put_nowait(value)
         return ch
 
-    @staticmethod
-    def end():
-        return ConstantChannel()
+    @classmethod
+    def end(cls, **kwargs) -> 'ConstantChannel':
+        return cls.value(END)
 
-    @staticmethod
-    def values(*args):
+    @classmethod
+    def values(cls, *args) -> 'Channel':
         """
         Channel.values(1, 2, 3, 4, 5)
         QueueChannel created by this method will always include a END signal
@@ -192,13 +205,13 @@ class ChannelBase(object):
         ch.put_nowait(END)
         return ch
 
-    @staticmethod
-    def from_list(items: Sequence):
+    @classmethod
+    def from_list(cls, items: Sequence) -> "Channel":
         """
         Channel.from_list([1, 2, 3, 4, 5])
         QueueChannel created by this method will always include a END signal
         """
-        return Channel.values(*items)
+        return cls.values(*items)
 
 
 class Channel(ChannelBase):
@@ -230,10 +243,6 @@ class Channel(ChannelBase):
         if not self.initialized:
             self.initialized = True
             if self.buffer:
-                # always put a END except for constant channel
-                # TODO are there any other ways?
-                if self.queue_factory is not ConstantQueue:
-                    self.buffer.append(END)
                 while self.buffer:
                     self.put_nowait(self.buffer.popleft())
 

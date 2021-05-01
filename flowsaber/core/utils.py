@@ -211,7 +211,7 @@ def check_cycle(edges: List[Tuple[Any, Any]]) -> bool:
     """
     from collections import defaultdict, deque
     # convert node to index
-    nodes = set(node for edge in edges for node in edge)
+    nodes = {node for edge in edges for node in edge}
     nodes2id = dict(zip(nodes, range(len(nodes))))
     edges = [(nodes2id[n1], nodes2id[n2]) for n1, n2 in edges]
 
