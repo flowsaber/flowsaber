@@ -31,7 +31,10 @@ def get_version():
 
 
 def get_long_description():
-    return "A dataflow based workflow framework."
+    with open("README.md") as f:
+        readme = f.read()
+    # remove html tag
+    return re.sub("<.*>", '', readme)
 
 
 def get_install_requires():
