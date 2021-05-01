@@ -73,6 +73,4 @@ class FlowRunner(Runner):
                 'context': {},
             })
 
-        flowrun_input = FlowRunInput(**info)
-
-        return flowrun_input
+        return FlowRunInput(**info)

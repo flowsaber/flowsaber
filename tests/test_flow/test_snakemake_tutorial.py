@@ -10,10 +10,9 @@ def test_snakemake_workflow():
         return "*.bam"  # for ShellTask, str variable in the return will be treated as File and globed
 
     @shell
-    def sort(bam: File):  # self is optional in case you don't want to access the current task
+    def sort(bam: File):    # self is optional in case you don't want to access the current task
         """samtools sort -o {sorted_bam} {bam}"""
-        sorted_bam = f"{bam.stem}.sorted.bam"
-        return sorted_bam
+        return f"{bam.stem}.sorted.bam"
 
     @shell(publish_dirs=["results/vcf"])
     def call(fa: File, bams: list):  # In case you need to write some python codes
@@ -68,4 +67,3 @@ def test_snakemake_workflow():
 
 if __name__ == "__main__":
     test_snakemake_workflow()
-    pass

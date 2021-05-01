@@ -3,9 +3,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 
 def get_db(url: str, db_name: str = "flowsaber", **kwargs):
     client = AsyncIOMotorClient(url, **kwargs)
-    db = client[db_name]
-
-    return db
+    return client[db_name]
 
 
 class DataBase(object):

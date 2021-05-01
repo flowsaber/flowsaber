@@ -19,11 +19,10 @@ def get_time_exp(input) -> dict:
     exp = {}
     before = getattr(input, 'before')
     after = getattr(input, 'after')
-    if before or after:
-        if after:
-            exp['$gt'] = after
-        if before:
-            exp['$lt'] = before
+    if after:
+        exp['$gt'] = after
+    if before:
+        exp['$lt'] = before
 
     return exp
 
@@ -106,8 +105,7 @@ def get_resolvers(db: DataBase):
         flow_id = input
         flow_dict = await db.flow.find_one({"_id": flow_id})
         flow_dict = ch_id(flow_dict)
-        flow = Flow(**flow_dict)
-        return flow
+        return Flow(**flow_dict)
 
     @query.field("get_flows")
     async def get_flows(obj, info, input: dict) -> List[dict]:
@@ -134,8 +132,7 @@ def get_resolvers(db: DataBase):
         taskrun_id = input
         taskrun_dict = await db.taskrun.find_one({"_id": taskrun_id})
         taskrun_dict = ch_id(taskrun_dict)
-        taskrun = TaskRun(**taskrun_dict)
-        return taskrun
+        return TaskRun(**taskrun_dict)
 
     @query.field("get_taskruns")
     async def get_taskruns(obj, info, input: dict) -> List[dict]:
@@ -172,11 +169,10 @@ def get_resolvers(db: DataBase):
         flowrun_dict = await db.flowrun.find_one({"_id": flowrun_id})
         if flowrun_dict:
             flowrun_dict = ch_id(flowrun_dict)
-            flowrun = FlowRun(**flowrun_dict)
+            return FlowRun(**flowrun_dict)
         else:
             # for check_cancelling task, return a fake one
-            flowrun = {'state': {'state_type': "Scheduled"}}
-        return flowrun
+            return {'state': {'state_type': "Scheduled"}}
 
     @query.field("get_flowruns")
     async def get_flowruns(obj, info, input: dict) -> List[dict]:

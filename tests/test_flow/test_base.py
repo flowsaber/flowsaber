@@ -6,9 +6,7 @@ def test_flow():
     def add(num):
         # print("This is meesage send by print to stdout in task")
         # print("This is meesage send by print to stderr in task", file=sys.stderr)
-        a = 1
-        for i in range(10000000):
-            a += 1
+        a = 1 + sum(1 for _ in range(10000000))
         return num + 1
 
     @flow

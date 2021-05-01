@@ -81,8 +81,7 @@ class ComponentMeta(type):
         class_name, bases, class_dict = mcs.copy_method_sig(class_name, bases, class_dict)
         class_name, bases, class_dict = mcs.update_default_config(class_name, bases, class_dict)
 
-        cls = super().__new__(mcs, class_name, bases, class_dict)
-        return cls
+        return super().__new__(mcs, class_name, bases, class_dict)
 
     @classmethod
     def copy_method_sig(mcs, class_name, bases, class_dict):
@@ -267,8 +266,7 @@ class Component(object, metaclass=ComponentMeta):
             from copy import copy
             new = copy(self)
             new.call_initialize(*args, **kwargs)
-            build_output = new.call_build(*args, **kwargs)
-            return build_output
+            return new.call_build(*args, **kwargs)
         except BaseException as e:
             raise ComponentCallError(str(e)) from e
 
@@ -276,10 +274,7 @@ class Component(object, metaclass=ComponentMeta):
         cls = type(self)
         new = cls.__new__(cls)
         for k, v in self.__dict__.items():
-            if k.startswith('_'):
-                new.__dict__[k] = None
-            else:
-                new.__dict__[k] = deepcopy(v)
+            new.__dict__[k] = None if k.startswith('_') else deepcopy(v)
         return new
 
     def call_initialize(self, *args, **kwargs):

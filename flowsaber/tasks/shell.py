@@ -277,9 +277,7 @@ class ShellFlow(Flow):
 
     def run(self, *args, **kwargs) -> Output:
         cmd_ch, cmd_output_ch = self.command_task(*args, **kwargs)
-        output_ch = self.shell_task(cmd_ch, cmd_output_ch)
-
-        return output_ch
+        return self.shell_task(cmd_ch, cmd_output_ch)
 
 
 command = class_deco(CommandTask, 'command')

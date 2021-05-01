@@ -26,5 +26,4 @@ def get_app(db: DataBase):
                                     'uuid_scalar', 'timestamp_scalar', 'json_scalar']]
     type_defs = load_schema_from_path(SCHEMA_PATH)
     schema = make_executable_schema(type_defs, *types)
-    app = asgi.GraphQL(schema, middleware=[logging_post_data])
-    return app
+    return asgi.GraphQL(schema, middleware=[logging_post_data])

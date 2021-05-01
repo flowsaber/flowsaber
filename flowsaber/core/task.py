@@ -186,13 +186,11 @@ class BaseTask(Component):
 
     @classmethod
     def input_signature(cls) -> dict:
-        call_signature = {
+        return {
             param: str(param_type)
             for param, param_type
             in inspect.signature(cls.__call__).parameters.items()
         }
-
-        return call_signature
 
     def serialize(self) -> TaskInput:
         # TODO can not fetch source code of type(self), if it's due to makefun ?
@@ -362,8 +360,7 @@ class RunTask(BaseTask):
         """
         from copy import copy
         clean_task = copy(self)
-        res = clean_task.run(**data.arguments)
-        return res
+        return clean_task.run(**data.arguments)
 
     async def handle_res(self, res):
         await self.enqueue_res(res)

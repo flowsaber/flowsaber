@@ -83,9 +83,8 @@ class TaskRunner(Runner):
                     state = self.set_state(state, Drop)
             break
         # 4. write to cache if needed
-        if isinstance(state, Success):
-            if cache_type:
-                state = self.write_cache(state)
+        if isinstance(state, Success) and cache_type:
+            state = self.write_cache(state)
 
         return state
 
@@ -187,6 +186,4 @@ class TaskRunner(Runner):
                 'context': {},
             })
 
-        taskrun_input = TaskRunInput(**info)
-
-        return taskrun_input
+        return TaskRunInput(**info)

@@ -16,8 +16,7 @@ class Bwa(ShellFlow):
             if isinstance(params, str):
                 params = (params,)
         params_str = ' '.join(params) if params else ''
-        bam = f"{fastq.stem}.bam"
-        return bam
+        return f"{fastq.stem}.bam"
 
 
 bwa = Bwa(conda="bwa==0.7.12 samtools==1.2")
