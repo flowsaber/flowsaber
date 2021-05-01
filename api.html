@@ -575,61 +575,64 @@ initial context, thus make the flow’s workdir configurable.</p>
 <tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Flatten" title="flowsaber.core.operators.Flatten"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Flatten</span></code></a>([max_level])</p></td>
 <td><p>Flatten the _output of channel.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Group" title="flowsaber.core.operators.Group"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Group</span></code></a>([by, num, keep])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.GetItem" title="flowsaber.core.operators.GetItem"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GetItem</span></code></a>(key, **kwargs)</p></td>
+<td><p>Get item from the output of the input channel with specified key, like <cite>obj[key]</cite>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Group" title="flowsaber.core.operators.Group"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Group</span></code></a>([by, num, keep])</p></td>
 <td><p>return a new channel with item of Tuple(key_fn(_input), grouped_data_tuple), the group size can be specified.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Last" title="flowsaber.core.operators.Last"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Last</span></code></a>(**kwargs)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Last" title="flowsaber.core.operators.Last"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Last</span></code></a>(**kwargs)</p></td>
 <td><p>Take the last item</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Map" title="flowsaber.core.operators.Map"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Map</span></code></a>(by, **kwargs)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Map" title="flowsaber.core.operators.Map"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Map</span></code></a>(by, **kwargs)</p></td>
 <td><p>Map each item to another item return by the specified map function into a new channel.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Max" title="flowsaber.core.operators.Max"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Max</span></code></a>([result])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Max" title="flowsaber.core.operators.Max"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Max</span></code></a>([result])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Merge" title="flowsaber.core.operators.Merge"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Merge</span></code></a>([num_out])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Merge" title="flowsaber.core.operators.Merge"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Merge</span></code></a>([num_out])</p></td>
 <td><p>Merge channels into a channel with _output of tuple.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Min" title="flowsaber.core.operators.Min"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Min</span></code></a>([result])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Min" title="flowsaber.core.operators.Min"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Min</span></code></a>([result])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Mix" title="flowsaber.core.operators.Mix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Mix</span></code></a>([num_out])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Mix" title="flowsaber.core.operators.Mix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Mix</span></code></a>([num_out])</p></td>
 <td><p>Data emitted bu channels are mixed into a single channel.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Operator" title="flowsaber.core.operators.Operator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Operator</span></code></a>([num_out])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Operator" title="flowsaber.core.operators.Operator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Operator</span></code></a>([num_out])</p></td>
 <td><p>Base class for all operators, subclass of BaseTask, all operators runs in the main loop in sequence and do not have runners and run states.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Reduce" title="flowsaber.core.operators.Reduce"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Reduce</span></code></a>(by[, result])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Reduce" title="flowsaber.core.operators.Reduce"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Reduce</span></code></a>(by[, result])</p></td>
 <td><p>Similar to normal reduce.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Sample" title="flowsaber.core.operators.Sample"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Sample</span></code></a>([num])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Sample" title="flowsaber.core.operators.Sample"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Sample</span></code></a>([num])</p></td>
 <td><p>Randomly sample at most <cite>num</cite> number of _input emitted by the channel using reservoir algorithm(should visit all elements.).</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Select" title="flowsaber.core.operators.Select"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Select</span></code></a>(index, **kwargs)</p></td>
-<td><p>Similar to split, used for tuple/list _output, select will only _output one channel, with the selected index</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Select" title="flowsaber.core.operators.Select"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Select</span></code></a>(key, **kwargs)</p></td>
+<td><p>Alias for GetItem task.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Split" title="flowsaber.core.operators.Split"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Split</span></code></a>(num, **kwargs)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Split" title="flowsaber.core.operators.Split"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Split</span></code></a>(num, **kwargs)</p></td>
 <td><p>Used when _output is tuple/list, use split to split each item of the tuple into a unique channel.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Subscribe" title="flowsaber.core.operators.Subscribe"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Subscribe</span></code></a>([on_next, on_complete])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Subscribe" title="flowsaber.core.operators.Subscribe"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Subscribe</span></code></a>([on_next, on_complete])</p></td>
 <td><p>specify on_next or on_complete function as callbacks of these two event.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Sum" title="flowsaber.core.operators.Sum"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Sum</span></code></a>(**kwargs)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Sum" title="flowsaber.core.operators.Sum"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Sum</span></code></a>(**kwargs)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Take" title="flowsaber.core.operators.Take"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Take</span></code></a>([num])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Take" title="flowsaber.core.operators.Take"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Take</span></code></a>([num])</p></td>
 <td><p>Only take the first <cite>num</cite> number of items</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Unique" title="flowsaber.core.operators.Unique"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Unique</span></code></a>(**kwargs)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Unique" title="flowsaber.core.operators.Unique"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Unique</span></code></a>(**kwargs)</p></td>
 <td><p>Emit items at most once(no duplicate).</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Until" title="flowsaber.core.operators.Until"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Until</span></code></a>(by, **kwargs)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Until" title="flowsaber.core.operators.Until"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Until</span></code></a>(by, **kwargs)</p></td>
 <td><p>“Take items until meet a stop marker.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.View" title="flowsaber.core.operators.View"><code class="xref py py-obj docutils literal notranslate"><span class="pre">View</span></code></a>(**kwargs)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.View" title="flowsaber.core.operators.View"><code class="xref py py-obj docutils literal notranslate"><span class="pre">View</span></code></a>(**kwargs)</p></td>
 <td><p>Print each item emitted by the channel, Equals to call Subscribe(on_next=print)</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.var" title="flowsaber.core.operators.var"><code class="xref py py-obj docutils literal notranslate"><span class="pre">var</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.var" title="flowsaber.core.operators.var"><code class="xref py py-obj docutils literal notranslate"><span class="pre">var</span></code></a></p></td>
 <td><p>alias of <a class="reference internal" href="#flowsaber.core.operators.Count" title="flowsaber.core.operators.Count"><code class="xref py py-class docutils literal notranslate"><span class="pre">flowsaber.core.operators.Count</span></code></a></p></td>
 </tr>
 </tbody>
@@ -777,6 +780,36 @@ kwargs</p>
 <dl class="method">
 <dt id="flowsaber.core.operators.Flatten.handle_input">
 <em class="property">async </em><code class="sig-name descname">handle_input</code><span class="sig-paren">(</span><em class="sig-param">data: Union[tuple, flowsaber.core.utility.target.End], *args, **kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.operators.Flatten.handle_input" title="Permalink to this definition">¶</a></dt>
+<dd><p>Do nothing, send the _input data directly to _output channel
+Parameters
+———-
+data
+args
+kwargs</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="flowsaber.core.operators.GetItem">
+<em class="property">class </em><code class="sig-prename descclassname">flowsaber.core.operators.</code><code class="sig-name descname">GetItem</code><span class="sig-paren">(</span><em class="sig-param">key: Any</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.operators.GetItem" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get item from the output of the input channel with specified key, like <cite>obj[key]</cite>. The input channel is excepted
+to emit objects with <cite>__getitem__</cite> method. For example, tuple, list, dict ….</p>
+<p><strong>Methods:</strong></p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.GetItem.handle_input" title="flowsaber.core.operators.GetItem.handle_input"><code class="xref py py-obj docutils literal notranslate"><span class="pre">handle_input</span></code></a>(data, *args, **kwargs)</p></td>
+<td><p>Do nothing, send the _input data directly to _output channel Parameters ———- data args kwargs</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="flowsaber.core.operators.GetItem.handle_input">
+<em class="property">async </em><code class="sig-name descname">handle_input</code><span class="sig-paren">(</span><em class="sig-param">data</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.operators.GetItem.handle_input" title="Permalink to this definition">¶</a></dt>
 <dd><p>Do nothing, send the _input data directly to _output channel
 Parameters
 ———-
@@ -983,31 +1016,8 @@ kwargs</p>
 
 <dl class="class">
 <dt id="flowsaber.core.operators.Select">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.core.operators.</code><code class="sig-name descname">Select</code><span class="sig-paren">(</span><em class="sig-param">index: int</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.operators.Select" title="Permalink to this definition">¶</a></dt>
-<dd><p>Similar to split, used for tuple/list _output, select will only _output one channel, with the selected index</p>
-<p><strong>Methods:</strong></p>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Select.handle_input" title="flowsaber.core.operators.Select.handle_input"><code class="xref py py-obj docutils literal notranslate"><span class="pre">handle_input</span></code></a>(data, *args, **kwargs)</p></td>
-<td><p>Do nothing, send the _input data directly to _output channel Parameters ———- data args kwargs</p></td>
-</tr>
-</tbody>
-</table>
-<dl class="method">
-<dt id="flowsaber.core.operators.Select.handle_input">
-<em class="property">async </em><code class="sig-name descname">handle_input</code><span class="sig-paren">(</span><em class="sig-param">data</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.operators.Select.handle_input" title="Permalink to this definition">¶</a></dt>
-<dd><p>Do nothing, send the _input data directly to _output channel
-Parameters
-———-
-data
-args
-kwargs</p>
-</dd></dl>
-
+<em class="property">class </em><code class="sig-prename descclassname">flowsaber.core.operators.</code><code class="sig-name descname">Select</code><span class="sig-paren">(</span><em class="sig-param">key: Any</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.operators.Select" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for GetItem task.</p>
 </dd></dl>
 
 <dl class="class">
@@ -1814,52 +1824,55 @@ to fetched the data emitted by the channel.</p>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_list</span></code>([1, 2, 3, 4, 5])</p></td>
 <td><p>QueueChannel created by this method will always include a END signal</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">group</span></code>(*args[, by, num, keep])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">getitem</span></code>(*args, key, **kwargs)</p></td>
+<td><p>Get item from the output of the input channel with specified key, like <cite>obj[key]</cite>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">group</span></code>(*args[, by, num, keep])</p></td>
 <td><p>return a new channel with item of Tuple(key_fn(_input), grouped_data_tuple), the group size can be specified.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">last</span></code>(*args, **kwargs)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">last</span></code>(*args, **kwargs)</p></td>
 <td><p>Take the last item</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">map</span></code>(*args, by, **kwargs)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">map</span></code>(*args, by, **kwargs)</p></td>
 <td><p>Map each item to another item return by the specified map function into a new channel.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">merge</span></code>(*args[, num_out])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">merge</span></code>(*args[, num_out])</p></td>
 <td><p>Merge channels into a channel with _output of tuple.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">mix</span></code>(*args[, num_out])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">mix</span></code>(*args[, num_out])</p></td>
 <td><p>Data emitted bu channels are mixed into a single channel.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">reduce</span></code>(*args, by[, result])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">reduce</span></code>(*args, by[, result])</p></td>
 <td><p>Similar to normal reduce.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">sample</span></code>(*args[, num])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">sample</span></code>(*args[, num])</p></td>
 <td><p>Randomly sample at most <cite>num</cite> number of _input emitted by the channel using reservoir algorithm(should visit all elements.).</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">select</span></code>(*args, index, **kwargs)</p></td>
-<td><p>Similar to split, used for tuple/list _output, select will only _output one channel, with the selected index</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">select</span></code>(*args, key, **kwargs)</p></td>
+<td><p>Alias for GetItem task.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">split</span></code>(*args, num, **kwargs)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">split</span></code>(*args, num, **kwargs)</p></td>
 <td><p>Used when _output is tuple/list, use split to split each item of the tuple into a unique channel.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">subscribe</span></code>(*args[, on_next, on_complete])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">subscribe</span></code>(*args[, on_next, on_complete])</p></td>
 <td><p>specify on_next or on_complete function as callbacks of these two event.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">take</span></code>(*args[, num])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">take</span></code>(*args[, num])</p></td>
 <td><p>Only take the first <cite>num</cite> number of items</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">unique</span></code>(*args, **kwargs)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">unique</span></code>(*args, **kwargs)</p></td>
 <td><p>Emit items at most once(no duplicate).</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">until</span></code>(*args, by, **kwargs)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">until</span></code>(*args, by, **kwargs)</p></td>
 <td><p>“Take items until meet a stop marker.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">value</span></code>(value, **kwargs)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">value</span></code>(value, **kwargs)</p></td>
 <td><p>Channel._output(1)</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">values</span></code>(1, 2, 3, 4, 5)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">values</span></code>(1, 2, 3, 4, 5)</p></td>
 <td><p>QueueChannel created by this method will always include a END signal</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">view</span></code>(*args, **kwargs)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">view</span></code>(*args, **kwargs)</p></td>
 <td><p>Print each item emitted by the channel, Equals to call Subscribe(on_next=print)</p></td>
 </tr>
 </tbody>
@@ -1908,8 +1921,15 @@ to fetched the data emitted by the channel.</p>
 
 <dl class="method">
 <dt id="flowsaber.core.channel.ChannelBase.from_list">
-<em class="property">static </em><code class="sig-name descname">from_list</code><span class="sig-paren">(</span><span class="optional">[</span><em class="sig-param">1</em>, <em class="sig-param">2</em>, <em class="sig-param">3</em>, <em class="sig-param">4</em>, <em class="sig-param">5</em><span class="optional">]</span><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.channel.ChannelBase.from_list" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">from_list</code><span class="sig-paren">(</span><span class="optional">[</span><em class="sig-param">1</em>, <em class="sig-param">2</em>, <em class="sig-param">3</em>, <em class="sig-param">4</em>, <em class="sig-param">5</em><span class="optional">]</span><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.channel.ChannelBase.from_list" title="Permalink to this definition">¶</a></dt>
 <dd><p>QueueChannel created by this method will always include a END signal</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="flowsaber.core.channel.ChannelBase.getitem">
+<code class="sig-name descname">getitem</code><span class="sig-paren">(</span><em class="sig-param">*args: Union[object, flowsaber.core.channel.Channel], key: Any, **kwargs</em><span class="sig-paren">)</span> &#x2192; Union[Sequence[flowsaber.core.channel.Channel], flowsaber.core.channel.Channel]<a class="headerlink" href="#flowsaber.core.channel.ChannelBase.getitem" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get item from the output of the input channel with specified key, like <cite>obj[key]</cite>. The input channel is excepted
+to emit objects with <cite>__getitem__</cite> method. For example, tuple, list, dict ….</p>
 </dd></dl>
 
 <dl class="method">
@@ -1959,8 +1979,8 @@ using reservoir algorithm(should visit all elements.).</p>
 
 <dl class="method">
 <dt id="flowsaber.core.channel.ChannelBase.select">
-<code class="sig-name descname">select</code><span class="sig-paren">(</span><em class="sig-param">*args: Union[object, flowsaber.core.channel.Channel], index: int, **kwargs</em><span class="sig-paren">)</span> &#x2192; Union[Sequence[flowsaber.core.channel.Channel], flowsaber.core.channel.Channel]<a class="headerlink" href="#flowsaber.core.channel.ChannelBase.select" title="Permalink to this definition">¶</a></dt>
-<dd><p>Similar to split, used for tuple/list _output, select will only _output one channel, with the selected index</p>
+<code class="sig-name descname">select</code><span class="sig-paren">(</span><em class="sig-param">*args: Union[object, flowsaber.core.channel.Channel], key: Any, **kwargs</em><span class="sig-paren">)</span> &#x2192; Union[Sequence[flowsaber.core.channel.Channel], flowsaber.core.channel.Channel]<a class="headerlink" href="#flowsaber.core.channel.ChannelBase.select" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for GetItem task.</p>
 </dd></dl>
 
 <dl class="method">
@@ -1995,13 +2015,13 @@ using reservoir algorithm(should visit all elements.).</p>
 
 <dl class="method">
 <dt id="flowsaber.core.channel.ChannelBase.value">
-<em class="property">static </em><code class="sig-name descname">value</code><span class="sig-paren">(</span><em class="sig-param">value</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.channel.ChannelBase.value" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">value</code><span class="sig-paren">(</span><em class="sig-param">value</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; flowsaber.core.channel.ConstantChannel<a class="headerlink" href="#flowsaber.core.channel.ChannelBase.value" title="Permalink to this definition">¶</a></dt>
 <dd><p>Channel._output(1)</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="flowsaber.core.channel.ChannelBase.values">
-<em class="property">static </em><code class="sig-name descname">values</code><span class="sig-paren">(</span><em class="sig-param">1</em>, <em class="sig-param">2</em>, <em class="sig-param">3</em>, <em class="sig-param">4</em>, <em class="sig-param">5</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.channel.ChannelBase.values" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">values</code><span class="sig-paren">(</span><em class="sig-param">1</em>, <em class="sig-param">2</em>, <em class="sig-param">3</em>, <em class="sig-param">4</em>, <em class="sig-param">5</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.channel.ChannelBase.values" title="Permalink to this definition">¶</a></dt>
 <dd><p>QueueChannel created by this method will always include a END signal</p>
 </dd></dl>
 
