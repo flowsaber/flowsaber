@@ -149,13 +149,9 @@ class ChannelBase(object):
         ch >> task                   -> task(ch)
         ch >> [task1, _tasks, task3]  -> [task1(ch), task2(ch), task3(ch)]
         """
-        from flowsaber.core.base import Component
-
         if not isinstance(tasks, abc.Sequence):
-            assert isinstance(tasks, Component)
             return tasks(self)
 
-        assert all(isinstance(task, Component) for task in tasks)
         outputs = [task(self) for task in tasks]
         if isinstance(tasks, tuple):
             outputs = tuple(tasks)
