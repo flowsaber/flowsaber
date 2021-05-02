@@ -451,8 +451,8 @@ kwargs</p>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">initialize_context</span></code>()</p></td>
 <td><p>Expose cache_type and executor_type into self.context</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">need_skip</span></code>(bound_args)</p></td>
-<td><p>Check if the _input can be directly passed into _output channels by predicate of user specified self.skip_fn Parameters ———- bound_args</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">need_skip</span></code>(data)</p></td>
+<td><p>Check if the _input can be directly passed into _output channels by predicate of user specified self.skip_fn Parameters ———- data</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">skip</span></code>(skip_fn)</p></td>
 <td><p>A decorator/function exposed for users to specify skip function.</p></td>
@@ -508,11 +508,11 @@ res</p>
 
 <dl class="method">
 <dt id="flowsaber.core.task.Task.need_skip">
-<code class="sig-name descname">need_skip</code><span class="sig-paren">(</span><em class="sig-param">bound_args: inspect.BoundArguments</em><span class="sig-paren">)</span> &#x2192; bool<a class="headerlink" href="#flowsaber.core.task.Task.need_skip" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">need_skip</code><span class="sig-paren">(</span><em class="sig-param">data: inspect.BoundArguments</em><span class="sig-paren">)</span> &#x2192; bool<a class="headerlink" href="#flowsaber.core.task.Task.need_skip" title="Permalink to this definition">¶</a></dt>
 <dd><p>Check if the _input can be directly passed into _output channels by predicate of user specified self.skip_fn
 Parameters
 ———-
-bound_args</p>
+data</p>
 </dd></dl>
 
 <dl class="method">
