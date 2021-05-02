@@ -363,7 +363,7 @@ class RunTask(BaseTask):
         """
         from copy import copy
         clean_task = copy(self)
-        res = clean_task.run(**data.arguments)
+        res = clean_task.run(*data.args, **data.kwargs)
         return res
 
     async def handle_res(self, res):
@@ -516,18 +516,18 @@ class Task(RunTask):
             raise res.result
         # for Drop, just ignore it
 
-    def need_skip(self, bound_args: BoundArguments) -> bool:
+    def need_skip(self, data: BoundArguments) -> bool:
         """ Check if the _input can be directly passed into _output channels by predicate of user specified self.skip_fn
         Parameters
         ----------
-        bound_args
+        data
 
         Returns
         -------
 
         """
         if self.skip_fn:
-            return self.skip_fn(**bound_args.arguments)
+            return self.skip_fn(*data.args, **data.kwargs)
         else:
             return False
 

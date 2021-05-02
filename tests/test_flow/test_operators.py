@@ -23,5 +23,26 @@ def test_GetItem_task():
     run(f())
 
 
+def test_Merge_task():
+    @task
+    def assert_tuple(merged: tuple, *args):
+        assert args == merged and isinstance(merged, tuple)
+
+    @flow
+    def f():
+        num_ch = Channel.values(1, 2, 3)
+        chs = [num_ch] * 3
+        m1 = Merge()(*chs)
+        m2 = merge(*chs)
+        m3 = num_ch.merge(*chs[1:])
+
+        assert_tuple(m1, *chs)
+        assert_tuple(m2, *chs)
+        assert_tuple(m3, *chs)
+
+    run(f())
+
+
 if __name__ == "__main__":
     test_GetItem_task()
+    test_Merge_task()

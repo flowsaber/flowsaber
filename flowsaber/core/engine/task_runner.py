@@ -154,26 +154,26 @@ class TaskRunner(Runner):
         -------
 
         """
-        timeout = self.task.config_dict.get("timeout")
+        run_args = self.inputs.args
+        run_kwargs = self.inputs.kwargs
 
+        timeout = self.task.config_dict.get("timeout")
         if timeout:
             if not sys.platform.startswith('win'):
                 is_main_thread = threading.current_thread() is threading.main_thread()
                 if is_main_thread:
                     flowsaber.context.logger.debug("Run in timeout in main thread in unix system")
-                    return run_timeout_signal(timeout, self.task.run, **self.inputs.arguments)
+                    return run_timeout_signal(timeout, self.task.run, *run_args, **run_kwargs)
 
             flowsaber.context.logger.debug("Run in timeout using ThreadPoolExecutor")
 
-            run_arguments = self.inputs.arguments
-
             @enter_context
             def run_in_context(task):
-                return task.run(**run_arguments)
+                return task.run(*run_args, **run_kwargs)
 
             return run_timeout_thread(timeout, run_in_context, self.task)
 
-        return self.task.run(**self.inputs.arguments)
+        return self.task.run(*run_args, **run_kwargs)
 
     def serialize(self, state: State, state_only=True):
         info = {'id': self.id, 'state': state.to_dict()}
