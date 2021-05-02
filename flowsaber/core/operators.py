@@ -219,26 +219,26 @@ class Flatten(Operator):
         self.max_level = max_level or 999999999999
 
     async def handle_input(self, data: Data, *args, **kwargs):
-        if data is not END:
+        if data is END:
+            return
 
-            flattened_items = []
+        def traverse(items, level):
+            try:
+                if level > self.max_level + 1:
+                    raise TypeError
+                if isinstance(items, abc.Sequence) and not isinstance(items, str):
+                    for _item in items:
+                        traverse(_item, level + 1)
+                else:
+                    raise TypeError
+            except TypeError:
+                flattened_items.append(items)
 
-            def traverse(items, level):
-                try:
-                    if level > self.max_level + 1:
-                        raise TypeError
-                    if isinstance(items, abc.Sequence) and not isinstance(items, str):
-                        for _item in items:
-                            traverse(_item, level + 1)
-                    else:
-                        raise TypeError
-                except TypeError:
-                    flattened_items.append(items)
+        flattened_items = []
+        traverse(data, 1)
 
-            traverse(data, 1)
-
-            for item in flattened_items:
-                await self.enqueue_res(item)
+        for item in flattened_items:
+            await self.enqueue_res(item)
 
 
 class Group(Operator):

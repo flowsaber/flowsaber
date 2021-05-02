@@ -3,7 +3,7 @@ import inspect
 from copy import deepcopy
 from enum import Enum
 from pathlib import Path
-from typing import Optional, Union, List, TYPE_CHECKING, Callable, Any
+from typing import Optional, Union, List, TYPE_CHECKING, Callable, Any, Mapping
 
 from makefun import with_signature
 from pydantic import BaseModel
@@ -81,8 +81,7 @@ class ComponentMeta(type):
         class_name, bases, class_dict = mcs.copy_method_sig(class_name, bases, class_dict)
         class_name, bases, class_dict = mcs.update_default_config(class_name, bases, class_dict)
 
-        cls = super().__new__(mcs, class_name, bases, class_dict)
-        return cls
+        return super().__new__(mcs, class_name, bases, class_dict)
 
     @classmethod
     def copy_method_sig(mcs, class_name, bases, class_dict):
@@ -276,10 +275,7 @@ class Component(object, metaclass=ComponentMeta):
         cls = type(self)
         new = cls.__new__(cls)
         for k, v in self.__dict__.items():
-            if k.startswith('_'):
-                new.__dict__[k] = None
-            else:
-                new.__dict__[k] = deepcopy(v)
+            new.__dict__[k] = None if k.startswith('_') else deepcopy(v)
         return new
 
     def call_initialize(self, *args, **kwargs):
@@ -398,3 +394,7 @@ class Component(object, metaclass=ComponentMeta):
 
     def dict(self):
         return self.serialize().dict()
+
+    @classmethod
+    def input_signature(cls) -> Mapping[str, inspect.Parameter]:
+        return inspect.signature(cls.__call__).parameters

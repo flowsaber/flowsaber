@@ -30,12 +30,14 @@ class State(object):
         self.message: str = message or ""
 
     def to_dict(self) -> dict:
-        res = {
-            'state_type': self.__dict__['state_type'],
-            'result': None,
-            'message': self.__dict__['message']
-        }
-        return res
+        from copy import copy
+        dic = copy(self.__dict__)
+        try:
+            dic['result'] = str(dic['result'])
+        except Exception:
+            dic['result'] = "ERROR: Cant not be converted to string."
+
+        return dic
 
     @classmethod
     def from_dict(cls, state_dict) -> "State":

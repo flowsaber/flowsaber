@@ -73,8 +73,7 @@ class LocalCache(Cache):
         return self
 
     def hash(self, **kwargs) -> str:
-        h = tokenize(kwargs)
-        return h
+        return tokenize(kwargs)
 
     def remove(self, key):
         path = Path(key)

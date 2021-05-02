@@ -6,8 +6,7 @@ import sys
 from contextlib import contextmanager
 from io import StringIO
 from pathlib import Path
-from typing import Any
-from typing import Union
+from typing import Any, Union, Generator
 
 
 def import_object(name: str) -> Any:
@@ -37,7 +36,7 @@ def import_object(name: str) -> Any:
 
 
 @contextmanager
-def change_cwd(path: Union[str, Path]) -> Path:
+def change_cwd(path: Union[str, Path]) -> Generator[Path, None, None]:
     """
     A context manager which changes the working directory to the given
     path, and then changes it back to its previous _output on exit.

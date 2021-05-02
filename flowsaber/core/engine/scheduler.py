@@ -70,7 +70,7 @@ class TaskScheduler(Scheduler):
         cost: Callable = None
 
         def cancel(self, *args, **kwargs) -> bool:
-            if self.task:
+            if self.task and not self.task.done():
                 self.task.cancel(*args, **kwargs)
             return super().cancel(*args, **kwargs)
 
@@ -161,7 +161,8 @@ class TaskScheduler(Scheduler):
         # propogate exception or result
         def run_job_done_callback(f: asyncio.Future):
             if f.cancelled():
-                pass
+                if not job.done():
+                    job.cancel()
             elif f.exception():
                 job.set_exception(f.exception())
             elif f.done():

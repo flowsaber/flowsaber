@@ -19,11 +19,10 @@ def get_time_exp(input) -> dict:
     exp = {}
     before = getattr(input, 'before')
     after = getattr(input, 'after')
-    if before or after:
-        if after:
-            exp['$gt'] = after
-        if before:
-            exp['$lt'] = before
+    if after:
+        exp['$gt'] = after
+    if before:
+        exp['$lt'] = before
 
     return exp
 
@@ -336,7 +335,7 @@ def get_resolvers(db: DataBase):
     async def write_runlogs(obj, info, input: dict):
         runlogs_input = RunLogsInput(**input)
         run_logs = [ch_id(run_log.dict()) for run_log in runlogs_input.logs]
-        res = await db.runlog.insert_many(run_logs)
+        await db.runlog.insert_many(run_logs)
         return SuccessPayload()
 
     #

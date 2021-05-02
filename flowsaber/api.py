@@ -81,10 +81,10 @@ def run(flow: Flow, server_address: str = None,
             flowsaber.context.logger.info(f"Upload the flow onto the server: {server_address}")
             try:
                 # test if the flow already exists in server.
-                flow_data = await client.query("get_flow", flow.config.id, "id")
+                await client.query("get_flow", flow.config.id, "id")
             except GraphqlError:
                 await client.mutation("create_flow", flow.serialize(), "id")
-                flow_data = await client.query("get_flow", flow.config.id, "id")
+                await client.query("get_flow", flow.config.id, "id")
 
             flowsaber.context.logger.info(f"Scheduling the flow run in server: {server_address}")
             flowrun_data = await client.mutation("update_flowrun", flowrun_input, 'id name labels')

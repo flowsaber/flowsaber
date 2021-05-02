@@ -179,21 +179,6 @@ class BaseTask(Component):
         """
         return chs >> self
 
-    @classmethod
-    def source_code(cls) -> str:
-        import inspect
-        return inspect.getsource(cls)
-
-    @classmethod
-    def input_signature(cls) -> dict:
-        call_signature = {
-            param: str(param_type)
-            for param, param_type
-            in inspect.signature(cls.__call__).parameters.items()
-        }
-
-        return call_signature
-
     def serialize(self) -> TaskInput:
         # TODO can not fetch source code of type(self), if it's due to makefun ?
         config = self.config

@@ -19,9 +19,6 @@ class Executor(object):
     __aenter__/__aexit__/run async functions for initializing/running/cleaning.
     """
 
-    def __init__(self, **kwargs):
-        pass
-
     async def __aenter__(self):
         return self
 
@@ -125,11 +122,12 @@ class DaskExecutor(Executor):
             **kwargs
     ):
         super().__init__(**kwargs)
-        if address is not None:
-            if cluster_class is not None or cluster_kwargs is not None:
-                raise ValueError(
-                    "Cannot specify both `address` and `cluster_class`/`cluster_kwargs`"
-                )
+        if address is not None and (
+                cluster_class is not None or cluster_kwargs is not None
+        ):
+            raise ValueError(
+                "Cannot specify both `address` and `cluster_class`/`cluster_kwargs`"
+            )
         from distributed import Client
         from distributed.deploy.local import LocalCluster
         if isinstance(cluster_class, str):
