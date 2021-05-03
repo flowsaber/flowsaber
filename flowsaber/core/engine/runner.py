@@ -431,6 +431,7 @@ class Runner(object):
                 'task_id': getattr(record, 'task_id', None),
                 'flow_id': getattr(record, 'flow_id', None),
                 'taskrun_id': getattr(record, 'taskrun_id', None),
+                'flowrun_id': getattr(record, 'flowrun_id', None),
                 'agent_id': getattr(record, 'agent_id', None),
                 'message': record.message
             }

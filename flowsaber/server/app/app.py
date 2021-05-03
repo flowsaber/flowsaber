@@ -5,6 +5,9 @@ from ariadne import (
     make_executable_schema,
     asgi
 )
+from starlette.applications import Starlette
+from starlette.middleware import Middleware
+from starlette.middleware.cors import CORSMiddleware
 
 from flowsaber.server.app.resolvers import get_resolvers
 from flowsaber.server.database.db import DataBase
@@ -26,5 +29,12 @@ def get_app(db: DataBase):
                                     'uuid_scalar', 'timestamp_scalar', 'json_scalar']]
     type_defs = load_schema_from_path(SCHEMA_PATH)
     schema = make_executable_schema(type_defs, *types)
-    app = asgi.GraphQL(schema, middleware=[logging_post_data])
+    graphql = asgi.GraphQL(schema, middleware=[logging_post_data], debug=True)
+
+    middleware = [
+        Middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"])
+    ]
+    app = Starlette(debug=True, middleware=middleware)
+    app.mount("/graphql", graphql)
+
     return app

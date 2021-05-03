@@ -29,7 +29,7 @@ class Client(object, metaclass=ValidateMeta):
     """
 
     def __init__(self, server_url: str = None, retry: int = 3):
-        self.server_url = server_url
+        self.server_url = server_url + "/graphql"
         self.retry = retry
         self.test = True
         self.session: Optional[aiohttp.ClientSession] = None
