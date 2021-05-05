@@ -148,8 +148,8 @@ def get_resolvers(db: DataBase):
                         {"_id": {"$in": input.id}},
                         {'task_id': {"$in": input.task_id}},
                         {"flow_id": {"$in": input.flow_id}},
+                        {"flowrun_id": {"$in": input.flowrun_id}},
                         {"agent_id": {"$in": input.agent_id}},
-                        {"id": {"$in": input.flowrun_id}},
                     ]
             })
         if input.state_type:
