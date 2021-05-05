@@ -140,7 +140,7 @@ def get_resolvers(db: DataBase):
     async def get_taskruns(obj, info, input: dict) -> List[dict]:
         input = GetTaskRunsInput(**input)
         exp = {}
-        has_or_exp = input.id or input.task_id or input.flow_id or input.agent_id or input.flowrun_id
+        has_or_exp = input.id or input.task_id or input.flow_id
         if has_or_exp:
             exp.update({
                 "$or":
@@ -148,9 +148,15 @@ def get_resolvers(db: DataBase):
                         {"_id": {"$in": input.id}},
                         {'task_id': {"$in": input.task_id}},
                         {"flow_id": {"$in": input.flow_id}},
-                        {"flowrun_id": {"$in": input.flowrun_id}},
-                        {"agent_id": {"$in": input.agent_id}},
                     ]
+            })
+        if input.flowrun_id:
+            exp.update({
+                "flowrun_id": {"$in": input.flowrun_id},
+            })
+        if input.agent_id:
+            exp.update({
+                "agent_id": {"$in": input.agent_id},
             })
         if input.state_type:
             exp.update({
@@ -181,17 +187,20 @@ def get_resolvers(db: DataBase):
     async def get_flowruns(obj, info, input: dict) -> List[dict]:
         input = GetFlowRunsInput(**input)
         exp = {}
-        has_or_exp = input.id or input.flow_id or input.agent_id or input.name or input.labels
+        has_or_exp = input.id or input.flow_id or input.name or input.labels
         if has_or_exp:
             exp.update({
                 "$or":
                     [
                         {"_id": {"$in": input.id}},
                         {"flow_id": {"$in": input.flow_id}},
-                        {"agent_id": {"$in": input.agent_id}},
                         {"name": {"$in": input.name}},
                         {"labels": {"$all": input.labels}},
                     ]
+            })
+        if input.agent_id:
+            exp.update({
+                "agent_id": {"$in": input.agent_id},
             })
         if input.state_type:
             exp.update({
