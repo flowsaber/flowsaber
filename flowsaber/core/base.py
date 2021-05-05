@@ -328,6 +328,10 @@ class Component(object, metaclass=ComponentMeta):
             self.config_dict['name'] = str(self)
         if not self.config_dict.get('full_name'):
             self.config_dict['full_name'] = self.get_full_name()
+        # record mro info for future use
+        self.config_dict['bases'] = [
+            f"{base}|{id(base)}" for base in type(self).__mro__
+        ]
 
         # set up workdir build from the hierarchy of flows/tasks
         # flow's workdir and task's workdir is handled separately

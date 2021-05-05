@@ -17,7 +17,10 @@ class Operator(BaseTask):
     """Base class for all operators, subclass of BaseTask, all operators runs in the main loop in sequence
     and do not have runners and run states.
     """
-    pass
+
+    def initialize_context(self):
+        super().initialize_context()
+        self.config_dict['name'] = "Operator" + self.config_dict['name']
 
 
 class Merge(Operator):
