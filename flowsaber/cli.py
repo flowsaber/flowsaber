@@ -21,14 +21,12 @@ class CLI:
 
         """
         import uvicorn
-        from flowsaber.server.app.app import get_app
+        import os
         from flowsaber.server.database.db import DataBase
-        # test connection
         DataBase.test_connection(url)
-        # get awgi app
-        db = DataBase(url)
-        app = get_app(db)
-        uvicorn.run(app=app, **kwargs)
+
+        os.environ['DB_URI'] = url
+        uvicorn.run("flowsaber.server.app.app:app", **kwargs)
 
     def agent(self, server: str, id: str = None, name: str = None, labels: list = None):
         """

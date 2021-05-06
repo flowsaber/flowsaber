@@ -21,8 +21,22 @@ def logging_post_data(resolver, obj, info, **kwargs):
     return resolver(obj, info, **kwargs)
 
 
-def get_app(db: DataBase):
+def resolve_db(db) -> 'DataBase':
+    from flowsaber.server.database.db import DataBase
+    if not db:
+        import os
+        db_uri = os.getenv('DB_URI', None)
+        if not db_uri:
+            raise ValueError("Please use ENV $DB_URI to specify the database connection url")
+        # get awgi app
+        db = DataBase(db_uri)
     assert isinstance(db, DataBase)
+
+    return db
+
+
+def get_app(db: DataBase = None):
+    db = resolve_db(db)
     resolvers = get_resolvers(db)
     types = [resolvers[k] for k in ['query', 'mutation',
                                     'agent', 'flow', 'task', 'flowrun',
@@ -38,3 +52,6 @@ def get_app(db: DataBase):
     app.mount("/graphql", graphql)
 
     return app
+
+
+app = get_app()
