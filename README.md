@@ -39,9 +39,9 @@
         - Task Cache.
         - ...
 - Distributable: Use Dask distributed as Task executor, can deploy in local, cluster, cloud.
-- Support hybrid model inspired from [prefect](https://github.com/PrefectHQ/prefect).
-    - Build Flow in Local python or web UI(In progress).
-    - Schedule/Monitor flow execution in remote server through python or web UI(In progress).
+- Hybrid model inspired from [prefect](https://github.com/PrefectHQ/prefect).
+    - Build Flow in Local python or web [UI](https://github.com/Nanguage/sabermap).
+    - Schedule/Monitor flow execution in remote server through python or web [UI](https://github.com/Nanguage/sabermap).
 
 ### Install
 
@@ -137,7 +137,6 @@ python -m pytest tests -s -o log_cli=True -vvvv
 
 ### TODO
 
-- [ ] Web interface.
 - [ ] Pbs/Torque executor
 - [ ] More cache mode.
 - [ ] Supportrun in Cloud platform.
