@@ -9,6 +9,10 @@ from flowsaber.core.utility.target import END, End
 from flowsaber.server.database.models import ChannelInput
 
 
+class EventChannelCheckError(RuntimeError):
+    pass
+
+
 class Fetcher(object):
     """Fetch simple provide a for/async for method support for classes implemented with get/get_nowait methods.
     The end of __next__/__anext__ is triggered by the appearance of END fetched from get/get_nowait.
@@ -209,6 +213,20 @@ class ChannelBase(object):
         """
         return cls.values(*items)
 
+    @classmethod
+    def async_channel(cls, *async_funcs, **kwargs) -> "AsyncChannel":
+        async_ch = AsyncChannel(**kwargs)
+        for async_func in async_funcs:
+            async_ch(async_func)
+        return async_ch
+
+    @classmethod
+    def event(cls, *funcs, interval: int = 5, value=None, **kwargs) -> "EventChannel":
+        event_ch = EventChannel(interval, value, **kwargs)
+        for func in funcs:
+            event_ch(func)
+        return event_ch
+
 
 class Channel(ChannelBase):
     """Subclass of ChannelBase implemented create_queue method, the mechanism for sending data to all created queue is
@@ -266,6 +284,84 @@ class ConstantChannel(Channel):
 
     def __init__(self, **kwargs):
         super().__init__(queue_factory=ConstantQueue, **kwargs)
+
+
+class AsyncChannel(Channel):
+    """AsyncChannel schedules asynchronous tasks when initialized, the async task accept the channel as the only parameter,
+    and it's expected to call self.put_nowait/self.put method as to send items into output queues.
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._async_tasks = []
+        self._async_futures = []
+        self._num_done = 0
+
+    def __call__(self, async_func):
+        # TODO assert func is async func
+        assert not self.initialized, "Can only add async task before initialization."
+        self._async_tasks.append(async_func)
+        return self
+
+    def check_all_task_done(self, *args, **kwargs):
+        self._num_done += 1
+        if self._num_done == len(self._async_futures):
+            self.put_nowait(END)
+
+    def initialize(self):
+        if not self.initialized:
+            super().initialize()
+            loop = asyncio.get_running_loop()
+
+            for a_func in self._async_tasks:
+                task = loop.create_task(a_func(self))
+                task.add_done_callback(self.check_all_task_done)
+                self._async_futures.append(task)
+
+
+class EventChannel(AsyncChannel):
+    """A subclass of AsyncChannel, it's only async task runs in a while loop and periodically call the registered
+    trigger methods
+    """
+
+    def __init__(self, interval: int = 5, value=None, **kwargs):
+        super().__init__(**kwargs)
+        self.interval = interval
+        self.value = value
+        self._async_tasks.append(self.check_triggers_loop)
+        self._predicates = []
+
+    @staticmethod
+    async def check_triggers_loop(self: "EventChannel"):
+        while self._predicates:
+            remove_predicates = []
+            for i, predicate in enumerate(self._predicates):
+                try:
+                    # handle four cases
+                    # 1. generator 2. async_generator 3. func 4. async_func
+                    if hasattr(predicate, '__next__'):
+                        res = predicate.__next__()
+                    elif hasattr(predicate, "__anext__"):
+                        res = await predicate.__anext__()
+                    else:
+                        res = predicate(self)
+                        if inspect.iscoroutine(res):
+                            res = await res
+                except (StopIteration, StopAsyncIteration) as e:
+                    remove_predicates.append(predicate)
+                except Exception as e:
+                    raise EventChannelCheckError("Error met when call registered trigger methods with error: e") from e
+                else:
+                    if res:
+                        self.put_nowait(self.value)
+            for rm_predicate in remove_predicates:
+                self._predicates.remove(rm_predicate)
+
+            await asyncio.sleep(self.interval)
+
+    def __call__(self, func):
+        self._predicates.append(func)
+        return self
 
 
 class Consumer(Fetcher):
