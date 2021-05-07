@@ -2,6 +2,7 @@ import inspect
 from typing import Any, Optional
 
 import aiohttp
+from aiohttp import ContentTypeError
 from pydantic import validate_arguments
 
 
@@ -28,8 +29,12 @@ class Client(object, metaclass=ValidateMeta):
     """The Graphql client used for communicating with server by sending HTTP _post reqeuests data.
     """
 
-    def __init__(self, server_url: str = None, retry: int = 3):
-        self.server_url = server_url + "/graphql"
+    def __init__(self, server_url: str, retry: int = 3):
+        assert server_url and isinstance(server_url, str)
+        server_url.rstrip('/')
+        # must end with '/'
+        # https://github.com/encode/starlette/issues/869
+        self.server_url = server_url + "/graphql/"
         self.retry = retry
         self.test = True
         self.session: Optional[aiohttp.ClientSession] = None
@@ -43,7 +48,10 @@ class Client(object, metaclass=ValidateMeta):
         if self.session is None:
             self.session = aiohttp.ClientSession()
         async with self.session.post(url, json=json, **kwargs) as rsp:
-            return await rsp.json()
+            try:
+                return await rsp.json()
+            except ContentTypeError as e:
+                raise ServerError("The response is not in json format.") from e
 
     async def graphql_request(self, query: str, variables: dict, **kwargs) -> dict:
         json = {
