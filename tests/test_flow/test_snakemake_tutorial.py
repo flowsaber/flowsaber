@@ -33,6 +33,7 @@ def test_snakemake_workflow():
 
         plt.savefig("report.svg")
 
+
     @flow
     def call_vcf_flow():
         """Call vcf from fastq file.

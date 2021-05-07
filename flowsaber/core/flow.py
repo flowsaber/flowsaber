@@ -9,6 +9,7 @@ from flowsaber.core.channel import Channel, Output
 from flowsaber.core.task import BaseTask, Edge
 from flowsaber.core.utils import check_cycle, class_deco
 from flowsaber.server.database import FlowInput
+from flowsaber.utility.utils import change_cwd
 
 
 class Flow(Component):
@@ -127,13 +128,14 @@ class Flow(Component):
 
             return res_futures
 
-        # for the top most flow, initialize executors
+        # for the top most flow, clear context info, initialize executors, go to flow_worker
         if self.config_dict['id'] == self.context['flow_id']:
             flowsaber.context._info.clear()
-            async with flowsaber.context:
-                await execute_child_components()
-                # for the top most flow, return None, since Flowrunner's returned final
-                # state will inlcude this
+            with change_cwd(self.context.get('flow_workdir', '')):
+                async with flowsaber.context:
+                    await execute_child_components()
+                    # for the top most flow, return None, since Flowrunner's returned final
+                    # state will inlcude this
         else:
             await execute_child_components()
 
