@@ -1773,20 +1773,26 @@ factory</p>
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Channel</span></code>([queue_factory])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">AsyncChannel</span></code>(**kwargs)</p></td>
+<td><p>AsyncChannel schedules asynchronous tasks when initialized, the async task accept the channel as the only parameter, and it’s expected to call self.put_nowait/self.put method as to send items into output queues.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Channel</span></code>([queue_factory])</p></td>
 <td><p>Subclass of ChannelBase implemented create_queue method, the mechanism for sending data to all created queue is simple, it just loop over all queues and push the item specified by call of put/put_nowait into all queues.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ChannelBase</span></code>(**kwargs)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ChannelBase</span></code>(**kwargs)</p></td>
 <td><p>A channel it self is an object for storing items by using put/put_nowait.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ConstantChannel</span></code>(**kwargs)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ConstantChannel</span></code>(**kwargs)</p></td>
 <td><p>A channel use ConstantQueue as it’s fetcher queue factory.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ConstantQueue</span></code>()</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ConstantQueue</span></code>()</p></td>
 <td><p>A async queue will emit it’s internal value infinitely.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Consumer</span></code>(*queues, **kwargs)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Consumer</span></code>(*queues, **kwargs)</p></td>
 <td><p>Consumer is an object used for simultaneously fetching data emitted by multiple channels and output tuples.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">EventChannel</span></code>([interval, value])</p></td>
+<td><p>A subclass of AsyncChannel, it’s only async task runs in a while loop and periodically call the registered trigger methods</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Fetcher</span></code>(**kwargs)</p></td>
 <td><p>Fetch simple provide a for/async for method support for classes implemented with get/get_nowait methods.</p></td>
@@ -1796,6 +1802,25 @@ factory</p>
 </tr>
 </tbody>
 </table>
+<p><strong>Exceptions:</strong></p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">EventChannelCheckError</span></code></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+<dl class="class">
+<dt id="flowsaber.core.channel.AsyncChannel">
+<em class="property">class </em><code class="sig-prename descclassname">flowsaber.core.channel.</code><code class="sig-name descname">AsyncChannel</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.channel.AsyncChannel" title="Permalink to this definition">¶</a></dt>
+<dd><p>AsyncChannel schedules asynchronous tasks when initialized, the async task accept the channel as the only parameter,
+and it’s expected to call self.put_nowait/self.put method as to send items into output queues.</p>
+</dd></dl>
+
 <dl class="class">
 <dt id="flowsaber.core.channel.Channel">
 <em class="property">class </em><code class="sig-prename descclassname">flowsaber.core.channel.</code><code class="sig-name descname">Channel</code><span class="sig-paren">(</span><em class="sig-param">queue_factory: type = &lt;class 'asyncio.queues.Queue'&gt;</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.channel.Channel" title="Permalink to this definition">¶</a></dt>
@@ -2072,6 +2097,18 @@ Empty consumer will emit only once. The end of __next__/__anext__ will be trigge
 emits a END object. For simplicity, if there is only a single source channel, the output of consumer will not be
 a tuple.</p>
 </dd></dl>
+
+<dl class="class">
+<dt id="flowsaber.core.channel.EventChannel">
+<em class="property">class </em><code class="sig-prename descclassname">flowsaber.core.channel.</code><code class="sig-name descname">EventChannel</code><span class="sig-paren">(</span><em class="sig-param">interval: int = 5</em>, <em class="sig-param">value=None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.channel.EventChannel" title="Permalink to this definition">¶</a></dt>
+<dd><p>A subclass of AsyncChannel, it’s only async task runs in a while loop and periodically call the registered
+trigger methods</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="flowsaber.core.channel.EventChannelCheckError">
+<em class="property">exception </em><code class="sig-prename descclassname">flowsaber.core.channel.</code><code class="sig-name descname">EventChannelCheckError</code><a class="headerlink" href="#flowsaber.core.channel.EventChannelCheckError" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="class">
 <dt id="flowsaber.core.channel.Fetcher">
