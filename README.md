@@ -70,7 +70,7 @@ def multiply(num1, num2):
 
 @shell
 def write(num):
-    """echo {num} > 1.txt"""
+    """echo {num} > {num}.txt"""
     return '*.txt'
 
 @task
@@ -96,6 +96,8 @@ run(workflow)
 
 
 ### Example to run in remote
+
+Both `server` and `agent` need to be run in background before submitting flowruns.
 
 ##### Start server(API endpoint)
 In bash shell.
