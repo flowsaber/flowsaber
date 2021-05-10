@@ -262,6 +262,7 @@ class Component(object, metaclass=ComponentMeta):
         -------
 
         """
+        # TODO using type annotation, it's possible to check type before running flow
         try:
             from copy import copy
             new = copy(self)
