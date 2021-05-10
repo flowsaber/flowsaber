@@ -232,7 +232,10 @@ class CommandTask(RunTask):
                                               "adding the commands as the command() method's documentation by "
                                               "setting `__doc__`.")
             local_vars.update({'self': self})
-            cmd = cmd.format(**local_vars)
+            # TODO too dangerous
+            # use `cmd.format` is not enough for all cases
+            cmd = eval(f"f\"\"\"{cmd}\"\"\"", local_vars)
+
         # add cat stdin cmd
         stdins = [arg for arg in list(args) + list(kwargs.values()) if isinstance(arg, Stdin)]
         if len(stdins) > 1:
