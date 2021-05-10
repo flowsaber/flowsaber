@@ -3,6 +3,7 @@ import subprocess
 from pathlib import Path
 from typing import List, Union, Tuple, Optional, Any
 
+import flowsaber
 from flowsaber.core.channel import Output
 from flowsaber.core.flow import Flow
 from flowsaber.core.task import Task, RunTask
@@ -55,6 +56,7 @@ class ShellTask(Task):
         collect_files: List[File] = []
         resolved_output = self.glob_output_files(output, run_workdir, collect_files)
         publish_dirs = self.get_publish_dirs(flow_workdir, self.config_dict.get('publish_dirs', []))
+        # TODO use bash script instead of python codes
         for file in collect_files:
             file.initialize_hash()
             for pub_dir in publish_dirs:
@@ -86,6 +88,7 @@ class ShellTask(Task):
         with change_cwd(run_workdir):
             with bash_script.open('w') as f:
                 f.write(wrapped_cmd)
+        flowsaber.context.logger.debug(f"Executed shell cmd: \n{wrapped_cmd}\n in path: \n{run_workdir}\n")
         # execute with subprocess.Popen
         with change_cwd(run_workdir):
             envs = envs or os.environ.copy()

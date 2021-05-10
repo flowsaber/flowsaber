@@ -58,10 +58,19 @@ def run(flow: Flow, server_address: str = None,
     with flowsaber.context(context) as context:
         merged_context = context.to_dict()
 
+    loop = asyncio.get_event_loop()
     if not agent_id:
         flowsaber.context.logger.info("Run the flow in local.")
         runner = FlowRunner(flow, server_address=server_address)
-        runner.run(context=merged_context)
+        if not loop.is_running():
+            runner.run(context=merged_context)
+        else:
+            # this often happens in jupyter notebook where the event loop is already running
+            flowsaber.context.logger.info("Found a running eventloop, run in another thread, "
+                                          "this often happens in jupyter notebook.")
+            from threading import Thread
+            flow_thread = Thread(target=runner.run, kwargs={'context': merged_context})
+            flow_thread.start()
     else:
         assert server_address, "Must specify a server to schedule flowrun in remote agent."
         flowrun_input = FlowRunInput(
@@ -75,7 +84,7 @@ def run(flow: Flow, server_address: str = None,
             **kwargs
         )
 
-        async def upload_can_run():
+        async def upload_and_run():
             client = Client(server_address)
 
             flowsaber.context.logger.info(f"Upload the flow onto the server: {server_address}")
@@ -92,5 +101,7 @@ def run(flow: Flow, server_address: str = None,
 
             await client.close()
             return flowrun_data
-
-        return asyncio.run(upload_can_run())
+        if not loop.is_running():
+            return asyncio.run(upload_and_run())
+        else:
+            return asyncio.create_task(upload_and_run())
