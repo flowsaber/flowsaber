@@ -45,20 +45,31 @@ class GetItem(Operator):
 
     """
 
-    def __init__(self, key: Any, **kwargs):
+    def __init__(self, key: Any, default: Any = None, **kwargs):
         super().__init__(**kwargs)
         self.key = key
+        self.default = default
 
     async def handle_input(self, data, *args, **kwargs):
         if data is not END:
             try:
-                await self.enqueue_res(data[self.key])
-            except TypeError as e:
-                raise ValueError(f"The output {data} can be be indexed with {self.key}. error is: {e}")
+                res = data[self.key]
+            except (TypeError, KeyError, IndexError) as e:
+                # if not exit, return default, like dict's get
+                from copy import deepcopy
+                res = deepcopy(self.default)
+
+            await self.enqueue_res(res)
 
 
 class Select(GetItem):
     """Alias for GetItem task.
+    """
+    pass
+
+
+class Get(GetItem):
+    """Alias for GetItem task
     """
     pass
 
@@ -426,15 +437,16 @@ def split(num: int):
     return Split(num=num)
 
 
-def getitem(key: Any):
-    return GetItem(key=key)
+def getitem(key: Any, default: Any = None):
+    return GetItem(key=key, default=default)
 
 
-def select(key: Any):
-    return Select(key=key)
+def select(key: Any, default: Any = None):
+    return Select(key=key, default=default)
 
 
-get = select
+def get(key: Any, default: Any = None):
+    return Get(key=key, default=default)
 
 
 def branch(num: int, by: Callable):

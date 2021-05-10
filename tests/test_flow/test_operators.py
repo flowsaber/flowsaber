@@ -17,8 +17,10 @@ def test_GetItem_task():
         dict_ch = gen_dict(num_ch)
         name_ch, age_ch = dict_ch >> [GetItem("name"), getitem('age')]
         height_ch = dict_ch['height']
+        not_exist1_ch = dict_ch | Get("not_exist_1", "not_exist_1")
+        not_exist2_ch = dict_ch | Select("not_exist_2", "not_exist_2")
 
-        [name_ch, age_ch, height_ch, dict_ch.getitem(key="money")] | view
+        [name_ch, age_ch, height_ch, dict_ch.getitem(key="money"), not_exist1_ch, not_exist2_ch] | view
 
     run(f())
 
