@@ -434,6 +434,9 @@ def select(key: Any):
     return Select(key=key)
 
 
+get = select
+
+
 def branch(num: int, by: Callable):
     return Branch(num=num, by=by)
 
