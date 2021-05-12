@@ -43,6 +43,8 @@ class ShellTask(Task):
         """
         flow_workdir = self.context['flow_workdir']
         run_workdir = self.context['run_workdir']
+        # important! make sure run is atomic
+        Path(run_workdir).unlink(missing_ok=True)
         # run bash command in shell with Popen
         stdout_file, stderr_file = self.execute_shell_command(cmd, run_workdir, envs)
         # 1. return stdout simulated by file

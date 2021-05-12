@@ -9,7 +9,7 @@ from dask.base import tokenize
 
 import flowsaber
 from flowsaber.core.base import Component, aenter_context
-from flowsaber.core.channel import Channel, Consumer, Output
+from flowsaber.core.channel import Channel, Consumer, Output, ConstantChannel
 from flowsaber.core.engine.task_runner import TaskRunner
 from flowsaber.core.utility.state import State, Done, Success, Failure
 from flowsaber.core.utility.target import File, END, Data
@@ -33,7 +33,7 @@ class BaseTask(Component):
     And then push the processed result of each item into the _output channels. All items are handled in sequence.
     """
     default_config = {
-        'workdir': 'work'
+        'workdir': 'work',
     }
 
     def __init__(self, num_out: int = 1, **kwargs):
@@ -372,6 +372,10 @@ class Task(RunTask):
     4. Within the task runner, task will pass through a state machine, callbacks can be registered to each state changes.
     """
 
+    default_config = {
+        'run_workdir': "",
+    }
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.skip_fn: Optional[Callable] = None
@@ -547,5 +551,27 @@ class Edge(object):
         )
 
 
+class GetContext(RunTask):
+    """Emit context endlessly, this is aimed for building dependency between flow and input context/config.
+    it's optional, users can also change parameters for different flowruns by rebuilding the flow.
+    However, to make it also work in remote execution, the flow is supposed to read parameters from output of this task.
+    Also note that, since the flow upload to server are built flow, the structure of flow is fixed, python expressions
+    like if, will not work again as to change the structure. With the help of this task, it can simulate some sort of
+    dynamics.
+    """
+    def __init__(self, check_fn: Callable = None, **kwargs):
+        super().__init__(**kwargs)
+        self.check_fn = check_fn
+
+    def initialize_output(self):
+        self.output = ConstantChannel()
+
+    def run(self):
+        if self.check_fn:
+            self.check_fn(self.context)
+        return self.context
+
+
 run = class_deco(RunTask, 'run')
 task = class_deco(Task, 'run')
+get_context = GetContext()

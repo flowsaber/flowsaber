@@ -344,6 +344,8 @@ class Take(Operator):
         if data is not END and self.num > 0:
             await self.enqueue_res(data)
             self.num -= 1
+            if self.num <= 0:
+                await self.enqueue_res(END)
 
 
 class First(Take):
@@ -351,6 +353,11 @@ class First(Take):
 
     def __init__(self, **kwargs):
         super().__init__(num=1, **kwargs)
+
+
+class Constant(First):
+    def initialize_output(self):
+        self.output = ConstantChannel()
 
 
 class Last(Operator):
@@ -425,6 +432,7 @@ view = View()
 unique = Unique()
 distinct = Distinct()
 first = First()
+constant = Constant()
 collect = Collect()
 last = Last()
 count = Count()
