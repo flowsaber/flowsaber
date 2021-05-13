@@ -203,6 +203,8 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#flowsaber.core.task.BaseTask">BaseTask (class in flowsaber.core.task)</a>
 </li>
+      <li><a href="api.html#flowsaber.tasks.shell.BashTask">BashTask (class in flowsaber.tasks.shell)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#flowsaber.core.operators.Branch">Branch (class in flowsaber.core.operators)</a>
@@ -257,9 +259,7 @@
 </li>
       <li><a href="api.html#flowsaber.core.channel.ChannelBase.collect">collect() (flowsaber.core.channel.ChannelBase method)</a>
 </li>
-      <li><a href="api.html#flowsaber.tasks.shell.CommandTask.command">command() (flowsaber.tasks.shell.CommandTask method)</a>
-</li>
-      <li><a href="api.html#flowsaber.tasks.shell.CommandTask">CommandTask (class in flowsaber.tasks.shell)</a>
+      <li><a href="api.html#flowsaber.tasks.shell.ShellTask.command">command() (flowsaber.tasks.shell.ShellTask method)</a>
 </li>
       <li><a href="api.html#flowsaber.tasks.shell.CommandTaskComposeError">CommandTaskComposeError</a>
 </li>
@@ -276,6 +276,8 @@
       <li><a href="api.html#flowsaber.core.channel.ChannelBase.concat">concat() (flowsaber.core.channel.ChannelBase method)</a>
 </li>
       <li><a href="api.html#flowsaber.core.base.Component.config">config() (flowsaber.core.base.Component property)</a>
+</li>
+      <li><a href="api.html#flowsaber.core.operators.Constant">Constant (class in flowsaber.core.operators)</a>
 </li>
       <li><a href="api.html#flowsaber.core.channel.ConstantChannel">ConstantChannel (class in flowsaber.core.channel)</a>
 </li>
@@ -325,7 +327,7 @@
 </li>
       <li><a href="api.html#flowsaber.core.channel.EventChannelCheckError">EventChannelCheckError</a>
 </li>
-      <li><a href="api.html#flowsaber.tasks.shell.ShellTask.execute_shell_command">execute_shell_command() (flowsaber.tasks.shell.ShellTask method)</a>
+      <li><a href="api.html#flowsaber.tasks.shell.BashTask.execute_command">execute_command() (flowsaber.tasks.shell.BashTask method)</a>
 </li>
       <li><a href="api.html#flowsaber.core.utility.executor.Executor">Executor (class in flowsaber.core.utility.executor)</a>
 </li>
@@ -365,10 +367,10 @@
 </li>
       <li><a href="api.html#module-flowsaber.core.channel">flowsaber.core.channel (module)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#module-flowsaber.core.context">flowsaber.core.context (module)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#module-flowsaber.core.engine.flow_runner">flowsaber.core.engine.flow_runner (module)</a>
 </li>
       <li><a href="api.html#module-flowsaber.core.engine.runner">flowsaber.core.engine.runner (module)</a>
@@ -395,6 +397,8 @@
 </li>
       <li><a href="api.html#flowsaber.core.context.FlowSaberContext">FlowSaberContext (class in flowsaber.core.context)</a>
 </li>
+      <li><a href="api.html#flowsaber.core.utility.target.Folder">Folder (class in flowsaber.core.utility.target)</a>
+</li>
       <li><a href="api.html#flowsaber.core.channel.ChannelBase.from_list">from_list() (flowsaber.core.channel.ChannelBase class method)</a>
 </li>
   </ul></td>
@@ -409,7 +413,9 @@
 </li>
       <li><a href="api.html#flowsaber.core.base.Component.get_full_name">get_full_name() (flowsaber.core.base.Component method)</a>
 </li>
-      <li><a href="api.html#flowsaber.tasks.shell.ShellTask.get_publish_dirs">get_publish_dirs() (flowsaber.tasks.shell.ShellTask static method)</a>
+      <li><a href="api.html#flowsaber.tasks.shell.BashTask.get_publish_dirs">get_publish_dirs() (flowsaber.tasks.shell.BashTask static method)</a>
+</li>
+      <li><a href="api.html#flowsaber.core.task.GetContext">GetContext (class in flowsaber.core.task)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
@@ -417,7 +423,7 @@
 </li>
       <li><a href="api.html#flowsaber.core.channel.ChannelBase.getitem">getitem() (flowsaber.core.channel.ChannelBase method)</a>
 </li>
-      <li><a href="api.html#flowsaber.tasks.shell.ShellTask.glob_output_files">glob_output_files() (flowsaber.tasks.shell.ShellTask class method)</a>
+      <li><a href="api.html#flowsaber.tasks.shell.BashTask.glob_output_files">glob_output_files() (flowsaber.tasks.shell.BashTask class method)</a>
 </li>
       <li><a href="api.html#flowsaber.core.operators.Group">Group (class in flowsaber.core.operators)</a>
 </li>
@@ -501,8 +507,12 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#flowsaber.core.task.BaseTask.initialize_input">initialize_input() (flowsaber.core.task.BaseTask method)</a>
 </li>
-      <li><a href="api.html#flowsaber.core.task.BaseTask.initialize_output">initialize_output() (flowsaber.core.task.BaseTask method)</a>
+      <li><a href="api.html#flowsaber.core.operators.Constant.initialize_output">initialize_output() (flowsaber.core.operators.Constant method)</a>
+
+      <ul>
+        <li><a href="api.html#flowsaber.core.task.BaseTask.initialize_output">(flowsaber.core.task.BaseTask method)</a>
 </li>
+      </ul></li>
       <li><a href="api.html#flowsaber.core.context.inject_context_attrs">inject_context_attrs() (in module flowsaber.core.context)</a>
 </li>
   </ul></td>
@@ -604,21 +614,23 @@
       <li><a href="api.html#flowsaber.core.engine.runner.RunnerExecutor.run">run() (flowsaber.core.engine.runner.RunnerExecutor method)</a>
 
       <ul>
+        <li><a href="api.html#flowsaber.core.task.GetContext.run">(flowsaber.core.task.GetContext method)</a>
+</li>
         <li><a href="api.html#flowsaber.core.task.RunTask.run">(flowsaber.core.task.RunTask method)</a>
 </li>
         <li><a href="api.html#flowsaber.core.utility.executor.DaskExecutor.run">(flowsaber.core.utility.executor.DaskExecutor method)</a>
 </li>
-        <li><a href="api.html#flowsaber.tasks.shell.CommandTask.run">(flowsaber.tasks.shell.CommandTask method)</a>
+        <li><a href="api.html#flowsaber.tasks.shell.BashTask.run">(flowsaber.tasks.shell.BashTask method)</a>
 </li>
         <li><a href="api.html#flowsaber.tasks.shell.ShellTask.run">(flowsaber.tasks.shell.ShellTask method)</a>
 </li>
       </ul></li>
       <li><a href="api.html#flowsaber.core.engine.task_runner.TaskRunner.run_task_timeout">run_task_timeout() (flowsaber.core.engine.task_runner.TaskRunner method)</a>
 </li>
-      <li><a href="api.html#flowsaber.core.engine.runner.run_timeout_signal">run_timeout_signal() (in module flowsaber.core.engine.runner)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#flowsaber.core.engine.runner.run_timeout_signal">run_timeout_signal() (in module flowsaber.core.engine.runner)</a>
+</li>
       <li><a href="api.html#flowsaber.core.engine.runner.run_timeout_thread">run_timeout_thread() (in module flowsaber.core.engine.runner)</a>
 </li>
       <li><a href="api.html#flowsaber.core.task.RunDataFileNotFoundError">RunDataFileNotFoundError</a>
@@ -657,8 +669,6 @@
 </li>
       <li><a href="api.html#flowsaber.core.engine.runner.Runner.send_logs">send_logs() (flowsaber.core.engine.runner.Runner method)</a>
 </li>
-      <li><a href="api.html#flowsaber.tasks.shell.ShellFlow">ShellFlow (class in flowsaber.tasks.shell)</a>
-</li>
       <li><a href="api.html#flowsaber.tasks.shell.ShellTask">ShellTask (class in flowsaber.tasks.shell)</a>
 </li>
       <li><a href="api.html#flowsaber.tasks.shell.ShellTaskExecuteError">ShellTaskExecuteError</a>
@@ -667,10 +677,10 @@
 </li>
       <li><a href="api.html#flowsaber.core.task.Task.skip">skip() (flowsaber.core.task.Task method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#flowsaber.core.operators.Split">Split (class in flowsaber.core.operators)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#flowsaber.core.channel.ChannelBase.split">split() (flowsaber.core.channel.ChannelBase method)</a>
 </li>
       <li><a href="api.html#flowsaber.core.base.Component.start">start() (flowsaber.core.base.Component method)</a>
@@ -707,12 +717,16 @@
 </li>
       <li><a href="api.html#flowsaber.core.utility.target.Target">Target (class in flowsaber.core.utility.target)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#flowsaber.core.task.Task">Task (class in flowsaber.core.task)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#flowsaber.core.task.Task.task_hash">task_hash() (flowsaber.core.task.Task property)</a>
+
+      <ul>
+        <li><a href="api.html#flowsaber.tasks.shell.ShellTask.task_hash">(flowsaber.tasks.shell.ShellTask property)</a>
 </li>
+      </ul></li>
       <li><a href="api.html#flowsaber.core.task.Task.task_workdir">task_workdir() (flowsaber.core.task.Task property)</a>
 </li>
       <li><a href="api.html#flowsaber.core.engine.task_runner.TaskRunner">TaskRunner (class in flowsaber.core.engine.task_runner)</a>

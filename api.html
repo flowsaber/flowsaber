@@ -200,10 +200,13 @@
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Edge</span></code>(channel, task)</p></td>
 <td><p>A edge represents a dependency between a channel and a task.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">RunTask</span></code>([num_out])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">GetContext</span></code>([check_fn])</p></td>
+<td><p>Emit context endlessly, this is aimed for building dependency between flow and input context/config.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">RunTask</span></code>([num_out])</p></td>
 <td><p>RunTask is subclass of BaseTask, representing tasks with run method exposed to users to implement specific item processing logics.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Task</span></code>(**kwargs)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Task</span></code>(**kwargs)</p></td>
 <td><p>Task is subclass of RunTask: 1.</p></td>
 </tr>
 </tbody>
@@ -310,6 +313,39 @@ kwargs</p>
 <dt id="flowsaber.core.task.Edge">
 <em class="property">class </em><code class="sig-prename descclassname">flowsaber.core.task.</code><code class="sig-name descname">Edge</code><span class="sig-paren">(</span><em class="sig-param">channel: flowsaber.core.channel.Channel</em>, <em class="sig-param">task: flowsaber.core.task.BaseTask</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.Edge" title="Permalink to this definition">¶</a></dt>
 <dd><p>A edge represents a dependency between a channel and a task. the Task consumes data emited by the channel.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="flowsaber.core.task.GetContext">
+<em class="property">class </em><code class="sig-prename descclassname">flowsaber.core.task.</code><code class="sig-name descname">GetContext</code><span class="sig-paren">(</span><em class="sig-param">check_fn: Callable = None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.GetContext" title="Permalink to this definition">¶</a></dt>
+<dd><p>Emit context endlessly, this is aimed for building dependency between flow and input context/config.
+it’s optional, users can also change parameters for different flowruns by rebuilding the flow.
+However, to make it also work in remote execution, the flow is supposed to read parameters from output of this task.
+Also note that, since the flow upload to server are built flow, the structure of flow is fixed, python expressions
+like if, will not work again as to change the structure. With the help of this task, it can simulate some sort of
+dynamics.</p>
+<p><strong>Methods:</strong></p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code>()</p></td>
+<td><p>The method users need to implement for processing the data emited by _input channels.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="flowsaber.core.task.GetContext.run">
+<code class="sig-name descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.task.GetContext.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>The method users need to implement for processing the data emited by _input channels.
+Parameters
+———-
+args
+kwargs</p>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="exception">
@@ -560,82 +596,85 @@ initial context, thus make the flow’s workdir configurable.</p>
 <tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Concat" title="flowsaber.core.operators.Concat"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Concat</span></code></a>([num_out])</p></td>
 <td><p>Data in channels are concatenated in the order of _input channels.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Count" title="flowsaber.core.operators.Count"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Count</span></code></a>(**kwargs)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Constant" title="flowsaber.core.operators.Constant"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Constant</span></code></a>(**kwargs)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Distinct" title="flowsaber.core.operators.Distinct"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Distinct</span></code></a>(**kwargs)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Count" title="flowsaber.core.operators.Count"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Count</span></code></a>(**kwargs)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Distinct" title="flowsaber.core.operators.Distinct"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Distinct</span></code></a>(**kwargs)</p></td>
 <td><p>Remove continuously duplicated item.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Filter" title="flowsaber.core.operators.Filter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Filter</span></code></a>([by])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Filter" title="flowsaber.core.operators.Filter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Filter</span></code></a>([by])</p></td>
 <td><p>Filter item by the predicate function or the comparing identity.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.First" title="flowsaber.core.operators.First"><code class="xref py py-obj docutils literal notranslate"><span class="pre">First</span></code></a>(**kwargs)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.First" title="flowsaber.core.operators.First"><code class="xref py py-obj docutils literal notranslate"><span class="pre">First</span></code></a>(**kwargs)</p></td>
 <td><p>Take the first item</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Flatten" title="flowsaber.core.operators.Flatten"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Flatten</span></code></a>([max_level])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Flatten" title="flowsaber.core.operators.Flatten"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Flatten</span></code></a>([max_level])</p></td>
 <td><p>Flatten the _output of channel.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Get" title="flowsaber.core.operators.Get"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Get</span></code></a>(key[, default])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Get" title="flowsaber.core.operators.Get"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Get</span></code></a>(key[, default])</p></td>
 <td><p>Alias for GetItem task</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.GetItem" title="flowsaber.core.operators.GetItem"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GetItem</span></code></a>(key[, default])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.GetItem" title="flowsaber.core.operators.GetItem"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GetItem</span></code></a>(key[, default])</p></td>
 <td><p>Get item from the output of the input channel with specified key, like <cite>obj[key]</cite>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Group" title="flowsaber.core.operators.Group"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Group</span></code></a>([by, num, keep])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Group" title="flowsaber.core.operators.Group"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Group</span></code></a>([by, num, keep])</p></td>
 <td><p>return a new channel with item of Tuple(key_fn(_input), grouped_data_tuple), the group size can be specified.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Last" title="flowsaber.core.operators.Last"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Last</span></code></a>(**kwargs)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Last" title="flowsaber.core.operators.Last"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Last</span></code></a>(**kwargs)</p></td>
 <td><p>Take the last item</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Map" title="flowsaber.core.operators.Map"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Map</span></code></a>(by, **kwargs)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Map" title="flowsaber.core.operators.Map"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Map</span></code></a>(by, **kwargs)</p></td>
 <td><p>Map each item to another item return by the specified map function into a new channel.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Max" title="flowsaber.core.operators.Max"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Max</span></code></a>([result])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Max" title="flowsaber.core.operators.Max"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Max</span></code></a>([result])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Merge" title="flowsaber.core.operators.Merge"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Merge</span></code></a>([num_out])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Merge" title="flowsaber.core.operators.Merge"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Merge</span></code></a>([num_out])</p></td>
 <td><p>Merge channels into a channel with _output of tuple.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Min" title="flowsaber.core.operators.Min"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Min</span></code></a>([result])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Min" title="flowsaber.core.operators.Min"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Min</span></code></a>([result])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Mix" title="flowsaber.core.operators.Mix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Mix</span></code></a>([num_out])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Mix" title="flowsaber.core.operators.Mix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Mix</span></code></a>([num_out])</p></td>
 <td><p>Data emitted bu channels are mixed into a single channel.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Operator" title="flowsaber.core.operators.Operator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Operator</span></code></a>([num_out])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Operator" title="flowsaber.core.operators.Operator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Operator</span></code></a>([num_out])</p></td>
 <td><p>Base class for all operators, subclass of BaseTask, all operators runs in the main loop in sequence and do not have runners and run states.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Reduce" title="flowsaber.core.operators.Reduce"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Reduce</span></code></a>(by[, result])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Reduce" title="flowsaber.core.operators.Reduce"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Reduce</span></code></a>(by[, result])</p></td>
 <td><p>Similar to normal reduce.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Sample" title="flowsaber.core.operators.Sample"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Sample</span></code></a>([num])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Sample" title="flowsaber.core.operators.Sample"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Sample</span></code></a>([num])</p></td>
 <td><p>Randomly sample at most <cite>num</cite> number of _input emitted by the channel using reservoir algorithm(should visit all elements.).</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Select" title="flowsaber.core.operators.Select"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Select</span></code></a>(key[, default])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Select" title="flowsaber.core.operators.Select"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Select</span></code></a>(key[, default])</p></td>
 <td><p>Alias for GetItem task.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Split" title="flowsaber.core.operators.Split"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Split</span></code></a>(num, **kwargs)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Split" title="flowsaber.core.operators.Split"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Split</span></code></a>(num, **kwargs)</p></td>
 <td><p>Used when _output is tuple/list, use split to split each item of the tuple into a unique channel.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Subscribe" title="flowsaber.core.operators.Subscribe"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Subscribe</span></code></a>([on_next, on_complete])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Subscribe" title="flowsaber.core.operators.Subscribe"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Subscribe</span></code></a>([on_next, on_complete])</p></td>
 <td><p>specify on_next or on_complete function as callbacks of these two event.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Sum" title="flowsaber.core.operators.Sum"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Sum</span></code></a>(**kwargs)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Sum" title="flowsaber.core.operators.Sum"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Sum</span></code></a>(**kwargs)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Take" title="flowsaber.core.operators.Take"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Take</span></code></a>([num])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Take" title="flowsaber.core.operators.Take"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Take</span></code></a>([num])</p></td>
 <td><p>Only take the first <cite>num</cite> number of items</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Unique" title="flowsaber.core.operators.Unique"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Unique</span></code></a>(**kwargs)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Unique" title="flowsaber.core.operators.Unique"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Unique</span></code></a>(**kwargs)</p></td>
 <td><p>Emit items at most once(no duplicate).</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Until" title="flowsaber.core.operators.Until"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Until</span></code></a>(by, **kwargs)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.Until" title="flowsaber.core.operators.Until"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Until</span></code></a>(by, **kwargs)</p></td>
 <td><p>“Take items until meet a stop marker.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.View" title="flowsaber.core.operators.View"><code class="xref py py-obj docutils literal notranslate"><span class="pre">View</span></code></a>(**kwargs)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.View" title="flowsaber.core.operators.View"><code class="xref py py-obj docutils literal notranslate"><span class="pre">View</span></code></a>([fmt])</p></td>
 <td><p>Print each item emitted by the channel, Equals to call Subscribe(on_next=print)</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.var" title="flowsaber.core.operators.var"><code class="xref py py-obj docutils literal notranslate"><span class="pre">var</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.core.operators.var" title="flowsaber.core.operators.var"><code class="xref py py-obj docutils literal notranslate"><span class="pre">var</span></code></a></p></td>
 <td><p>alias of <a class="reference internal" href="#flowsaber.core.operators.Count" title="flowsaber.core.operators.Count"><code class="xref py py-class docutils literal notranslate"><span class="pre">flowsaber.core.operators.Count</span></code></a></p></td>
 </tr>
 </tbody>
@@ -719,6 +758,29 @@ kwargs</p>
 </dd></dl>
 
 <dl class="class">
+<dt id="flowsaber.core.operators.Constant">
+<em class="property">class </em><code class="sig-prename descclassname">flowsaber.core.operators.</code><code class="sig-name descname">Constant</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.operators.Constant" title="Permalink to this definition">¶</a></dt>
+<dd><p><strong>Methods:</strong></p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.core.operators.Constant.initialize_output" title="flowsaber.core.operators.Constant.initialize_output"><code class="xref py py-obj docutils literal notranslate"><span class="pre">initialize_output</span></code></a>()</p></td>
+<td><p>Create _output channels according to self.num_output</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="flowsaber.core.operators.Constant.initialize_output">
+<code class="sig-name descname">initialize_output</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.operators.Constant.initialize_output" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create _output channels according to self.num_output</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
 <dt id="flowsaber.core.operators.Count">
 <em class="property">class </em><code class="sig-prename descclassname">flowsaber.core.operators.</code><code class="sig-name descname">Count</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.operators.Count" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -766,7 +828,7 @@ kwargs</p>
 
 <dl class="class">
 <dt id="flowsaber.core.operators.Flatten">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.core.operators.</code><code class="sig-name descname">Flatten</code><span class="sig-paren">(</span><em class="sig-param">max_level: int = None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.operators.Flatten" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">flowsaber.core.operators.</code><code class="sig-name descname">Flatten</code><span class="sig-paren">(</span><em class="sig-param">max_level: int = 1</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.operators.Flatten" title="Permalink to this definition">¶</a></dt>
 <dd><p>Flatten the _output of channel.</p>
 <p><strong>Methods:</strong></p>
 <table class="longtable docutils align-default">
@@ -1150,7 +1212,7 @@ kwargs</p>
 
 <dl class="class">
 <dt id="flowsaber.core.operators.View">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.core.operators.</code><code class="sig-name descname">View</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.operators.View" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">flowsaber.core.operators.</code><code class="sig-name descname">View</code><span class="sig-paren">(</span><em class="sig-param">fmt='{x}'</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.operators.View" title="Permalink to this definition">¶</a></dt>
 <dd><p>Print each item emitted by the channel, Equals to call Subscribe(on_next=print)</p>
 </dd></dl>
 
@@ -1170,14 +1232,11 @@ kwargs</p>
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.tasks.shell.CommandTask" title="flowsaber.tasks.shell.CommandTask"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CommandTask</span></code></a>(**kwargs)</p></td>
-<td><p>Task used for composing bash command based on outputs data of channels.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.tasks.shell.ShellFlow" title="flowsaber.tasks.shell.ShellFlow"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ShellFlow</span></code></a>(**kwargs)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.tasks.shell.ShellTask" title="flowsaber.tasks.shell.ShellTask"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ShellTask</span></code></a>(**kwargs)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.tasks.shell.BashTask" title="flowsaber.tasks.shell.BashTask"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BashTask</span></code></a>(**kwargs)</p></td>
 <td><p>Task that execute bash command by using subprocess.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.tasks.shell.ShellTask" title="flowsaber.tasks.shell.ShellTask"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ShellTask</span></code></a>(**kwargs)</p></td>
+<td><p>Task used for composing bash command and then execute the command.</p></td>
 </tr>
 </tbody>
 </table>
@@ -1197,12 +1256,9 @@ kwargs</p>
 </tbody>
 </table>
 <dl class="class">
-<dt id="flowsaber.tasks.shell.CommandTask">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.tasks.shell.</code><code class="sig-name descname">CommandTask</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.tasks.shell.CommandTask" title="Permalink to this definition">¶</a></dt>
-<dd><p>Task used for composing bash command based on outputs data of channels. Users need to implement the
-command method.
-Note that the _output Channel of this task simply emits composed bash command in str type, and this
-bash command needs to be actually executed by ShellTask.</p>
+<dt id="flowsaber.tasks.shell.BashTask">
+<em class="property">class </em><code class="sig-prename descclassname">flowsaber.tasks.shell.</code><code class="sig-name descname">BashTask</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.tasks.shell.BashTask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Task that execute bash command by using subprocess.</p>
 <p><strong>Methods:</strong></p>
 <table class="longtable docutils align-default">
 <colgroup>
@@ -1210,128 +1266,54 @@ bash command needs to be actually executed by ShellTask.</p>
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.tasks.shell.CommandTask.command" title="flowsaber.tasks.shell.CommandTask.command"><code class="xref py py-obj docutils literal notranslate"><span class="pre">command</span></code></a>(*args, **kwargs)</p></td>
-<td><p>Users need to implement this function to compose the final bash command.</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.tasks.shell.BashTask.execute_command" title="flowsaber.tasks.shell.BashTask.execute_command"><code class="xref py py-obj docutils literal notranslate"><span class="pre">execute_command</span></code></a>(cmd, run_workdir[, envs])</p></td>
+<td><p>Run command in shell</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.tasks.shell.CommandTask.run" title="flowsaber.tasks.shell.CommandTask.run"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code></a>(*args, **kwargs)</p></td>
-<td><p>Users need to implement this function to compose the final bash command.</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.tasks.shell.BashTask.get_publish_dirs" title="flowsaber.tasks.shell.BashTask.get_publish_dirs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_publish_dirs</span></code></a>(flow_workdir, …)</p></td>
+<td><p>Get absolute path of configured publish dirs.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.tasks.shell.BashTask.glob_output_files" title="flowsaber.tasks.shell.BashTask.glob_output_files"><code class="xref py py-obj docutils literal notranslate"><span class="pre">glob_output_files</span></code></a>(item, run_workdir, …)</p></td>
+<td><p>Iterate over the item hierarchically and convert in-place and glob found str into Files and collect them into the third parameter.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.tasks.shell.BashTask.run" title="flowsaber.tasks.shell.BashTask.run"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code></a>(cmd[, output, envs])</p></td>
+<td><p>This method should be thread safe, can not run functions depends one process-base attributes like ENV, ….</p></td>
 </tr>
 </tbody>
 </table>
 <dl class="method">
-<dt id="flowsaber.tasks.shell.CommandTask.command">
-<code class="sig-name descname">command</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#flowsaber.tasks.shell.CommandTask.command" title="Permalink to this definition">¶</a></dt>
-<dd><p>Users need to implement this function to compose the final bash command.</p>
-<blockquote>
-<div><p>The returned value of this method represents the expected outputs after executing the
-composed bash command in shell:</p>
-<blockquote>
-<div><ol class="arabic simple">
-<li><p>None represents the output is stdout.</p></li>
-<li><p>str variables represents glob syntax for files in the working directory.</p></li>
-</ol>
-</div></blockquote>
-<dl>
-<dt>To tell flowsaber what’s the composed bash command, users has two options:</dt><dd><p>1: Assign the composed command to a variable named CMD.
-2: Write virtual fstring as the docstring of command method. All variables in the command method</p>
-<blockquote>
-<div><p>scoped can be used freely.</p>
-</div></blockquote>
-</dd>
-</dl>
-<p>Here are some examples:</p>
-<blockquote>
-<div><dl class="simple">
-<dt>class A(CommandTask):</dt><dd><dl class="simple">
-<dt>def command(self, fa, fasta):</dt><dd><p>“bwa map -t {self.context.cpu} {fa} {fasta} -o {bam_file}”
-bam_file = “test.bam”
-return bam_file</p>
-</dd>
-</dl>
-</dd>
-<dt>class B(CommandTask):</dt><dd><dl class="simple">
-<dt>def command(self, file):</dt><dd><p>a = “xxxx”
-b = ‘xxxx’
-CMD = f”echo {a}</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</div></blockquote>
-</div></blockquote>
-<dl class="simple">
-<dt>“</dt><dd><p>f”echo {b}</p>
-</dd>
-</dl>
-<dl>
-<dt>“</dt><dd><blockquote>
-<div><blockquote>
-<div><p>f”cat {file}”</p>
-</div></blockquote>
-<p># here implicitly returned a None, represents the _output of cmd is stdout</p>
-</div></blockquote>
-<p>args
-kwargs</p>
-</dd>
-</dl>
+<dt id="flowsaber.tasks.shell.BashTask.execute_command">
+<code class="sig-name descname">execute_command</code><span class="sig-paren">(</span><em class="sig-param">cmd: str, run_workdir: Union[str, pathlib.Path], envs: dict = None</em><span class="sig-paren">)</span> &#x2192; Tuple[pathlib.Path, pathlib.Path]<a class="headerlink" href="#flowsaber.tasks.shell.BashTask.execute_command" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run command in shell</p>
+<p>cmd
+run_workdir
+envs</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="flowsaber.tasks.shell.CommandTask.run">
-<code class="sig-name descname">run</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#flowsaber.tasks.shell.CommandTask.run" title="Permalink to this definition">¶</a></dt>
-<dd><p>Users need to implement this function to compose the final bash command.</p>
-<blockquote>
-<div><p>The returned value of this method represents the expected outputs after executing the
-composed bash command in shell:</p>
-<blockquote>
-<div><ol class="arabic simple">
-<li><p>None represents the output is stdout.</p></li>
-<li><p>str variables represents glob syntax for files in the working directory.</p></li>
-</ol>
-</div></blockquote>
-<dl>
-<dt>To tell flowsaber what’s the composed bash command, users has two options:</dt><dd><p>1: Assign the composed command to a variable named CMD.
-2: Write virtual fstring as the docstring of command method. All variables in the command method</p>
-<blockquote>
-<div><p>scoped can be used freely.</p>
-</div></blockquote>
-</dd>
-</dl>
-<p>Here are some examples:</p>
-<blockquote>
-<div><dl class="simple">
-<dt>class A(CommandTask):</dt><dd><dl class="simple">
-<dt>def command(self, fa, fasta):</dt><dd><p>“bwa map -t {self.context.cpu} {fa} {fasta} -o {bam_file}”
-bam_file = “test.bam”
-return bam_file</p>
-</dd>
-</dl>
-</dd>
-<dt>class B(CommandTask):</dt><dd><dl class="simple">
-<dt>def command(self, file):</dt><dd><p>a = “xxxx”
-b = ‘xxxx’
-CMD = f”echo {a}</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</div></blockquote>
-</div></blockquote>
-<dl class="simple">
-<dt>“</dt><dd><p>f”echo {b}</p>
-</dd>
-</dl>
-<dl>
-<dt>“</dt><dd><blockquote>
-<div><blockquote>
-<div><p>f”cat {file}”</p>
-</div></blockquote>
-<p># here implicitly returned a None, represents the _output of cmd is stdout</p>
-</div></blockquote>
-<p>args
-kwargs</p>
-</dd>
-</dl>
+<dt id="flowsaber.tasks.shell.BashTask.get_publish_dirs">
+<em class="property">static </em><code class="sig-name descname">get_publish_dirs</code><span class="sig-paren">(</span><em class="sig-param">flow_workdir, configured_publish_dirs: List[str]</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.tasks.shell.BashTask.get_publish_dirs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get absolute path of configured publish dirs.</p>
+<p>flow_workdir
+configured_publish_dirs</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="flowsaber.tasks.shell.BashTask.glob_output_files">
+<em class="property">classmethod </em><code class="sig-name descname">glob_output_files</code><span class="sig-paren">(</span><em class="sig-param">item, run_workdir, collect_files: List[flowsaber.core.utility.target.File]</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.tasks.shell.BashTask.glob_output_files" title="Permalink to this definition">¶</a></dt>
+<dd><p>Iterate over the item hierarchically and convert in-place and glob found str into Files
+and collect them into the third parameter.</p>
+<p>item
+run_workdir
+collect_files</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="flowsaber.tasks.shell.BashTask.run">
+<code class="sig-name descname">run</code><span class="sig-paren">(</span><em class="sig-param">cmd: str</em>, <em class="sig-param">output=None</em>, <em class="sig-param">envs: dict = None</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.tasks.shell.BashTask.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method should be thread safe, can not run functions depends one process-base attributes like ENV, ….</p>
+<p>cmd
+output
+envs: dict</p>
 </dd></dl>
 
 </dd></dl>
@@ -1342,14 +1324,12 @@ kwargs</p>
 <dd></dd></dl>
 
 <dl class="class">
-<dt id="flowsaber.tasks.shell.ShellFlow">
-<em class="property">class </em><code class="sig-prename descclassname">flowsaber.tasks.shell.</code><code class="sig-name descname">ShellFlow</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.tasks.shell.ShellFlow" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
 <dt id="flowsaber.tasks.shell.ShellTask">
 <em class="property">class </em><code class="sig-prename descclassname">flowsaber.tasks.shell.</code><code class="sig-name descname">ShellTask</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.tasks.shell.ShellTask" title="Permalink to this definition">¶</a></dt>
-<dd><p>Task that execute bash command by using subprocess.</p>
+<dd><p>Task used for composing bash command and then execute the command. Users need to implement the
+command method.
+Note that the _output Channel of this task simply emits composed bash command in str type, and this
+bash command needs to be actually executed by ShellTask.</p>
 <p><strong>Methods:</strong></p>
 <table class="longtable docutils align-default">
 <colgroup>
@@ -1357,54 +1337,146 @@ kwargs</p>
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.tasks.shell.ShellTask.execute_shell_command" title="flowsaber.tasks.shell.ShellTask.execute_shell_command"><code class="xref py py-obj docutils literal notranslate"><span class="pre">execute_shell_command</span></code></a>(cmd, run_workdir[, envs])</p></td>
-<td><p>Run command in shell</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.tasks.shell.ShellTask.command" title="flowsaber.tasks.shell.ShellTask.command"><code class="xref py py-obj docutils literal notranslate"><span class="pre">command</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Users need to implement this function to compose the final bash command.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.tasks.shell.ShellTask.get_publish_dirs" title="flowsaber.tasks.shell.ShellTask.get_publish_dirs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_publish_dirs</span></code></a>(flow_workdir, …)</p></td>
-<td><p>Get absolute path of configured publish dirs.</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.tasks.shell.ShellTask.run" title="flowsaber.tasks.shell.ShellTask.run"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Users need to implement this function to compose the final bash command.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.tasks.shell.ShellTask.glob_output_files" title="flowsaber.tasks.shell.ShellTask.glob_output_files"><code class="xref py py-obj docutils literal notranslate"><span class="pre">glob_output_files</span></code></a>(item, run_workdir, …)</p></td>
-<td><p>Iterate over the item hierarchically and convert in-place and glob found str into Files and collect them into the third parameter.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#flowsaber.tasks.shell.ShellTask.run" title="flowsaber.tasks.shell.ShellTask.run"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code></a>(cmd[, output, envs])</p></td>
-<td><p>This method should be thread safe, can not run functions depends one process-base attributes like ENV, ….</p></td>
+</tbody>
+</table>
+<p><strong>Attributes:</strong></p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#flowsaber.tasks.shell.ShellTask.task_hash" title="flowsaber.tasks.shell.ShellTask.task_hash"><code class="xref py py-obj docutils literal notranslate"><span class="pre">task_hash</span></code></a></p></td>
+<td><p>get the task_hash of this task defined by the real source code of self.run</p></td>
 </tr>
 </tbody>
 </table>
 <dl class="method">
-<dt id="flowsaber.tasks.shell.ShellTask.execute_shell_command">
-<code class="sig-name descname">execute_shell_command</code><span class="sig-paren">(</span><em class="sig-param">cmd: str, run_workdir: Union[str, pathlib.Path], envs: dict = None</em><span class="sig-paren">)</span> &#x2192; Tuple[pathlib.Path, pathlib.Path]<a class="headerlink" href="#flowsaber.tasks.shell.ShellTask.execute_shell_command" title="Permalink to this definition">¶</a></dt>
-<dd><p>Run command in shell</p>
-<p>cmd
-run_workdir
-envs</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="flowsaber.tasks.shell.ShellTask.get_publish_dirs">
-<em class="property">static </em><code class="sig-name descname">get_publish_dirs</code><span class="sig-paren">(</span><em class="sig-param">flow_workdir, configured_publish_dirs: List[str]</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.tasks.shell.ShellTask.get_publish_dirs" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get absolute path of configured publish dirs.</p>
-<p>flow_workdir
-configured_publish_dirs</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="flowsaber.tasks.shell.ShellTask.glob_output_files">
-<em class="property">classmethod </em><code class="sig-name descname">glob_output_files</code><span class="sig-paren">(</span><em class="sig-param">item, run_workdir, collect_files: List[flowsaber.core.utility.target.File]</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.tasks.shell.ShellTask.glob_output_files" title="Permalink to this definition">¶</a></dt>
-<dd><p>Iterate over the item hierarchically and convert in-place and glob found str into Files
-and collect them into the third parameter.</p>
-<p>item
-run_workdir
-collect_files</p>
+<dt id="flowsaber.tasks.shell.ShellTask.command">
+<code class="sig-name descname">command</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#flowsaber.tasks.shell.ShellTask.command" title="Permalink to this definition">¶</a></dt>
+<dd><p>Users need to implement this function to compose the final bash command.</p>
+<blockquote>
+<div><p>The returned value of this method represents the expected outputs after executing the
+composed bash command in shell:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p>None represents the output is stdout.</p></li>
+<li><p>str variables represents glob syntax for files in the working directory.</p></li>
+</ol>
+</div></blockquote>
+<dl>
+<dt>To tell flowsaber what’s the composed bash command, users has two options:</dt><dd><p>1: Assign the composed command to a variable named CMD.
+2: Write virtual fstring as the docstring of command method. All variables in the command method</p>
+<blockquote>
+<div><p>scoped can be used freely.</p>
+</div></blockquote>
+</dd>
+</dl>
+<p>Here are some examples:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>class A(CommandTask):</dt><dd><dl class="simple">
+<dt>def command(self, fa, fasta):</dt><dd><p>“bwa map -t {self.context.cpu} {fa} {fasta} -o {bam_file}”
+bam_file = “test.bam”
+return bam_file</p>
+</dd>
+</dl>
+</dd>
+<dt>class B(CommandTask):</dt><dd><dl class="simple">
+<dt>def command(self, file):</dt><dd><p>a = “xxxx”
+b = ‘xxxx’
+CMD = f”echo {a}</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</div></blockquote>
+</div></blockquote>
+<dl class="simple">
+<dt>“</dt><dd><p>f”echo {b}</p>
+</dd>
+</dl>
+<dl>
+<dt>“</dt><dd><blockquote>
+<div><blockquote>
+<div><p>f”cat {file}”</p>
+</div></blockquote>
+<p># here implicitly returned a None, represents the _output of cmd is stdout</p>
+</div></blockquote>
+<p>args
+kwargs</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="flowsaber.tasks.shell.ShellTask.run">
-<code class="sig-name descname">run</code><span class="sig-paren">(</span><em class="sig-param">cmd: str</em>, <em class="sig-param">output=None</em>, <em class="sig-param">envs: dict = None</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.tasks.shell.ShellTask.run" title="Permalink to this definition">¶</a></dt>
-<dd><p>This method should be thread safe, can not run functions depends one process-base attributes like ENV, ….</p>
-<p>cmd
-output
-envs: dict</p>
+<code class="sig-name descname">run</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#flowsaber.tasks.shell.ShellTask.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Users need to implement this function to compose the final bash command.</p>
+<blockquote>
+<div><p>The returned value of this method represents the expected outputs after executing the
+composed bash command in shell:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p>None represents the output is stdout.</p></li>
+<li><p>str variables represents glob syntax for files in the working directory.</p></li>
+</ol>
+</div></blockquote>
+<dl>
+<dt>To tell flowsaber what’s the composed bash command, users has two options:</dt><dd><p>1: Assign the composed command to a variable named CMD.
+2: Write virtual fstring as the docstring of command method. All variables in the command method</p>
+<blockquote>
+<div><p>scoped can be used freely.</p>
+</div></blockquote>
+</dd>
+</dl>
+<p>Here are some examples:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>class A(CommandTask):</dt><dd><dl class="simple">
+<dt>def command(self, fa, fasta):</dt><dd><p>“bwa map -t {self.context.cpu} {fa} {fasta} -o {bam_file}”
+bam_file = “test.bam”
+return bam_file</p>
+</dd>
+</dl>
+</dd>
+<dt>class B(CommandTask):</dt><dd><dl class="simple">
+<dt>def command(self, file):</dt><dd><p>a = “xxxx”
+b = ‘xxxx’
+CMD = f”echo {a}</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</div></blockquote>
+</div></blockquote>
+<dl class="simple">
+<dt>“</dt><dd><p>f”echo {b}</p>
+</dd>
+</dl>
+<dl>
+<dt>“</dt><dd><blockquote>
+<div><blockquote>
+<div><p>f”cat {file}”</p>
+</div></blockquote>
+<p># here implicitly returned a None, represents the _output of cmd is stdout</p>
+</div></blockquote>
+<p>args
+kwargs</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="flowsaber.tasks.shell.ShellTask.task_hash">
+<em class="property">property </em><code class="sig-name descname">task_hash</code><a class="headerlink" href="#flowsaber.tasks.shell.ShellTask.task_hash" title="Permalink to this definition">¶</a></dt>
+<dd><p>get the task_hash of this task defined by the real source code of self.run</p>
 </dd></dl>
 
 </dd></dl>
@@ -1502,10 +1574,10 @@ kwargs</p>
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ComponentCallError</span></code></p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ComponentCallError</span></code>(*args[, trace_back])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ComponentExecuteError</span></code>(*args[, futures])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ComponentExecuteError</span></code>(*args[, futures, …])</p></td>
 <td><p></p></td>
 </tr>
 </tbody>
@@ -1622,12 +1694,12 @@ kwargs</p>
 
 <dl class="exception">
 <dt id="flowsaber.core.base.ComponentCallError">
-<em class="property">exception </em><code class="sig-prename descclassname">flowsaber.core.base.</code><code class="sig-name descname">ComponentCallError</code><a class="headerlink" href="#flowsaber.core.base.ComponentCallError" title="Permalink to this definition">¶</a></dt>
+<em class="property">exception </em><code class="sig-prename descclassname">flowsaber.core.base.</code><code class="sig-name descname">ComponentCallError</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">trace_back=None</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.base.ComponentCallError" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="exception">
 <dt id="flowsaber.core.base.ComponentExecuteError">
-<em class="property">exception </em><code class="sig-prename descclassname">flowsaber.core.base.</code><code class="sig-name descname">ComponentExecuteError</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">futures=None</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.base.ComponentExecuteError" title="Permalink to this definition">¶</a></dt>
+<em class="property">exception </em><code class="sig-prename descclassname">flowsaber.core.base.</code><code class="sig-name descname">ComponentExecuteError</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">futures=None</em>, <em class="sig-param">trace_back=None</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.base.ComponentExecuteError" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
@@ -1927,7 +1999,7 @@ to fetched the data emitted by the channel.</p>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">values</span></code>(1, 2, 3, 4, 5)</p></td>
 <td><p>QueueChannel created by this method will always include a END signal</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">view</span></code>(*args, **kwargs)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">view</span></code>(*args[, fmt])</p></td>
 <td><p>Print each item emitted by the channel, Equals to call Subscribe(on_next=print)</p></td>
 </tr>
 </tbody>
@@ -1970,7 +2042,7 @@ to fetched the data emitted by the channel.</p>
 
 <dl class="method">
 <dt id="flowsaber.core.channel.ChannelBase.flatten">
-<code class="sig-name descname">flatten</code><span class="sig-paren">(</span><em class="sig-param">*args: Union[object, flowsaber.core.channel.Channel], max_level: int = None, **kwargs</em><span class="sig-paren">)</span> &#x2192; Union[Sequence[flowsaber.core.channel.Channel], flowsaber.core.channel.Channel]<a class="headerlink" href="#flowsaber.core.channel.ChannelBase.flatten" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">flatten</code><span class="sig-paren">(</span><em class="sig-param">*args: Union[object, flowsaber.core.channel.Channel], max_level: int = 1, **kwargs</em><span class="sig-paren">)</span> &#x2192; Union[Sequence[flowsaber.core.channel.Channel], flowsaber.core.channel.Channel]<a class="headerlink" href="#flowsaber.core.channel.ChannelBase.flatten" title="Permalink to this definition">¶</a></dt>
 <dd><p>Flatten the _output of channel.</p>
 </dd></dl>
 
@@ -2088,7 +2160,7 @@ using reservoir algorithm(should visit all elements.).</p>
 
 <dl class="method">
 <dt id="flowsaber.core.channel.ChannelBase.view">
-<code class="sig-name descname">view</code><span class="sig-paren">(</span><em class="sig-param">*args: Union[object, flowsaber.core.channel.Channel], **kwargs</em><span class="sig-paren">)</span> &#x2192; Union[Sequence[flowsaber.core.channel.Channel], flowsaber.core.channel.Channel]<a class="headerlink" href="#flowsaber.core.channel.ChannelBase.view" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">view</code><span class="sig-paren">(</span><em class="sig-param">*args: Union[object, flowsaber.core.channel.Channel], fmt='{x}', **kwargs</em><span class="sig-paren">)</span> &#x2192; Union[Sequence[flowsaber.core.channel.Channel], flowsaber.core.channel.Channel]<a class="headerlink" href="#flowsaber.core.channel.ChannelBase.view" title="Permalink to this definition">¶</a></dt>
 <dd><p>Print each item emitted by the channel, Equals to call Subscribe(on_next=print)</p>
 </dd></dl>
 
@@ -2365,13 +2437,16 @@ implementing <cite>hash</cite> method. Hash of inputs can be further used to wri
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">File</span></code>(*args, **kwargs)</p></td>
 <td><p>Wrapping of <cite>pathlib.Path</cite>, with features including integrity checking …</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Stdin</span></code>(src, **kwargs)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Folder</span></code>(*args, **kwargs)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Stdin</span></code>(src, **kwargs)</p></td>
 <td><p>Represents stdin from a string or File.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Stdout</span></code>(*args, **kwargs)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Stdout</span></code>(*args, **kwargs)</p></td>
 <td><p>Ugly way, Use File to store stdout.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Target</span></code>(**kwargs)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">Target</span></code>(**kwargs)</p></td>
 <td><p>Target represents item emitted by Channel.</p></td>
 </tr>
 </tbody>
@@ -2387,6 +2462,11 @@ implementing <cite>hash</cite> method. Hash of inputs can be further used to wri
 <em class="property">class </em><code class="sig-prename descclassname">flowsaber.core.utility.target.</code><code class="sig-name descname">File</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.utility.target.File" title="Permalink to this definition">¶</a></dt>
 <dd><p>Wrapping of <cite>pathlib.Path</cite>, with features including integrity checking …</p>
 </dd></dl>
+
+<dl class="class">
+<dt id="flowsaber.core.utility.target.Folder">
+<em class="property">class </em><code class="sig-prename descclassname">flowsaber.core.utility.target.</code><code class="sig-name descname">Folder</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#flowsaber.core.utility.target.Folder" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="class">
 <dt id="flowsaber.core.utility.target.Stdin">
