@@ -86,6 +86,9 @@ setup(
             'pysam',
             'matplotlib'
         ],
+        "bio": [
+            "botocore"
+        ]
     },
     python_requires='>=3.7, <4',
 )

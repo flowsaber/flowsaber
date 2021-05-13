@@ -66,12 +66,12 @@ def test_flow2():
         def run(self, dic):
             return '-'.join(str(k) for k in dic.keys())
 
-    class Shell1(ShellFlow):
+    class Shell1(ShellTask):
         def command(self, f: str):
             """echo '{f}' > {f}"""
             return f
 
-    class Shell2(ShellFlow):
+    class Shell2(ShellTask):
         def command(self, f: File):
             f1 = "t1.txt"
             f2 = "t2.txt"
@@ -82,7 +82,7 @@ def test_flow2():
               """
             return f1, f2
 
-    class Shell3(ShellFlow):
+    class Shell3(ShellTask):
         def command(self, f: File):
             """cat {f}"""
 

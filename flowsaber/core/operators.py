@@ -185,8 +185,12 @@ class View(Subscribe):
     """Print each item emitted by the channel, Equals to call Subscribe(on_next=print)
     """
 
-    def __init__(self, **kwargs):
-        super().__init__(on_next=print, **kwargs)
+    def __init__(self, fmt="{x}", **kwargs):
+        super().__init__(on_next=self.print, **kwargs)
+        self.fmt = fmt
+
+    def print(self, value):
+        print(self.fmt.format(x=value, self=self))
 
 
 class Map(Operator):
@@ -228,7 +232,7 @@ class Flatten(Operator):
     """Flatten the _output of channel.
     """
 
-    def __init__(self, max_level: int = None, **kwargs):
+    def __init__(self, max_level: int = 1, **kwargs):
         super().__init__(**kwargs)
         self.max_level = max_level or 999999999999
 
@@ -238,7 +242,7 @@ class Flatten(Operator):
 
         def traverse(items, level):
             try:
-                if level > self.max_level + 1:
+                if level >= self.max_level + 1:
                     raise TypeError
                 if isinstance(items, abc.Sequence) and not isinstance(items, str):
                     for _item in items:
@@ -344,6 +348,8 @@ class Take(Operator):
         if data is not END and self.num > 0:
             await self.enqueue_res(data)
             self.num -= 1
+            if self.num <= 0:
+                return END
 
 
 class First(Take):
@@ -351,6 +357,11 @@ class First(Take):
 
     def __init__(self, **kwargs):
         super().__init__(num=1, **kwargs)
+
+
+class Constant(First):
+    def initialize_output(self):
+        self.output = ConstantChannel()
 
 
 class Last(Operator):
@@ -425,6 +436,7 @@ view = View()
 unique = Unique()
 distinct = Distinct()
 first = First()
+constant = Constant()
 collect = Collect()
 last = Last()
 count = Count()

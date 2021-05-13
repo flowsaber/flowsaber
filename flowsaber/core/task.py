@@ -9,12 +9,13 @@ from dask.base import tokenize
 
 import flowsaber
 from flowsaber.core.base import Component, aenter_context
-from flowsaber.core.channel import Channel, Consumer, Output
+from flowsaber.core.channel import Channel, Consumer, Output, ConstantChannel
 from flowsaber.core.engine.task_runner import TaskRunner
 from flowsaber.core.utility.state import State, Done, Success, Failure
 from flowsaber.core.utility.target import File, END, Data
 from flowsaber.core.utils import class_deco
 from flowsaber.server.database.models import EdgeInput, TaskInput
+from flowsaber.utility.utils import change_cwd
 
 if TYPE_CHECKING:
     from flowsaber.core.engine.scheduler import TaskScheduler
@@ -33,7 +34,7 @@ class BaseTask(Component):
     And then push the processed result of each item into the _output channels. All items are handled in sequence.
     """
     default_config = {
-        'workdir': 'work'
+        'workdir': 'work',
     }
 
     def __init__(self, num_out: int = 1, **kwargs):
@@ -81,6 +82,8 @@ class BaseTask(Component):
         super().initialize_input(*args, **kwargs)
         channels = list(args) + list(kwargs.values())
         self.input = Consumer.from_channels(*channels, task=self)
+        if all(isinstance(q.ch, ConstantChannel) for q in self.input.queues):
+            flowsaber.context.logger.warn(f"All inputs of {self} are ConstantChannel")
         # register edges into the up-most flow
         for input_q in self.input.queues:
             edge = Edge(channel=input_q.ch, task=self)
@@ -112,7 +115,9 @@ class BaseTask(Component):
         kwargs
         """
         async for data in consumer:
-            await self.handle_input(data)
+            res = await self.handle_input(data)
+            if res is END:
+                break
         await self.handle_input(END)
 
     async def handle_input(self, data, *args, **kwargs):
@@ -206,18 +211,22 @@ class RunTask(BaseTask):
     """
     FUNC_PAIRS = [('run', '__call__', True)]
     default_config = {
-        'drop_error': False,
+        'cache_type': 'local',
+        'executor_type': 'dask',
+        'timeout': 0,
         'retry': 0,
         'retry_delay': 5,
-        'fork': 7,
+        'drop_error': False,
+        # resources
+        'fork': 1,
         'cpu': 1,
         'gpu': 0,
         'memory': 0.2,
         'time': 1,
         'io': 1,
-        'cache_type': 'local',
-        'executor_type': 'dask',
-        'timeout': 0
+        'resources_limit': {
+            'fork': 7,
+        },
     }
 
     def initialize_context(self):
@@ -289,7 +298,12 @@ class RunTask(BaseTask):
             k: data[len_args + i] for i, k in enumerate(self._input_kwargs.keys())
         }
 
-        run_data = inspect.signature(self.run).bind(*args, **kwargs)
+        run_sig = inspect.signature(self.run)
+        try:
+            run_data = run_sig.bind(*args, **kwargs)
+        except TypeError as exc:
+            raise ValueError(f"The input data: {data} can not be passed "
+                             f"to {self.run} with signature of {run_sig}") from exc
         run_data.apply_defaults()
         return run_data
 
@@ -326,7 +340,9 @@ class RunTask(BaseTask):
                 is_default = param.default is not inspect.Signature.empty and value == param.default
                 if not is_default and not isinstance(value, ano_type):
                     try:
-                        arguments[arg] = ano_type(value)
+                        # for File, Folder type, their path should be resolve in flow_workdir
+                        with change_cwd(self.context.get('flow_workdir', '')) as p:
+                            arguments[arg] = ano_type(value)
                     except Exception as e:
                         raise RunDataTypeError(f"The input argument `{arg}` has annotation `{ano_type}`, "
                                                f"but the input value `{value}` can not be converted.") from e
@@ -335,7 +351,10 @@ class RunTask(BaseTask):
                     raise RunDataFileNotFoundError(f"The argument {arg} has a File annotation, "
                                                    f"but the file {value} does not exists.")
             # 3. make sure each File's  checksum being computed, only check the first level
-            value = arguments[arg]
+            from copy import deepcopy
+            # if this function yield in await, the object may already being modifed. we make a deep copy
+            value = deepcopy(arguments[arg])
+            arguments[arg] = value
             values = [value] if not isinstance(value, (list, tuple, set)) else value
             for f in [v for v in values if isinstance(v, File)]:
                 if not f.initialized:
@@ -371,6 +390,10 @@ class Task(RunTask):
     3. Task's run will be executed in executor and handled by a task runner.
     4. Within the task runner, task will pass through a state machine, callbacks can be registered to each state changes.
     """
+
+    default_config = {
+        'run_workdir': "",
+    }
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -426,7 +449,7 @@ class Task(RunTask):
         workdir = Path(self.context['task_config']['workdir'], self.context['task_key'])
         if workdir.is_absolute():
             return workdir
-        workdir = Path(self.context['flow_config']['workdir'], workdir)
+        workdir = Path(self.context['up_flow_config']['workdir'], workdir)
         if workdir.is_absolute():
             return workdir
         workdir = Path(self.context['flow_workdir'], workdir)
@@ -547,5 +570,27 @@ class Edge(object):
         )
 
 
+class GetContext(RunTask):
+    """Emit context endlessly, this is aimed for building dependency between flow and input context/config.
+    it's optional, users can also change parameters for different flowruns by rebuilding the flow.
+    However, to make it also work in remote execution, the flow is supposed to read parameters from output of this task.
+    Also note that, since the flow upload to server are built flow, the structure of flow is fixed, python expressions
+    like if, will not work again as to change the structure. With the help of this task, it can simulate some sort of
+    dynamics.
+    """
+
+    def __init__(self, check_fn: Callable = None, **kwargs):
+        super().__init__(**kwargs)
+        self.check_fn = check_fn
+
+    def run(self):
+        import flowsaber
+        context = flowsaber.context.to_dict()
+        if self.check_fn:
+            self.check_fn(context)
+        return context
+
+
 run = class_deco(RunTask, 'run')
 task = class_deco(Task, 'run')
+get_context = GetContext()

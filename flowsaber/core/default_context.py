@@ -24,7 +24,7 @@ DEFAULT_CONTEXT = {
                "[{task_full_name}] [{flowrun_id:1.6}|{taskrun_id:1.6}] : {message}",
         'datefmt': "%Y-%m-%d %H:%M:%S",
         'style': '{',
-        'level': 'INFO',
+        'level': 'DEBUG',
         'buffer_size': 10,
         'context_attrs': [
             'flow_id',

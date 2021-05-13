@@ -2,6 +2,7 @@
 *$py.class
 *pdf
 *svg
+*.DS_Store
 tests/work
 tests/results
 tests/workdir

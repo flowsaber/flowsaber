@@ -101,6 +101,7 @@ def run(flow: Flow, server_address: str = None,
 
             await client.close()
             return flowrun_data
+
         if not loop.is_running():
             return asyncio.run(upload_and_run())
         else:

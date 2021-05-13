@@ -20,7 +20,9 @@ class Flow(Component):
     FUNC_PAIRS = [('run', '__call__', True)]
 
     default_config = {
-        'fork': 20,
+        'resources_limit': {
+            'fork': 20
+        }
     }
 
     def __init__(self, **kwargs):
@@ -131,7 +133,7 @@ class Flow(Component):
         # for the top most flow, clear context info, initialize executors, go to flow_worker
         if self.config_dict['id'] == self.context['flow_id']:
             flowsaber.context._info.clear()
-            with change_cwd(self.context.get('flow_workdir', '')):
+            with change_cwd(self.context.get('flow_workdir', '')) as p:
                 async with flowsaber.context:
                     await execute_child_components()
                     # for the top most flow, return None, since Flowrunner's returned final
