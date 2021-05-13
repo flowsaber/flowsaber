@@ -62,7 +62,7 @@ class ConstantQueue(object):
     def put_nowait(self, item):
         if not self.has_value.is_set():
             self.has_value.set()
-        self.value = item
+            self.value = item  # only set once
 
     async def put(self, item):
         self.put_nowait(item)

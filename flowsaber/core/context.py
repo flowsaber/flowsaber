@@ -118,6 +118,7 @@ class FlowSaberContext(Context):
         executor_type = self.executor_type
         if executor_type not in executors:
             self.logger.warning(f"The executor: {executor_type} not found. fall back to local")
+            executor_type = "local"  # set to local
         return executors[executor_type]
 
     @asynccontextmanager

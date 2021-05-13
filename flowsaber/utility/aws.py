@@ -5,15 +5,14 @@ Utility functions for interacting with AWS.
 import threading
 import warnings
 import weakref
-
-import prefect
+from typing import TYPE_CHECKING, Any, Optional, MutableMapping
 
 import boto3
-from typing import TYPE_CHECKING, Any, Optional, MutableMapping
+
+import flowsaber
 
 if TYPE_CHECKING:
     import botocore.client
-
 
 _CLIENT_CACHE = (
     weakref.WeakValueDictionary()
@@ -59,7 +58,7 @@ def get_boto_client(
         aws_secret_access_key = credentials["SECRET_ACCESS_KEY"]
         aws_session_token = credentials.get("SESSION_TOKEN")
     else:
-        ctx_credentials = prefect.context.get("secrets", {}).get("AWS_CREDENTIALS", {})
+        ctx_credentials = flowsaber.context.get("secrets", {}).get("AWS_CREDENTIALS", {})
         aws_access_key = ctx_credentials.get("ACCESS_KEY")
         aws_secret_access_key = ctx_credentials.get("SECRET_ACCESS_KEY")
         aws_session_token = ctx_credentials.get("SESSION_TOKEN")

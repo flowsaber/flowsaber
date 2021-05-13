@@ -1,5 +1,6 @@
 import functools
 import inspect
+import traceback
 from copy import deepcopy
 from enum import Enum
 from pathlib import Path
@@ -64,13 +65,16 @@ def aenter_context(method: Callable[..., Any]) -> Any:
 
 
 class ComponentExecuteError(RuntimeError):
-    def __init__(self, *args, futures=None):
+    def __init__(self, *args, futures=None, trace_back=None):
         super().__init__(*args)
         self.futures = futures or []
+        self.trace_back = trace_back
 
 
 class ComponentCallError(RuntimeError):
-    pass
+    def __init__(self, *args, trace_back=None):
+        super().__init__(*args)
+        self.trace_back = trace_back
 
 
 class ComponentMeta(type):
@@ -270,7 +274,8 @@ class Component(object, metaclass=ComponentMeta):
             build_output = new.call_build(*args, **kwargs)
             return build_output
         except BaseException as e:
-            raise ComponentCallError(str(e)) from e
+            tb = traceback.format_exc()
+            raise ComponentCallError(str(e), trace_back=tb) from e
 
     def __copy__(self):
         cls = type(self)
@@ -337,7 +342,7 @@ class Component(object, metaclass=ComponentMeta):
         # set up workdir build from the hierarchy of flows/tasks
         # flow's workdir and task's workdir is handled separately
         workdir = self.config_dict['workdir']
-        workdir = Path(workdir).expanduser().resolve()
+        workdir = Path(workdir).expanduser()  # do not resolve
         if workdir.is_absolute():
             workdir = str(workdir)
         else:
@@ -368,7 +373,8 @@ class Component(object, metaclass=ComponentMeta):
             res = await self.start_execute(**kwargs)
             return res
         except BaseException as e:
-            raise ComponentExecuteError(str(e)) from e
+            tb = traceback.format_exc()
+            raise ComponentExecuteError(str(e), trace_back=tb) from e
         finally:
             await self.end_execute()
             self.context = back_context

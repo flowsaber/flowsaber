@@ -1,12 +1,11 @@
 import os
+import shutil
 import subprocess
 from pathlib import Path
-from typing import List, Union, Tuple, Optional, Any
+from typing import List, Union, Tuple, Any
 
 import flowsaber
-from flowsaber.core.channel import Output
-from flowsaber.core.flow import Flow
-from flowsaber.core.task import Task, RunTask
+from flowsaber.core.task import Task
 from flowsaber.core.utility.target import Stdin, Stdout, File
 from flowsaber.core.utils import class_deco
 from flowsaber.utility.utils import change_cwd, capture_local
@@ -20,7 +19,7 @@ class CommandTaskComposeError(RuntimeError):
     pass
 
 
-class ShellTask(Task):
+class BashTask(Task):
     """Task that execute bash command by using subprocess.
     """
 
@@ -41,20 +40,23 @@ class ShellTask(Task):
         -------
 
         """
-        flow_workdir = self.context['flow_workdir']
-        run_workdir = self.context['run_workdir']
+        flow_workdir = self.context.get('flow_workdir', '')
+        run_workdir = self.context.get('run_workdir', '')
         # important! make sure run is atomic
-        Path(run_workdir).unlink(missing_ok=True)
-        # run bash command in shell with Popen
-        stdout_file, stderr_file = self.execute_shell_command(cmd, run_workdir, envs)
-        # 1. return stdout simulated by file
+        if Path(run_workdir).is_dir():
+            shutil.rmtree(run_workdir, ignore_errors=True)
+        # 1. run bash command in shell with Popen
+        stdout_file, stderr_file = self.execute_command(cmd, run_workdir, envs)
+
+        # 2. handle output
+        #   1. return stdout simulated by file
         if output is None:
             stdout_path = Path(stdout_file).resolve()
             stdout = Stdout(stdout_path)
             stdout.initialize_hash()
             return stdout
 
-        # 2. return globed files
+        #   2. return globed files
         collect_files: List[File] = []
         resolved_output = self.glob_output_files(output, run_workdir, collect_files)
         publish_dirs = self.get_publish_dirs(flow_workdir, self.config_dict.get('publish_dirs', []))
@@ -68,7 +70,7 @@ class ShellTask(Task):
                     file.link_to(pub_file)
         return resolved_output
 
-    def execute_shell_command(self, cmd: str, run_workdir: Union[str, Path], envs: dict = None) -> Tuple[Path, Path]:
+    def execute_command(self, cmd: str, run_workdir: Union[str, Path], envs: dict = None) -> Tuple[Path, Path]:
         """Run command in shell
 
         Parameters
@@ -172,16 +174,49 @@ class ShellTask(Task):
         return publish_dirs
 
 
-class CommandTask(RunTask):
-    """Task used for composing bash command based on outputs data of channels. Users need to implement the
+class ShellTask(BashTask):
+    """Task used for composing bash command and then execute the command. Users need to implement the
     command method.
     Note that the _output Channel of this task simply emits composed bash command in str type, and this
     bash command needs to be actually executed by ShellTask.
     """
     FUNC_PAIRS = [('command', 'run')]
 
-    def __init__(self, **kwargs):
-        super().__init__(num_out=2, **kwargs)
+    @property
+    def task_hash(self) -> str:
+        # TODO add function hash of command
+        return super().task_hash
+
+    def run(self, *args, **kwargs):
+        cmd, cmd_output = self.compose_command(*args, **kwargs)
+        return super().run(cmd, cmd_output)
+
+    def compose_command(self, *args, **kwargs) -> Tuple[str, Any]:
+        # TODO this cause error in debug mode, since settrace is forbidden in debug mode.
+        # TWO options: 1: use local var CMD or use docstring
+        with capture_local() as local_vars:
+            cmd_output = self.command(*args, **kwargs)
+        cmd = local_vars.get("CMD", None)
+        if cmd is None:
+            cmd = self.command.__doc__
+            if cmd is None:
+                raise CommandTaskComposeError("CommandTask must be registered with a shell commands by "
+                                              "assigning the commands into a CMD variable inside the function or "
+                                              "adding the commands as the command() method's documentation by "
+                                              "setting `__doc__`.")
+            local_vars.update({'self': self})
+            # TODO too dangerous
+            # use `cmd.format` is not enough for all cases
+            cmd = eval(f"f\"\"\"{cmd}\"\"\"", local_vars)
+
+        # add cat stdin cmd
+        stdins = [arg for arg in list(args) + list(kwargs.values()) if isinstance(arg, Stdin)]
+        if len(stdins) > 1:
+            raise CommandTaskComposeError(f"Found more than two stdin inputs: {stdins}")
+        stdin = f"{stdins[0]} " if len(stdins) else ""
+        cmd = f"{stdin}{cmd}"
+
+        return cmd, cmd_output
 
     def command(self, *args, **kwargs) -> str:
         """Users need to implement this function to compose the final bash command.
@@ -220,75 +255,6 @@ class CommandTask(RunTask):
         """
         raise NotImplementedError("Please implement this function and return a bash script.")
 
-    def compose_command(self, *args, **kwargs) -> Tuple[str, Any]:
-        # TODO this cause error in debug mode, since settrace is forbidden in debug mode.
-        # TWO options: 1: use local var CMD or use docstring
-        with capture_local() as local_vars:
-            cmd_output = self.command(*args, **kwargs)
-        cmd = local_vars.get("CMD", None)
-        if cmd is None:
-            cmd = self.command.__doc__
-            if cmd is None:
-                raise CommandTaskComposeError("CommandTask must be registered with a shell commands by "
-                                              "assigning the commands into a CMD variable inside the function or "
-                                              "adding the commands as the command() method's documentation by "
-                                              "setting `__doc__`.")
-            local_vars.update({'self': self})
-            # TODO too dangerous
-            # use `cmd.format` is not enough for all cases
-            cmd = eval(f"f\"\"\"{cmd}\"\"\"", local_vars)
 
-        # add cat stdin cmd
-        stdins = [arg for arg in list(args) + list(kwargs.values()) if isinstance(arg, Stdin)]
-        if len(stdins) > 1:
-            raise CommandTaskComposeError(f"Found more than two stdin inputs: {stdins}")
-        stdin = f"{stdins[0]} " if len(stdins) else ""
-        cmd = f"{stdin}{cmd}"
-
-        return cmd, cmd_output
-
-    def run(self, *args, **kwargs):
-        cmd, cmd_output = self.compose_command(*args, **kwargs)
-
-        return cmd, cmd_output
-
-
-class ShellFlow(Flow):
-    FUNC_PAIRS = [('command', 'run')]
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.command_task_: Optional[CommandTask] = None
-        self.shell_task_: Optional[ShellTask] = None
-
-    @property
-    def command_task(self) -> CommandTask:
-        if self.command_task_ is None:
-            self.command_task_ = command(type(self).command, **self.rest_kwargs)
-        return self.command_task_
-
-    @property
-    def shell_task(self) -> ShellTask:
-        if self.shell_task_ is None:
-            # rename shell_task's name to FlowNameShellTask
-            flow_name = self.config_dict['name']
-            if '[' in flow_name:
-                flow_name = flow_name[:flow_name.index('[')]
-            task_cls_name = flow_name + "ShellTask"
-            task_cls_name = task_cls_name[0].upper() + task_cls_name[1:]
-            self.shell_task_ = type(task_cls_name, (ShellTask,), {})(**self.rest_kwargs)
-        return self.shell_task_
-
-    def command(self, *args, **kwargs):
-        raise NotImplementedError("Users need to implement this method to indicate flowsaber how to "
-                                  "compose the bash command.")
-
-    def run(self, *args, **kwargs) -> Output:
-        cmd_ch, cmd_output_ch = self.command_task(*args, **kwargs)
-        output_ch = self.shell_task(cmd_ch, cmd_output_ch)
-
-        return output_ch
-
-
-command = class_deco(CommandTask, 'command')
-shell = class_deco(ShellFlow, 'command')
+bash = BashTask()
+shell = class_deco(ShellTask, 'command')

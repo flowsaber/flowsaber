@@ -1,24 +1,17 @@
 import re
-import shutil
-import tempfile
 import threading
 import urllib.request
-from pathlib import Path
 from typing import List
 
-from botocore import UNSIGNED
-from botocore.config import Config
-
 import flowsaber
-from flowsaber.core.task import Task
 from flowsaber.core.utility.target import File
-from flowsaber.utility.aws import get_boto_client
+from flowsaber.tasks.aws import S3LocalDownload
 
 FILE_LIST = None
 FILE_LIST_LOCK = threading.Lock()
 
 
-class FetchIgenome(Task):
+class FetchIgenome(S3LocalDownload):
     BUCKET_NAME = "ngi-igenomes"
     TYPE_SUFFIX = {
         "gtf": "Annotation/Genes/",
@@ -33,22 +26,22 @@ class FetchIgenome(Task):
         "abundantseq": "Sequence/AbundantSequences/",
         "smrna": "Annotation/SmallRNA/",
         "variation": "Annotation/Variation/",
-        "gatk": ""
+        "gatk": "",
+        "chromosizes": "Sequence/WholeGenomeFasta/GenomeSize.xml"
     }
     FILE_LIST_URL = "https://ewels.github.io/AWS-iGenomes/ngi-igenomes_file_manifest.txt"
-    DEFAULT_BOTO_KWARGS = {
-        'config': Config(signature_version=UNSIGNED)
-    }
 
     default_config = {
         'workdir': "/tmp/flowsaber_fetch_igenome"
     }
 
-    def __init__(self, boto_kwargs: dict = None, **kwargs):
-        super().__init__(**kwargs)
-        self.boto_kwargs = boto_kwargs or self.DEFAULT_BOTO_KWARGS
+    def run(self, type: str, genome: str = None, source: str = None, build: str = None) -> List[File]:
+        file_urls = self.fetch_files(type, genome, source, build)
+        flowsaber.context.logger.info(f"Start downloading i-genome files: {file_urls} for "
+                                      f"inputs: {genome=} {source=} {build=} {type=} to: {self.context['run_workdir']}")
+        return super().run(file_urls)
 
-    def inspect_files(self, type: str, genome: str, source: str, build) -> List[str]:
+    def fetch_files(self, type: str, genome: str, source: str, build) -> List[str]:
         """type is required, for example: bwa. genome, source, build should has at least one not-None value.
         """
         assert type and any((genome, source, build))
@@ -74,44 +67,11 @@ class FetchIgenome(Task):
         # only download files in the first level
         pprefix = f"s3://{self.BUCKET_NAME}"
         prefix = f"{pprefix}/igenomes/{genome}/{source}/{build}/{self.TYPE_SUFFIX[type]}"
-        fnames = [path[len(pprefix) + 1:]
+        fnames = [path
                   for path in path_list
                   if prefix in path and path.count('/') - prefix.count('/') == 0]
         assert fnames, f"No candidate file found with inputs: {type=} {genome=} {source=} {build=}"
         return fnames
-
-    def run(self, type: str, genome: str = None, source: str = None, build: str = None) -> List[File]:
-        run_workdir = self.context['run_workdir']
-        fnames = self.inspect_files(type, genome, source, build)
-
-        s3 = get_boto_client("s3", **self.boto_kwargs)
-
-        tmp_files = []
-        local_files = []
-        flowsaber.context.logger.info("Start downloading")
-        # for each file, download into a temporary directory, then move it the run_workdir
-        try:
-            flowsaber.context.logger.info(f"Start downloading {fnames} for "
-                                          f"inputs: {genome=} {source=} {build=} {type=}")
-            for fname in fnames:
-                flowsaber.context.logger.debug(f"Start downloading {fname}.")
-                # download into temp file
-                fd, path = tempfile.mkstemp()
-                tmp_files.append(path)
-                with open(fd, 'wb') as fstream:
-                    s3.download_fileobj(Bucket=self.BUCKET_NAME, Key=fname, Fileobj=fstream)
-                # move to run_workdir
-                local_file = Path(run_workdir, fname)
-                local_file.parent.mkdir(parents=True, exist_ok=True)  # mkdir
-                local_file.touch()  # touch
-                shutil.copy(path, local_file)  # move
-                local_files.append(File(local_file))
-                flowsaber.context.logger.debug(f"Done downloading {fname}, moved to {local_file}.")
-        finally:
-            for path in tmp_files:
-                Path(path).unlink(missing_ok=True)  # rm
-        # sort by filename length
-        return sorted(local_files, key=lambda x: len(str(x)))
 
 
 fetch_igenome = FetchIgenome()

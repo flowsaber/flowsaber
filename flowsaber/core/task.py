@@ -15,6 +15,7 @@ from flowsaber.core.utility.state import State, Done, Success, Failure
 from flowsaber.core.utility.target import File, END, Data
 from flowsaber.core.utils import class_deco
 from flowsaber.server.database.models import EdgeInput, TaskInput
+from flowsaber.utility.utils import change_cwd
 
 if TYPE_CHECKING:
     from flowsaber.core.engine.scheduler import TaskScheduler
@@ -81,6 +82,8 @@ class BaseTask(Component):
         super().initialize_input(*args, **kwargs)
         channels = list(args) + list(kwargs.values())
         self.input = Consumer.from_channels(*channels, task=self)
+        if all(isinstance(q.ch, ConstantChannel) for q in self.input.queues):
+            flowsaber.context.logger.warn(f"All inputs of {self} are ConstantChannel")
         # register edges into the up-most flow
         for input_q in self.input.queues:
             edge = Edge(channel=input_q.ch, task=self)
@@ -112,7 +115,9 @@ class BaseTask(Component):
         kwargs
         """
         async for data in consumer:
-            await self.handle_input(data)
+            res = await self.handle_input(data)
+            if res is END:
+                break
         await self.handle_input(END)
 
     async def handle_input(self, data, *args, **kwargs):
@@ -206,18 +211,23 @@ class RunTask(BaseTask):
     """
     FUNC_PAIRS = [('run', '__call__', True)]
     default_config = {
-        'drop_error': False,
-        'retry': 0,
-        'retry_delay': 5,
-        'fork': 7,
-        'cpu': 1,
-        'gpu': 0,
-        'memory': 0.2,
-        'time': 1,
-        'io': 1,
         'cache_type': 'local',
         'executor_type': 'dask',
-        'timeout': 0
+        'timeout': 0,
+        'retry': 0,
+        'retry_delay': 5,
+        'drop_error': False,
+        'resources': {
+            'fork': 1,
+            'cpu': 1,
+            'gpu': 0,
+            'memory': 0.2,
+            'time': 1,
+            'io': 1,
+        },
+        'resources_limit': {
+            'fork': 7,
+        },
     }
 
     def initialize_context(self):
@@ -289,7 +299,12 @@ class RunTask(BaseTask):
             k: data[len_args + i] for i, k in enumerate(self._input_kwargs.keys())
         }
 
-        run_data = inspect.signature(self.run).bind(*args, **kwargs)
+        run_sig = inspect.signature(self.run)
+        try:
+            run_data = run_sig.bind(*args, **kwargs)
+        except TypeError as exc:
+            raise ValueError(f"The input data: {data} can not be passed "
+                             f"to {self.run} with signature of {run_sig}") from exc
         run_data.apply_defaults()
         return run_data
 
@@ -326,7 +341,9 @@ class RunTask(BaseTask):
                 is_default = param.default is not inspect.Signature.empty and value == param.default
                 if not is_default and not isinstance(value, ano_type):
                     try:
-                        arguments[arg] = ano_type(value)
+                        # for File, Folder type, their path should be resolve in flow_workdir
+                        with change_cwd(self.context.get('flow_workdir', '')) as p:
+                            arguments[arg] = ano_type(value)
                     except Exception as e:
                         raise RunDataTypeError(f"The input argument `{arg}` has annotation `{ano_type}`, "
                                                f"but the input value `{value}` can not be converted.") from e
@@ -335,7 +352,10 @@ class RunTask(BaseTask):
                     raise RunDataFileNotFoundError(f"The argument {arg} has a File annotation, "
                                                    f"but the file {value} does not exists.")
             # 3. make sure each File's  checksum being computed, only check the first level
-            value = arguments[arg]
+            from copy import deepcopy
+            # if this function yield in await, the object may already being modifed. we make a deep copy
+            value = deepcopy(arguments[arg])
+            arguments[arg] = value
             values = [value] if not isinstance(value, (list, tuple, set)) else value
             for f in [v for v in values if isinstance(v, File)]:
                 if not f.initialized:
@@ -430,7 +450,7 @@ class Task(RunTask):
         workdir = Path(self.context['task_config']['workdir'], self.context['task_key'])
         if workdir.is_absolute():
             return workdir
-        workdir = Path(self.context['flow_config']['workdir'], workdir)
+        workdir = Path(self.context['up_flow_config']['workdir'], workdir)
         if workdir.is_absolute():
             return workdir
         workdir = Path(self.context['flow_workdir'], workdir)
@@ -559,17 +579,17 @@ class GetContext(RunTask):
     like if, will not work again as to change the structure. With the help of this task, it can simulate some sort of
     dynamics.
     """
+
     def __init__(self, check_fn: Callable = None, **kwargs):
         super().__init__(**kwargs)
         self.check_fn = check_fn
 
-    def initialize_output(self):
-        self.output = ConstantChannel()
-
     def run(self):
+        import flowsaber
+        context = flowsaber.context.to_dict()
         if self.check_fn:
-            self.check_fn(self.context)
-        return self.context
+            self.check_fn(context)
+        return context
 
 
 run = class_deco(RunTask, 'run')

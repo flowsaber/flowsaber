@@ -79,6 +79,28 @@ class File(Target):
         return self.hash
 
 
+class Folder(Target):
+    def __new__(cls, *args, **kwargs):
+        obj = super().__new__(cls)
+        obj.path = Path(*args).expanduser().resolve()
+        return obj
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(**kwargs)
+
+        if not self.path.is_dir():
+            flowsaber.context.logger.debug(f"Folder {self.path} does not exists.")
+
+    def __getattr__(self, item):
+        return getattr(self.path, item)
+
+    def __str__(self):
+        return str(self.path)
+
+    def __repr__(self):
+        return f"Folder('{self}')"
+
+
 class Stdout(File):
     """Ugly way, Use File to store stdout.
     In the idealist implementation, stdout and stdin can be piped/linked across machines over network.
