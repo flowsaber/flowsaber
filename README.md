@@ -33,13 +33,15 @@
 
 ### Features
 
-- Dataflow-like flow/task composing syntax inspired from `nextflow` 's DSL2.
+- Intutive syntax: Dataflow-like flow/task composing syntax similar to function call.
+  - Inspired from `nextflow` 's DSL2.
 - Pure python: No DSL, Import/Compose/Modify Task/Flow python objects at will.
-    - Extensible and interactive due to dynamic nature of Python.
-        - Task Cache.
-        - ...
+  - Extensible and interactive due to dynamic nature of Python.
+      - Task Cache.
+      - ...
+- Concurrent: Task runs implicitly parallel in asyncio event loop.
 - Distributable: Use Dask distributed as Task executor, can deploy in local, cluster, cloud.
-- Hybrid model.
+- Hybrid execution model.
     - Build Flow in Local python or web UI.
     - Schedule/Monitor flow execution in remote server through python or web UI.
 
