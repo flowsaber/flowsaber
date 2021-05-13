@@ -217,14 +217,13 @@ class RunTask(BaseTask):
         'retry': 0,
         'retry_delay': 5,
         'drop_error': False,
-        'resources': {
-            'fork': 1,
-            'cpu': 1,
-            'gpu': 0,
-            'memory': 0.2,
-            'time': 1,
-            'io': 1,
-        },
+        # resources
+        'fork': 1,
+        'cpu': 1,
+        'gpu': 0,
+        'memory': 0.2,
+        'time': 1,
+        'io': 1,
         'resources_limit': {
             'fork': 7,
         },
