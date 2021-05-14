@@ -181,5 +181,18 @@ class Flow(Component):
         assert initialized_flow.initialized
         return initialized_flow
 
+    def create_flow(self, server: str):
+        from flowsaber.client.client import Client
+
+        async def _create_flow():
+            c = Client(server)
+            return await c.mutation("create_flow", self.serialize(), "id name")
+
+        loop = asyncio.get_event_loop()
+        if loop and loop.is_running():
+            return asyncio.create_task(_create_flow())
+        else:
+            return asyncio.run(_create_flow())
+
 
 flow = class_deco(Flow, 'run')
