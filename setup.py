@@ -63,6 +63,7 @@ setup(
     zip_safe=False,
     classifiers=classifiers,
     install_requires=[
+        "uvloop",
         'makefun',
         'cloudpickle',
         'dask',
@@ -71,6 +72,7 @@ setup(
         'aiohttp',
         'pydantic',
         'fire',
+        'pyeasyga',
         # server libs
         'ariadne',
         'uvicorn',

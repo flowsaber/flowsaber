@@ -219,14 +219,13 @@ class RunTask(BaseTask):
         'drop_error': False,
         # resources
         'fork': 1,
-        'cpu': 1,
+        'cpu': 0.1,
         'gpu': 0,
+        'io': 0,
         'memory': 0.2,
         'time': 1,
-        'io': 1,
-        'resources_limit': {
-            'fork': 7,
-        },
+        # resources limit
+        'resource_limit': {},
     }
 
     def initialize_context(self):
@@ -262,7 +261,7 @@ class RunTask(BaseTask):
             job_coro = self.handle_run_data(run_data, **kwargs)
             # add_task to scheduler
             if scheduler:
-                fut = scheduler.create_task(job_coro)
+                fut = scheduler.create_task(job_coro, data=self)
             else:
                 fut = asyncio.create_task(job_coro)
             futures.append(fut)

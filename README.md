@@ -101,6 +101,8 @@ run(workflow)
 This is a bioinformatics workflow, rewrite verion of [snakemake tutorial](https://snakemake.readthedocs.io/en/stable/tutorial/basics.html)
 
 ```python
+from flowsaber.api import *
+
 @shell
 def bwa(self, fa: File, fastq: File):  # input will be automatically converted if has type annotation
     """bwa mem -t {self.config.cpu} {fa} {fastq} | samtools view -Sb - > {fastq.stem}.bam"""
