@@ -20,8 +20,9 @@ class Flow(Component):
     FUNC_PAIRS = [('run', '__call__', True)]
 
     default_config = {
-        'resources_limit': {
-            'fork': 20
+        'resource_limit': {
+            'fork': 100000000,
+            'cpu': 100000,
         }
     }
 

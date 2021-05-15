@@ -2,6 +2,7 @@ import asyncio
 
 import flowsaber
 from flowsaber.core.base import enter_context
+from flowsaber.core.engine.resource import ResourceManager
 from flowsaber.core.engine.runner import (
     Runner, catch_to_failure, call_state_change_handlers, redirect_std_to_logger
 )
@@ -58,7 +59,8 @@ class FlowRunner(Runner):
         return state
 
     async def async_run_flow(self, **kwargs):
-        async with TaskScheduler() as scheduler:
+        resource_manager = ResourceManager(self.flow)
+        async with TaskScheduler(task_manger=resource_manager) as scheduler:
             res = await self.flow.start(scheduler=scheduler, **kwargs)
         return res
 
@@ -73,6 +75,4 @@ class FlowRunner(Runner):
                 'context': {},
             })
 
-        flowrun_input = FlowRunInput(**info)
-
-        return flowrun_input
+        return FlowRunInput(**info)

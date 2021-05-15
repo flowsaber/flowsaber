@@ -25,6 +25,8 @@ class BashTask(Task):
 
     default_config = {
         'publish_dirs': [],
+        # resources
+        'cpu': 1
     }
 
     def run(self, cmd: str, output=None, envs: dict = None):

@@ -11,20 +11,29 @@ def test_flow():
             a += 1
         return num + 1
 
+    @task
+    def multiply(num1, num2):
+        return num1 * num2
+
     @flow
     def myflow(num):
-        return num | add | add | view | add | view
+        num1 = num | add | add | view
+        return multiply(num, num1)
 
     num_ch = Channel.values(*list(range(5)))
-    initial_context = {
+    f = myflow(num_ch)
+    with flowsaber.context({
         'logging': {'level': "DEBUG"},
+        'flow_config': {
+            'resource_limit': {
+                'fork': 7
+            }
+        },
         'task_config': {
             'executor_type': "dask"
         }
-    }
-    with flowsaber.context(initial_context):
-        f = myflow(num_ch)
-    run(f)
+    }):
+        run(f)
 
 
 if __name__ == "__main__":

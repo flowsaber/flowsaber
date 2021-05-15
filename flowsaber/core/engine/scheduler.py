@@ -1,148 +1,130 @@
 import asyncio
 from concurrent.futures import ProcessPoolExecutor, Future
 from dataclasses import dataclass
-from functools import partial
-from typing import Set, Callable, Awaitable, Any, Sequence, Optional, Coroutine
-
-AsyncFunc = Callable[[Any], Awaitable[None]]
+from typing import Set, Any, Sequence, Optional, Coroutine
 
 
-class Solver(object):
-    """Multiple knapsack problem solver.
+@dataclass
+class Job(asyncio.Future):
+    coro: Coroutine
+    task: Optional[asyncio.Task] = None
+    data: Any = None
 
-    """
+    def cancel(self, *args, **kwargs) -> bool:
+        if self.task and not self.task.done():
+            self.task.cancel(*args, **kwargs)
+        return super().cancel(*args, **kwargs)
 
-    def solve(self, *args, **kwargs):
-        raise NotImplementedError
+    def __post_init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def __hash__(self):
+        return hash(self.coro)
 
 
-class GaSolver(Solver):
-    """Use genetic algorithm supplied by pyeasyga package to solve the mkp problem.
+class TaskManager(object):
 
-    """
+    def select_jobs(self, jobs: Sequence[Job]):
+        return [True] * len(jobs)
 
-    def __init__(self, score_func: Callable = None):
-        self.score_func = score_func
+    def job_start(self, job: Job):
+        pass
 
-    def solve(self, items: Sequence) -> Sequence:
-        from pyeasyga import pyeasyga
-        if len(items) <= 0 or self.score_func is None:
-            return items
-
-        ga = pyeasyga.GeneticAlgorithm(list(items))
-        ga.fitness_function = partial(self.fitness, self.score_func)
-        ga.run()
-        max_score, flags = ga.best_individual()
-
-        return max_score, flags
-
-    def fitness(self, score_func, individual, items: Sequence):
-        assert len(items)
-        total = None
-        for selected, item in zip(individual, items):
-            if selected:
-                if total is None:
-                    total = item
-                else:
-                    total += item
-        return score_func(total)
+    def job_end(self, job: Job):
+        pass
 
 
 class Scheduler(object):
     """Scheduler object should support create_task method that returns a Future object.
-
     """
 
     def create_task(self, *args, **kwargs) -> Future:
         raise NotImplementedError
 
 
-class TaskScheduler(Scheduler):
-    """A async task scheduler initialized with a scoring function. Each submited task is associated with a cost
-    function, submited tasks will be selected and runned to ensure a maximum score.
+class TaskSchedulerError(RuntimeError):
+    pass
 
+
+class TaskScheduler(Scheduler):
+    """Async task scheduler with support of a custom task_manger.
     """
 
-    @dataclass
-    class Job(asyncio.Future):
-        coro: Coroutine
-        task: Optional[asyncio.Task] = None
-        cost: Callable = None
-
-        def cancel(self, *args, **kwargs) -> bool:
-            if self.task and not self.task.done():
-                self.task.cancel(*args, **kwargs)
-            return super().cancel(*args, **kwargs)
-
-        def __post_init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-
-        def __hash__(self):
-            return hash(self.coro)
-
-    def __init__(self, wait_time=1, score_func: Callable = None):
-        self.pending_jobs: Set["TaskScheduler.Job"] = set()
-        self.running_jobs: Set["TaskScheduler.Job"] = set()
-        self.done_jobs: Set["TaskScheduler.Job"] = set()
-        self.solver = GaSolver(score_func=score_func)
+    def __init__(self, wait_time=1, task_manger: TaskManager = None):
+        self.pending_jobs: Set[Job] = set()
+        self.running_jobs: Set[Job] = set()
+        self.done_jobs: Set[Job] = set()
         self.error_jobs = []
+        # task_manager
+        self.task_manager = task_manger or TaskScheduler()
+        # loop related
         self.wait_time = wait_time
-        self.loop_fut: Optional[Future] = None
-
         self._running: Optional[asyncio.Event] = None
+        self._loop = None
+        self._loop_task: Optional[asyncio.Task] = None
 
     async def __aenter__(self):
-        """Becarefull, there may be situation in which error raised in async with, but the loop has
+        """Careful, there may be situation in which error raised in async with, but the loop has
         not been started yet. For this situation, we leave the async within only after the loop has been ran
 
         Returns
         -------
 
         """
+        loop = asyncio.get_running_loop()
+        assert loop.is_running(), "The scheduler should started within a running asyncio event loop"
+        self._loop = loop
+        # exception handler will not work if we assign it a variable, https://bugs.python.org/issue39839
         self._running = asyncio.Event()
-        self.loop_fut = asyncio.ensure_future(self.start_loop())
+        self._loop_task = asyncio.create_task(self.start_loop())
         await self._running.wait()
 
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         self._running.clear()
-        await self.loop_fut
+        await self._loop_task
         self._running = None
-        self.loop_fut = None
+        self._loop_task = None
+        self._loop = None
 
-    def create_task(self, coro: Coroutine, cost: Callable = None) -> "TaskScheduler.Job":
-        job = self.Job(coro, cost=cost)
-        # add to tasks
+    def create_task(self, coro: Coroutine, data=None) -> Job:
+        job = Job(coro, data=data)
         self.pending_jobs.add(job)
-        # self.tasks[task].wait_q.put_nowait(1)
         return job
 
     async def start_loop(self, **kwargs):
         assert self._running is not None, "Please use `async with scheduler` statement to start the scheduler"
         self._running.set()
 
-        while True:
-            # use multiple knapsack problem sover to find the best subset of jobs given score_func
-            try:
-                # TODO sometimes this leads to error
-                maydo = [job for job in self.pending_jobs if job.cost is not None]
-                mustdo = [job for job in self.pending_jobs if job.cost is None]
-                max_score, selected = self.solver.solve([job.cost() for job in maydo])
-                jobs = [job for i, job in enumerate(maydo) if selected[i]] + mustdo
-            except Exception:
-                jobs = tuple(self.pending_jobs)
+        try:
+            while True:
+                # break if not _running and no pending and _running jobs
+                await asyncio.sleep(self.wait_time)
+                if not self._running.is_set() and len(self.running_jobs) + len(self.pending_jobs) == 0:
+                    break
+                # use multiple knapsack problem sover to find the best subset of jobs given score_func
+                jobs = list(self.pending_jobs)
+                if not jobs:
+                    continue
+                selected = self.task_manager.select_jobs(jobs)
+                jobs = [job for i, job in enumerate(jobs) if selected[i]]
+                for job in jobs:
+                    job = self.run_job(job)
 
-            for job in jobs:
-                job = self.run_job(job)
-            # break if not _running and no pending and _running jobs
-            if not self._running.is_set() and len(self.running_jobs) + len(self.pending_jobs) == 0:
-                break
-            await asyncio.sleep(self.wait_time)
+        except Exception as exc:
+            raise TaskSchedulerError from exc
+        finally:
+            self._running.clear()
+            # this ensures the async task related to this schedule will return
+            for task in (self.pending_jobs | self.running_jobs):
+                task.cancel()
 
-    def run_job(self, job: "TaskScheduler.Job"):
-        async def _run_job():
+    def run_job(self, job: Job):
+        async def async_run_job():
             try:
+                # infer task_manager this job is started
+                self.task_manager.job_start(job)
                 res = await job.coro
             except Exception as e:
                 # record error, since the future are never been waited
@@ -151,14 +133,15 @@ class TaskScheduler(Scheduler):
             finally:
                 # always move to done
                 self.running_jobs.remove(job)
-                # self.done_jobs.add(job) # no need to store it
+                self.done_jobs.add(job)  # no need to store it
+                self.task_manager.job_end(job)
             return res
 
         # remove from pending to _running
         self.pending_jobs.remove(job)
         self.running_jobs.add(job)
 
-        # propogate exception or result
+        # propagate exception or result
         def run_job_done_callback(f: asyncio.Future):
             if f.cancelled():
                 if not job.done():
@@ -171,7 +154,7 @@ class TaskScheduler(Scheduler):
             else:
                 raise RuntimeError(f"Unexpected future {f}")
 
-        job.task = asyncio.create_task(_run_job())
+        job.task = asyncio.create_task(async_run_job())
         job.task.add_done_callback(run_job_done_callback)
 
         return job
